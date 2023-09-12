@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 
 #to use camera tracking and graph live update at the same time
-from multiprocessing import Process
+from multiprocessing import Process, freeze_support
 from multiprocessing.shared_memory import ShareableList
 
 #for camera and arm tracking (public library)
@@ -161,6 +161,9 @@ def update_data_helper(sl: ShareableList, normalized_landmark):
 
 #entrypoint
 if __name__ == '__main__':
+    # BD: allow multiprocessing app to be "frozen" into an executable file
+    freeze_support()
+    
     max_delta = 20 #func_anim framerate
     
     #init data
