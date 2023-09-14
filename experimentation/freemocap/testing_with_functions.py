@@ -328,7 +328,7 @@ run_formula_calculations()
 ### 3D PLOTTING
 
 # create and display 3D plot of the previously manipulated data
-def plot_data(body_data = freemocap_3d_body_data):
+def plot_body_data(body_data = freemocap_3d_body_data):
     # set to not display in scientific notation
     np.set_printoptions(suppress = True, precision = 3)
 
@@ -441,7 +441,8 @@ def plot_data(body_data = freemocap_3d_body_data):
 
     return fig
 
-plot_data().show()
+# plot the body data 
+plot_body_data().show()
 
 
 
@@ -461,4 +462,5 @@ def plot_bicep_forces(body_data = freemocap_3d_body_data):
     # plot bicep forces
     return plt
 
+# plot forces graph
 plot_bicep_forces().show()
