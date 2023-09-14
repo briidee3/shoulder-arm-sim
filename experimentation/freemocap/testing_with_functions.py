@@ -5,7 +5,7 @@
 
 import numpy as np
 import os
-from matplotlib import plotly as plt
+from matplotlib import pyplot as plt
 
 
 # freemocap default imports
@@ -322,6 +322,7 @@ def run_formula_calculations():
     freemocap_3d_body_data[:, 28, :] = np.rad2deg(theta) 
     freemocap_3d_body_data[:, 29, :] = np.rad2deg(phi)
 
+run_formula_calculations()
 
 
 ### 3D PLOTTING
@@ -424,7 +425,7 @@ def plot_data(body_data = freemocap_3d_body_data):
                     method='animate',
                     args=[None, {"frame": {"duration": 30}}]
                 ),
-                # add pause button  -BD
+                # add "pause" button
                 dict(
                     args = [[None], {"frame": {"duration": 0, "redraw": False},
                                     "mode": "immediate",
@@ -438,7 +439,9 @@ def plot_data(body_data = freemocap_3d_body_data):
     )
 
 
-    fig.show()
+    return fig
+
+plot_data().show()
 
 
 
@@ -456,6 +459,6 @@ def plot_bicep_forces(body_data = freemocap_3d_body_data):
     plt.xlim([0, 180])      # restrixt x axis to between 0 and 180 (degrees)
 
     # plot bicep forces
-    plt.show()
+    return plt
 
-
+plot_bicep_forces().show()
