@@ -15,8 +15,9 @@ import plotly.graph_objects as go
 from pathlib import Path
 
 
+# folder containing Freemocap recording to be read from
+data_folder = "recording_19_56_30_gmt-4"    # recording_19_51_41_gmt-4  
 
-data_folder = "recording_19_56_30_gmt-4"
 
 # initialize dataset and helper data arrays
 # the following 40-50 (or so) lines taken from the default output .ipynb from Freemocap (mostly without custom changes)
