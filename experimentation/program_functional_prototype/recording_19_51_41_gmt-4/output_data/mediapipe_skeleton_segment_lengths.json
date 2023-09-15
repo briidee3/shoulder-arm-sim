@@ -1,0 +1,97 @@
+{
+    "lower_spine": {
+        "median": 143.66622820024932,
+        "mean": 148.5922030961582,
+        "standard_deviation": 14.446450223080976
+    },
+    "upper_spine": {
+        "median": 143.66622820024935,
+        "mean": 148.5922030961582,
+        "standard_deviation": 14.446450223080973
+    },
+    "head": {
+        "median": 113.12541622213631,
+        "mean": 119.72103439988302,
+        "standard_deviation": 16.6479944833826
+    },
+    "left_clavicle": {
+        "median": 91.03290116990995,
+        "mean": 91.0910956009269,
+        "standard_deviation": 8.515240846857083
+    },
+    "left_upper_arm": {
+        "median": 144.07470505433068,
+        "mean": 146.37375230569293,
+        "standard_deviation": 17.532956799365827
+    },
+    "left_forearm": {
+        "median": 147.9265804887321,
+        "mean": 147.66711409961692,
+        "standard_deviation": 23.623910053601076
+    },
+    "left_hand": {
+        "median": 47.9299194922197,
+        "mean": 47.301662555842015,
+        "standard_deviation": 9.198690817544229
+    },
+    "right_clavicle": {
+        "median": 91.0329011699099,
+        "mean": 91.0910956009269,
+        "standard_deviation": 8.515240846857086
+    },
+    "right_upper_arm": {
+        "median": 139.20033524876476,
+        "mean": 144.01952581195533,
+        "standard_deviation": 22.80599287301455
+    },
+    "right_forearm": {
+        "median": 130.56034902564573,
+        "mean": 135.52010559098625,
+        "standard_deviation": 27.773520826395774
+    },
+    "right_hand": {
+        "median": 37.713702949431614,
+        "mean": 37.72401411813588,
+        "standard_deviation": 9.353465783862106
+    },
+    "left_pelvis": {
+        "median": 60.768922183732265,
+        "mean": 61.219588423070675,
+        "standard_deviation": 7.222703863165723
+    },
+    "left_thigh": {
+        "median": 258.53892232516444,
+        "mean": 262.9402459172121,
+        "standard_deviation": 17.56066662827215
+    },
+    "left_calf": {
+        "median": 231.83973942620895,
+        "mean": 234.53993795889974,
+        "standard_deviation": 13.024258862006763
+    },
+    "left_foot": {
+        "median": 59.26157346207186,
+        "mean": 61.01929744926073,
+        "standard_deviation": 11.522868918572598
+    },
+    "right_pelvis": {
+        "median": 60.76892218373232,
+        "mean": 61.219588423070675,
+        "standard_deviation": 7.222703863165722
+    },
+    "right_thigh": {
+        "median": 235.7120458392105,
+        "mean": 239.8183898656384,
+        "standard_deviation": 16.891001160234943
+    },
+    "right_calf": {
+        "median": 234.80183542164815,
+        "mean": 239.2594992001541,
+        "standard_deviation": 16.46564494707872
+    },
+    "right_foot": {
+        "median": 56.35189518480068,
+        "mean": 62.42940666100428,
+        "standard_deviation": 14.274658225324362
+    }
+}
