@@ -95,7 +95,9 @@ def dist_between_vertices(first_part, second_part):     # parameters are the dat
 
 # get median of largest distances between vertices/bodyparts
 def max_dist_between_parts(dist_array):
-    ind = np.argpartition(dist_array, -30)[-30:]
+    #num_frames = int(np.shape(freemocap_3d_body_data[:,0,0])[0] * 0.05) # relative to length of capture recording
+    #ind = np.argpartition(dist_array, -num_frames)[-num_frames:-5]
+    ind = np.argpartition(dist_array, -50)[-50:-5]
     return np.median(dist_array[ind])
 
 
@@ -309,10 +311,11 @@ def run_formula_calculations():
     cgf = 2 * (f ** 2)                     # calculated via algebra using pre-existing average proportions data
 
     # angles
-    theta_arm = phi[:, 1] - (np.pi / 2)                         # angle at shoulder
-    theta_u = elbow_angle                                       # angle at elbow
+    theta_arm = (np.pi / 2) - phi[:, 1]                         # angle at shoulder
+    theta_uarm = (np.pi / 2) + phi[:, 2]                        # angle of upper arm
+    theta_u = theta_arm + theta_uarm                            # angle at elbow
     theta_b = np.pi - ( (b - u * np.cos(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) )      # angle at bicep insertion point
-    theta_la = np.sin(theta_u + theta_arm - (np.pi / 2))        # angle used for leverage arms fa and bal
+    theta_la = np.sin(theta_u - theta_arm - (np.pi / 2))        # angle used for leverage arms fa and bal
 
     # lever arms
     la_fa = cgf * theta_la                                      # forearm lever arm
@@ -328,7 +331,7 @@ def run_formula_calculations():
     # theta-arm, bicep force, theta-u
     freemocap_3d_body_data[:, 26, 0] = np.rad2deg(theta_arm)
     freemocap_3d_body_data[:, 26, 1] = force_bicep 
-    freemocap_3d_body_data[:, 26, 2] = np.rad2deg(elbow_angle)
+    freemocap_3d_body_data[:, 26, 2] = np.rad2deg(theta_u)
 
     # rho, theta, phi
     freemocap_3d_body_data[:, 27, :] = rho
@@ -465,7 +468,7 @@ plot_body_data().show()
 def plot_bicep_forces(body_data = freemocap_3d_body_data):
     # plot bicep force / theta_u
     y = np.abs(freemocap_3d_body_data[:, 26, 1])             # bicep force
-    x = np.rad2deg(elbow_angle)                     # angle at elbow
+    x = np.rad2deg(np.deg2rad(freemocap_3d_body_data[:, 26, 2]))                     # angle at elbow
 
     # plot
     plt.scatter(x, y)
