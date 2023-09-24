@@ -284,30 +284,39 @@ rho, theta, phi = get_spher_coords()
 
 # calculate forces of muscle exertions of the left arm
 def run_formula_calculations():
-    # convert rho from simulated units to metric units
-    rho = freemocap_3d_body_data[:, 27, :] * sim_to_real_conversion_factor
-
     h_p = 1.75    # meters      # height of person
     w_p = 90      # kilograms   # weight of person
     w_bal = 3     # kilograms   # weight of ball
 
+    # convert rho from simulated units to metric units
+    rho = freemocap_3d_body_data[:, 27, :] * calc_conversion_ratio(h_p)
 
     # equations used primarily from the paper labeled "shoulderarm3.pdf" in the dropbox, as well as some info from emails between Dr. Liu and I (Bri)
-    w_fa = w_p * 0.023                      # weight of forearm
-    cgf = h_p * 0.432 * 0.216               # center of gravity of forearm
-    f = h_p * 0.216                         # length of forearm
-    b = h_p * 0.11                          # dist between elbow and bicep insertion point
-    u = h_p * 0.173                         # length of upper arm
+    #w_fa = w_p * 0.023                      # weight of forearm
+    #cgf = h_p * 0.432 * 0.216               # center of gravity of forearm
+    #f = h_p * 0.216                         # length of forearm
+    #b = h_p * 0.11                          # dist between elbow and bicep insertion point
+    #u = h_p * 0.173                         # length of upper arm
 
+    # instead of using averages for segment length, use calculated instead
+    f = forearm_length                      
+    u = upperarm_length
+    b = u * 0.636                   # calculated via algebra using pre-existing average proportions data
+    w_fa = w_p * (f * 0.1065)       # use ratio of f to weight proportion to get weight with calculated f 
+    cgf = 3 * f                     # calculated via algebra using pre-existing average proportions data
+
+    # angles
     theta_arm = phi[:, 1] - (np.pi / 2)                         # angle at shoulder
     theta_u = elbow_angle                                       # angle at elbow
     theta_b = np.pi - ( (b - u * np.cos(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) )      # angle at bicep insertion point
     theta_la = np.sin(theta_u + theta_arm - (np.pi / 2))        # angle used for leverage arms fa and bal
 
+    # lever arms
     la_fa = cgf * theta_la                                      # forearm lever arm
     la_bal = f * theta_la                                       # ball lever arm
     la_bic = b * np.sin(theta_b)                                # bicep lever arm
 
+    # forces
     force_bicep = (w_fa * la_fa + w_bal * la_bal) / la_bic      # force applied by bicep muscle
 
 
