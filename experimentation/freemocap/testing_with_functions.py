@@ -95,8 +95,8 @@ def dist_between_vertices(first_part, second_part):     # parameters are the dat
 
 # get median of largest distances between vertices/bodyparts
 def max_dist_between_parts(dist_array):
-    ind = np.argpartition(dist_array, -40)[-40:-5]
-    return np.mean(dist_array[ind])
+    ind = np.argpartition(dist_array, -30)[-30:]
+    return np.median(dist_array[ind])
 
 
 
@@ -232,8 +232,8 @@ elbow_angle = np.arccos( ( (vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b
 freemocap_3d_body_data[:, 30, :] = np.swapaxes(vector_a, 0, 1)  # swapped axes due to shape of 2D array
 freemocap_3d_body_data[:, 31, :] = np.swapaxes(vector_b, 0, 1)
 
-freemocap_3d_body_data[:, 32, 0] = forearm_length * sim_to_real_conversion_factor
-freemocap_3d_body_data[:, 32, 1] = upperarm_length * sim_to_real_conversion_factor
+freemocap_3d_body_data[:, 32, 0] = forearm_length
+freemocap_3d_body_data[:, 32, 1] = upperarm_length
 freemocap_3d_body_data[:, 32, 2] = elbow_angle
 
 
@@ -288,8 +288,11 @@ def run_formula_calculations():
     w_p = 90      # kilograms   # weight of person
     w_bal = 3     # kilograms   # weight of ball
 
+    # convert sim units to metric units
+    conv_factor = calc_conversion_ratio(h_p)
+
     # convert rho from simulated units to metric units
-    rho = freemocap_3d_body_data[:, 27, :] * calc_conversion_ratio(h_p)
+    rho = freemocap_3d_body_data[:, 27, :] * conv_factor
 
     # equations used primarily from the paper labeled "shoulderarm3.pdf" in the dropbox, as well as some info from emails between Dr. Liu and I (Bri)
     #w_fa = w_p * 0.023                      # weight of forearm
@@ -299,11 +302,11 @@ def run_formula_calculations():
     #u = h_p * 0.173                         # length of upper arm
 
     # instead of using averages for segment length, use calculated instead
-    f = forearm_length                      
-    u = upperarm_length
+    f = rho[:, 2] * conv_factor
+    u = rho[:, 1] * conv_factor
     b = u * 0.636                   # calculated via algebra using pre-existing average proportions data
     w_fa = w_p * (f * 0.1065)       # use ratio of f to weight proportion to get weight with calculated f 
-    cgf = 3 * f                     # calculated via algebra using pre-existing average proportions data
+    cgf = 2 * (f ** 2)                     # calculated via algebra using pre-existing average proportions data
 
     # angles
     theta_arm = phi[:, 1] - (np.pi / 2)                         # angle at shoulder
