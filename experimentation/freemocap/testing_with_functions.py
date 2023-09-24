@@ -95,7 +95,7 @@ def dist_between_vertices(first_part, second_part):     # parameters are the dat
 
 # get median of largest distances between vertices/bodyparts
 def max_dist_between_parts(dist_array):
-    ind = (np.argpartition(dist_array, -20)[-20:-5])
+    ind = np.argpartition(dist_array, -20)[-20:]#-5]
     return np.median(dist_array[ind])
 
 
