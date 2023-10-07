@@ -119,7 +119,7 @@ sim_to_real_conversion_factor = calc_conversion_ratio()     # unit conversion ra
 ### DEPTH:
 
 # put everything for depth calculations into its own wrapper function to allow enabling/disabling 2D depth calculations'
-def do_depth()
+def do_depth():
     # put together pairs for each of the vertices
     # ordered in a particular manner which uses the shoulders as anchors for the elbows, and elbows as anchors for the wrists
     vertex_order = [
