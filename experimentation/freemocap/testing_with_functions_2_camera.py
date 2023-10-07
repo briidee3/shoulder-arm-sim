@@ -118,96 +118,103 @@ sim_to_real_conversion_factor = calc_conversion_ratio()     # unit conversion ra
 
 ### DEPTH:
 
-# put together pairs for each of the vertices
-# ordered in a particular manner which uses the shoulders as anchors for the elbows, and elbows as anchors for the wrists
-vertex_order = [
-    [
-        'left_shoulder',
-        'right_shoulder'
-    ],
-    [
-        'left_shoulder',
-        'left_elbow',
-        'left_wrist',
-    ],
-    [
-        'right_shoulder',
-        'right_elbow',
-        'right_wrist'
+# put everything for depth calculations into its own wrapper function to allow enabling/disabling 2D depth calculations'
+def do_depth()
+    # put together pairs for each of the vertices
+    # ordered in a particular manner which uses the shoulders as anchors for the elbows, and elbows as anchors for the wrists
+    vertex_order = [
+        [
+            'left_shoulder',
+            'right_shoulder'
+        ],
+        [
+            'left_shoulder',
+            'left_elbow',
+            'left_wrist',
+        ],
+        [
+            'right_shoulder',
+            'right_elbow',
+            'right_wrist'
+        ]
     ]
-]
 
-# calculate the angle of the segment (body part) from the normal (where it is longest)
-def angle_from_normal(cur_dist, max_dist):
-    return np.arccos(cur_dist / max_dist)
+    # calculate the angle of the segment (body part) from the normal (where it is longest)
+    def angle_from_normal(cur_dist, max_dist):
+        return np.arccos(cur_dist / max_dist)
 
-# get depth
-def get_depth(vertex_one, vertex_two):
-    dist_array = dist_between_vertices(vertex_one, vertex_two)
-    max_dist = max_dist_between_parts(dist_array)
-    depths = list()
-    for frame in dist_array:
-        angle = angle_from_normal(frame, max_dist)
-        depths.append(np.sin(angle) * max_dist)
-    return depths
-
-
-# get y axes by order of body parts
-def get_y_axes(vertex_order = vertex_order):
-    y = list()
-    for vertices in vertex_order:
-        group_y = list()
-        num_vertices = len(vertices)
-        for i, vertex in enumerate(vertices):
-            if i < (num_vertices - 1):
-                y_dist_between_vertices = np.nan_to_num(get_depth(get_bodypart_data(vertices[i]), get_bodypart_data(vertices[i + 1])))
-                if i > 0:
-                    vertex_y = group_y[i - 1] +  y_dist_between_vertices    # add y depth of anchor to current
-                else:
-                    vertex_y = y_dist_between_vertices
-                group_y.append(vertex_y)
-        y.append(group_y)
-    return y
+    # get depth
+    def get_depth(vertex_one, vertex_two):
+        dist_array = dist_between_vertices(vertex_one, vertex_two)
+        max_dist = max_dist_between_parts(dist_array)
+        depths = list()
+        for frame in dist_array:
+            angle = angle_from_normal(frame, max_dist)
+            depths.append(np.sin(angle) * max_dist)
+        return depths
 
 
-# get y axes
-y_axes = get_y_axes()
-# account for difference between shoulder y-axes
-y_axes[2] += y_axes[0]  # by adding it to the branch off the right shoulder
+    # get y axes by order of body parts
+    def get_y_axes(vertex_order = vertex_order):
+        y = list()
+        for vertices in vertex_order:
+            group_y = list()
+            num_vertices = len(vertices)
+            for i, vertex in enumerate(vertices):
+                if i < (num_vertices - 1):
+                    y_dist_between_vertices = np.nan_to_num(get_depth(get_bodypart_data(vertices[i]), get_bodypart_data(vertices[i + 1])))
+                    if i > 0:
+                        vertex_y = group_y[i - 1] +  y_dist_between_vertices    # add y depth of anchor to current
+                    else:
+                        vertex_y = y_dist_between_vertices
+                    group_y.append(vertex_y)
+            y.append(group_y)
+        return y
 
-# put together dictionary to coordinate vertex pairs and y-axes coordinates (calculated depth)
-depth_dict = {
-    'vertex_order': vertex_order,       # pairs of body parts/segments
-    'y_axes': y_axes,                   # approximated depth
-}
 
-# get indices for body parts used
-indices = list()
-for vertices in depth_dict['vertex_order']:
-    for vertex in vertices:
-        indices.append(get_index(vertex))
+    # get y axes
+    y_axes = get_y_axes()
+    # account for difference between shoulder y-axes
+    y_axes[2] += y_axes[0]  # by adding it to the branch off the right shoulder
+
+    # put together dictionary to coordinate vertex pairs and y-axes coordinates (calculated depth)
+    depth_dict = {
+        'vertex_order': vertex_order,       # pairs of body parts/segments
+        'y_axes': y_axes,                   # approximated depth
+    }
+
+    # get indices for body parts used
+    indices = list()
+    for vertices in depth_dict['vertex_order']:
+        for vertex in vertices:
+            indices.append(get_index(vertex))
 
 
-# approximate depth for the video recording
-def set_depth(depth_dict = depth_dict, body_data = freemocap_3d_body_data):
-    depth_body_data = body_data[:, :, 1]    # y axis of each part on each frame
+    # approximate depth for the video recording
+    def set_depth(depth_dict = depth_dict, body_data = freemocap_3d_body_data):
+        depth_body_data = body_data[:, :, 1]    # y axis of each part on each frame
 
-    # go through and set y-axes values accordingly
-    for i, order_group in enumerate(depth_dict['y_axes']):
-        cur_length = len(depth_dict['vertex_order'][i])
-        # go thru all vertices in current group
-        for j, vertex in enumerate(order_group):
-            if j < (cur_length - 1):
-                # set y axis for each vertex in the order group
-                cur_vertex = depth_dict['vertex_order'][i][j + 1]   # + 1 so that it applies to the non-anchor vertex
-                vertex_index = mediapipe_indices.index(cur_vertex)
-                body_data[:, vertex_index, 1] = np.append(vertex, 0)
+        # go through and set y-axes values accordingly
+        for i, order_group in enumerate(depth_dict['y_axes']):
+            cur_length = len(depth_dict['vertex_order'][i])
+            # go thru all vertices in current group
+            for j, vertex in enumerate(order_group):
+                if j < (cur_length - 1):
+                    # set y axis for each vertex in the order group
+                    cur_vertex = depth_dict['vertex_order'][i][j + 1]   # + 1 so that it applies to the non-anchor vertex
+                    vertex_index = mediapipe_indices.index(cur_vertex)
+                    body_data[:, vertex_index, 1] = np.append(vertex, 0)
 
-    body_data[:, :, 1] = depth_body_data
-    return body_data
+        body_data[:, :, 1] = depth_body_data
+        return body_data
 
-# set the depth for all body parts:
-freemocap_3d_body_data = set_depth(body_data = freemocap_3d_body_data)
+    # set the depth for all body parts:
+    freemocap_3d_body_data = set_depth(body_data = freemocap_3d_body_data)
+    
+    ## END OF FUNCTION do_depth()
+
+
+#do_depth()     # uncomment this line to enable 2D depth calculations (for 1 camera use)
 
 
 
