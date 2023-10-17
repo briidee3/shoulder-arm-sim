@@ -107,7 +107,6 @@ def max_dist_between_parts(dist_array):
 # calculate ratio for conversion of simulated units to metric units (meters) using wingspan and input real height
 def calc_conversion_ratio(real_height_metric = 1.78):
     # get ratio to real distance in meters
-    real_height_metric = 1.78     # meters
     sim_wingspan = np.max(dist_between_vertices(get_bodypart_data("left_index"), get_bodypart_data("right_index")))     # max distance between wrists via `freemocap`
 
     return real_height_metric / sim_wingspan
@@ -307,6 +306,36 @@ rho, theta, phi = get_spher_coords()
 #   segment in question (i.e. forearm) is forward or backwards. then, apply
 #   the original depth algorithm with that in consideration.
 #   
+
+# run depth orientation algorithm, 
+# input body segment (i.e. forearm)
+# output bool representing forward or backwards for given segment
+def find_segment_orientation(cur_segment_start = 11):   # using left shoulder as default
+    # bool representing orientation: forward = true, backward = false
+    orientation = True  # default to forwards
+
+    # get segment start from id number (i.e. 15 = elbow)
+    segment_start = freemocap_3d_body_data[:, cur_segment_start, :]
+    # end point of segment(temp setup for testing)
+    segment_end = freemocap_3d_body_data[:, (cur_segment_start + 2), :]     # referencing left elbow as default (for testing)
+
+    # calculate segment center
+    segment_center = segment_start
+    for i in (0, 2):    # only use x and z axis to avoid unnecessary computations (that's all )
+        # get center of segment as average of coordinates between segment start and end
+        segment_center[:,:,i] = (segment_start[:,:,i] + segment_end[:,:,i]) / 2
+    
+    # now the hard part: using color of coordinate in video
+
+    ## map vertices to the video
+
+    ## get the color at the vertices in the video
+
+    ## compare the colors at the vertices in the video
+
+
+    return orientation
+
 
 
 ### FORCES CALCULATIONS
