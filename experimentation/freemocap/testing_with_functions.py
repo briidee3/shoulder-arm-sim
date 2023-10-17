@@ -282,6 +282,33 @@ rho, theta, phi = get_spher_coords()
 
 
 
+### NEW DEPTH DETECTION ALGORITHM
+# This algorithm is pretty much completely different from the previous one 
+# I (Bri) developed, however this one may be more accurate for our use case.
+
+# The gist of it is as follows:
+# - for each body part (i.e. forearm) being tracked, do the following:
+#   - find the center of the segment (i.e. forearm)
+#   approximating depth change over time:
+#   - find the average difference in coordinates (x/z plane) from the center
+#       of the segment (i.e. forearm) to its edge
+#       - do this by moving perpendicular to the segment (i.e. forearm)
+#           until the color at the point in question is above a certain 
+#           threshold of difference in color. This will be how we estimate the
+#           width of the segment (i.e. forearm)
+#       - that was the hard part. now, analyze how this value changes over time.
+#           - when it is larger, the segment is closer. when smaller, it is farther.
+#   another potential thing to try:
+#       - find the color (with about 5-10% uncertainty) at that point over time
+#       - analyze how that color changes over time
+# try to use this in conjunction with the existing algorithm (used up till now)
+#   to try to minimize error and uncertainty. 
+# consider just using the old depth algorithm, then using this to detect whether the 
+#   segment in question (i.e. forearm) is forward or backwards. then, apply
+#   the original depth algorithm with that in consideration.
+#   
+
+
 ### FORCES CALCULATIONS
 
 # calculate forces of muscle exertions of the left arm
@@ -313,9 +340,9 @@ def run_formula_calculations():
     # angles
     theta_arm = (np.pi / 2) - phi[:, 1]                         # angle at shoulder
     theta_uarm = (np.pi / 2) + phi[:, 2]                        # angle of upper arm
-    theta_u = theta_arm + theta_uarm                            # angle at elbow
-    theta_b = np.pi - ( (b - u * np.cos(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) )      # angle at bicep insertion point
-    theta_la = np.sin(theta_uarm)        # angle used for leverage arms fa and bal
+    theta_u = elbow_angle      #theta_arm + theta_uarm                            # angle at elbow
+    theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
+    theta_la = np.cos(theta_uarm)        # angle used for leverage arms fa and bal
 
     # lever arms
     la_fa = cgf * theta_la                                      # forearm lever arm
@@ -468,7 +495,7 @@ plot_body_data().show()
 def plot_bicep_forces(body_data = freemocap_3d_body_data):
     # plot bicep force / theta_u
     y = np.abs(freemocap_3d_body_data[:, 26, 1])             # bicep force
-    x = np.rad2deg(np.deg2rad(elbow_angle))#freemocap_3d_body_data[:, 26, 2]))                     # angle at elbow
+    x = np.rad2deg(elbow_angle)#freemocap_3d_body_data[:, 26, 2]))                     # angle at elbow
 
     # plot
     plt.scatter(x,y)
