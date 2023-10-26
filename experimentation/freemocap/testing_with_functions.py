@@ -369,15 +369,9 @@ def run_formula_calculations():
     # angles
     theta_arm = (np.pi / 2) - phi[:, 1]                         # angle at shoulder
     theta_uarm = (np.pi / 2) + phi[:, 2]                        # angle of upper arm
-<<<<<<< HEAD
     theta_u = elbow_angle  #theta_arm + theta_uarm                            # angle at elbow
     theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
     theta_la = np.cos(theta_uarm)   #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
-=======
-    theta_u = elbow_angle      #theta_arm + theta_uarm                            # angle at elbow
-    theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
-    theta_la = np.cos(theta_uarm)        # angle used for leverage arms fa and bal
->>>>>>> 5506c1f85732373b9d43307e260bbe6246729f21
 
     # lever arms
     la_fa = cgf * theta_la                                      # forearm lever arm
