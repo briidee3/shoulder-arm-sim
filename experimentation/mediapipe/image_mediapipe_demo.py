@@ -37,7 +37,7 @@ def draw_landmarks_on_image(rgb_image, detection_result):
 
 
 img = cv2.imread("test_image.jpg")
-cv2.imshow('tstimg', img)
+cv2.imshow('tstimg', img)   # show basic image
 
 
 # create PoseLandmarker object
@@ -56,13 +56,13 @@ detection_result = detector.detect(image)
 
 # process the detection result; in this case, visualize it
 annotated_image = draw_landmarks_on_image(image.numpy_view(), detection_result)
-cv2.imshow('thing', cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
+cv2.imshow('thing', cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))   # show image with skeleton (spooky!!)
 
 
 # visualize pose segmentation mask
 segmentation_mask = detection_result.segmentation_masks[0].numpy_view()
 visualized_mask = np.repeat(segmentation_mask[:, :, np.newaxis], 3, axis = 2) * 255
-cv2.imshow('tstmask', visualized_mask)
+cv2.imshow('tstmask', visualized_mask)  # show image mask (of what is detected as human person being tracked)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
