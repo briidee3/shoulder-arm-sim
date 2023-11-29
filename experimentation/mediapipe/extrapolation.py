@@ -21,7 +21,7 @@ from matplotlib import pyplot as plt
 
 
 # placeholder ndarray to represent mediapipe data output
-mediapipe_data_output = freemocap_3d_body_data  # "freemocap_3d_body_data" is from previous iteration; used here for temporary clarification
+mediapipe_data_output = np.ndarray((1, 33, 3), dtype = "float64")  #freemocap_3d_body_data  # "freemocap_3d_body_data" is from previous iteration; used here for temporary clarification
 
 
 # IMPORTANT: set mediapipe_data_output for the current frame
@@ -210,7 +210,7 @@ def set_depth(depth_dict = depth_dict, body_data = mediapipe_data_output):
 # set the depth for all body parts:
 mediapipe_data_output = set_depth(body_data = mediapipe_data_output)
 
-x_shape = np.zeros(np.shape(mediapipe_data_output[:, 11:17:2, 0]))
+x_shape = mediapipe_data_output[:, 11:17:2, 0]  # tmp used for getting shape
 
 ### ELBOW ANGLE:
 def set_elbow_angle():

@@ -70,7 +70,7 @@ path_to_freemocap_3d_body_data_npy = path_to_recording/'output_data'/'mediapipe_
 freemocap_3d_body_data = np.load(path_to_freemocap_3d_body_data_npy)
 total_body_com_data = np.load(path_to_center_of_mass_npy)
 
-
+print("\n\n%s\n\n" % (str)((freemocap_3d_body_data.dtype)))
 
 ### HELPER FUNCTIONS:
 

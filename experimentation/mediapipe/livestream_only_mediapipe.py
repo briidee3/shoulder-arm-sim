@@ -26,30 +26,6 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-import extrapolation as ep      # functions from previous iteration of project
-
-
-
-### EXTRAPOLATION PIPELINE
-
-# given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
-def two_to_three(mediapipe_output):
-    # set the data for the current frame
-    ep.update_current_frame(mediapipe_output)
-
-    # calculate depth for given frame
-    y_axes = ep.get_y_axes()
-    y_axes[2] += y_axes[0]                      # account for difference between shoulder y-axes
-    ep.set_depth_dict(y_axes)                   # set up dictionary for coordinating vertices and y-axes
-    ep.set_depth()                              # set depth directly into data
-
-    # force calculations
-    ep.set_elbow_angle()                        # find angle at elbow
-    ep.set_spher_coords()                       # calculate spherical coordinates
-    ep.run_formula_calculations()               # calculate forces
-
-    # display forces graph
-    ep.plot_picep_forces().show()               # display a graph depicting calculated bicep forces
 
 
 ### OPTIONS
@@ -92,8 +68,6 @@ class Pose_detection():
             result_callback = self.draw_landmarks_on_frame
         )
         self.detector = PoseLandmarker.create_from_options(options)   # load landmarker model for use in detection
-        
-        two_to_three(PoseLandmarkerResult)  # initialize extrapolation
 
     # run the program
     def run(self):
@@ -158,12 +132,6 @@ class Pose_detection():
 
         # set current frame to annotated image
         self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
-        
-        
-        # depth and forces calculations
-        two_to_three(detection_result)
-        
-        
         return #?
 
 
