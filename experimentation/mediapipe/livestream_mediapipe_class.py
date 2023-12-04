@@ -30,26 +30,41 @@ import extrapolation as ep      # functions from previous iteration of project
 
 
 
-### EXTRAPOLATION PIPELINE
+# user input variables (treated as constants)
+user_height = 1.78      # height of the user
+user_weight = 90        # weight of the user
+
+# number of frames to wait between updates of certain data (so as to not bog down the machine each frame)
+tick_length = 60        # not used yet
+frame_counter = 0       # used for keeping track of current tick/frame
+
+
+
+### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
 
 # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
-def two_to_three(mediapipe_output):
+def extrapolate_depth(mediapipe_output):
     # set the data for the current frame
-    ep.update_current_frame(mediapipe_output)
+    ep.update_current_frame(mediapipe_output, frame_counter)                       # update mediapipe data
+    
+    # calculations that don't need to run each frame (hence run every "tick")
+    if (frame_counter % tick_length == 0):
+        ep.calc_conversion_ratio(real_height_metric = user_height)  # calculate conversion ratio (mediapipe units to meters)
 
     # calculate depth for given frame
-    y_axes = ep.get_y_axes()
-    y_axes[2] += y_axes[0]                      # account for difference between shoulder y-axes
-    ep.set_depth_dict(y_axes)                   # set up dictionary for coordinating vertices and y-axes
-    ep.set_depth()                              # set depth directly into data
+    ep.set_depth(ep.get_axes_set_depth_dict())                      # get depth_dict and calculate y axes values
 
+# calculate forces involved with muscles in the body
+def calc_body_forces():
     # force calculations
-    ep.set_elbow_angle()                        # find angle at elbow
-    ep.set_spher_coords()                       # calculate spherical coordinates
-    ep.run_formula_calculations()               # calculate forces
+    ep.set_elbow_angle()                                            # find angle at elbow
+    ep.set_spher_coords()                                           # calculate spherical coordinates
+    ep.run_formula_calculations()                                   # calculate forces
 
     # display forces graph
-    ep.plot_picep_forces().show()               # display a graph depicting calculated bicep forces
+    ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
+
+    frame_conter += 1                                               # update frame counter
 
 
 ### OPTIONS
@@ -59,12 +74,9 @@ pose_landmarker = './landmarkers/pose_landmarker_full.task'
 WIDTH = 640
 HEIGHT = 480
 
-
 # use opencv VideoCapture to start webcam capture
 webcam_stream = cv2.VideoCapture(0)     # make video capture object
 #ret, cur_frame = webcam_stream.read()   # called pre-loop for access outside of the loop
-
-
 
 # PoseLandmarker task object callback references
 BaseOptions = mp.tasks.BaseOptions
@@ -91,9 +103,10 @@ class Pose_detection():
             running_mode = VisionRunningMode.LIVE_STREAM,
             result_callback = self.draw_landmarks_on_frame
         )
-        self.detector = PoseLandmarker.create_from_options(options)   # load landmarker model for use in detection
+        self.detector = PoseLandmarker.create_from_options(options) # load landmarker model for use in detection
         
-        two_to_three(PoseLandmarkerResult)  # initialize extrapolation
+        extrapolate_depth(PoseLandmarkerResult, 0)                  # initialize extrapolation
+        ep.update_first_frame()
 
     # run the program
     def run(self):
@@ -121,10 +134,16 @@ class Pose_detection():
                     # display annotated image on screen
                     cv2.imshow( 'Live view + overlay (Press "q" to exit)', cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ) )
 
+                    
 
-                    # allow program to be quit when the "q" key is pressed or webcam stream gone
-                    #if (cv2.waitKey(1) & 0xFF == ord('q')) or ret != True:
-                    #    break            
+                    # perform forces calculations
+                    extrapolate_depth(ret)
+
+
+                    # allow resetting the data to allow others to use without restarting
+                    #ep.reset_dist_array()
+
+
         finally:
             # release capture object from memory
             webcam_stream.release()
@@ -161,7 +180,8 @@ class Pose_detection():
         
         
         # depth and forces calculations
-        two_to_three(detection_result)
+        extrapolate_depth(detection_result)
+        calc_body_forces()
         
         
         return #?
