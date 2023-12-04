@@ -110,16 +110,14 @@ class Extrapolate_forces():
 
     # IMPORTANT: set mediapipe_data_output for the current frame
     def update_current_frame(self, mp_data_out, current_frame):
-        print("a")
         # add data of current frame to dataset
         temp = np.zeros((1, 33, 3))                                                         # used for getting proper shape of ndarray to append
         temp[0, :, :] = mp_data_out                                                         # set only value of ndarray to mp_data_out
         self.mediapipe_data_output = np.append(self.mediapipe_data_output, temp, axis = 0)
-        print("b")
+        
         # add new frame to dist_array
         self.dist_array = np.append(self.dist_array, np.zeros(np.shape(self.dist_array)), axis = 0)   # temporarily hold previous frame's data as placeholder
 
-        print("c")
         # update current frame number
         self.cur_frame = current_frame
 
@@ -232,21 +230,6 @@ class Extrapolate_forces():
             y.append(group_y)
         return y
 
-    # wrapper function for managing depth dictionary usage for calculations and alignment
-    def get_axes_set_depth_dict(self):
-        # get y axes
-        y_axes = self.get_y_axes()
-        # account for difference between shoulder y-axes
-        y_axes[2] += y_axes[0]  # by adding it to the branch off the right shoulder
-
-        # put together dictionary to coordinate vertex pairs and y-axes coordinates (calculated depth)
-        depth_dict = {
-            'vertex_order': self.vertex_order,       # pairs of body parts/segments
-            'y_axes': y_axes,                   # approximated depth
-        }
-
-        return depth_dict                       # return depth_dict for use with other functions externally
-
     # get indices for body parts used
     #def get_indices():
     #    indices = list()
@@ -259,17 +242,39 @@ class Extrapolate_forces():
 
     # approximate depth for the current frame
     def set_depth(self, depth_dict):
+        print("a")
+        # get y axes
+        y_axes = self.get_y_axes()
+        print("b")
+        # account for difference between shoulder y-axes
+        y_axes[2] += y_axes[0]  # by adding it to the branch off the right shoulder
+
+        print("c")
+        # put together dictionary to coordinate vertex pairs and y-axes coordinates (calculated depth)
+        depth_dict = {
+            'vertex_order': self.vertex_order,       # pairs of body parts/segments
+            'y_axes': y_axes,                   # approximated depth
+        }
         #global mediapipe_data_output                                    # allow use of global variable
         # go through and set y-axes values accordingly
+        print("d")
         for i, order_group in enumerate(depth_dict['y_axes']):
             cur_length = len(depth_dict['vertex_order'][i])
             # go thru all vertices in current group
             for j, vertex in enumerate(order_group):
                 if j < (cur_length - 1):
+                    print("e")
                     # set y axis for each vertex in the order group
                     cur_vertex = depth_dict['vertex_order'][i][j + 1]   # + 1 so that it applies to the non-anchor vertex
+                    print("f")
                     vertex_index = self.mediapipe_indices.index(cur_vertex)
+                    print("g")
                     self.mediapipe_data_output[-1, vertex_index, 1] = vertex # set depth directly in dataset
+                    print("h")
+
+
+
+    ### FORCES CALCULATIONS
 
     # calculate elbow angle
     def set_elbow_angle(self):
@@ -301,19 +306,8 @@ class Extrapolate_forces():
 
         return elbow_angle
 
-
-
-    ### CONVERSION TO SPHERICAL COORDINATE SYSTEM
-
-    # get spherical coordinates for each of the 3 vertices (bodyparts) of interest, 
-    #   and set them to overwrite parts 27-29 of freemocap_3d_body_data for displaying with `plotly`
-    def set_spher_coords(self):#mp_data_out = mediapipe_data_output):
-        # allow manipulation of global variables
-        #global mediapipe_data_output
-        #global rho
-        #global theta
-        #global phi
-
+    # get spherical coordinates for each of the 3 vertices (bodyparts) of interest
+    def set_spher_coords(self):
         # append new empty data for current frame
         self.rho = np.append(self.rho, np.zeros((1, 33)), axis = 0)
         self.theta = np.append(self.theta, np.zeros((1, 33)), axis = 0)
@@ -336,22 +330,7 @@ class Extrapolate_forces():
             self.theta[-1, vertex] = np.arctan(y_diff / x_diff)         # swapped due to equations having different Cartesian coordinate system layout
             self.phi[-1, vertex] = np.arccos(z_diff / self.rho[-1, vertex])
 
-        # put spherical coords in bodydata matrix for displaying in the model
-        #mediapipe_data_output[:, 27, :] = rho
-        #mediapipe_data_output[:, 28, :] = theta    # 
-        #mediapipe_data_output[:, 29, :] = phi      # z / rho^2
-            # the data at the parts of the freemocap_3d_body_data tensor used here are not actual for body parts (anymore), but places to hold information
-            # for simplification for displaying via plotly, which is used by freemocap, hence its continued use here
-
-        #return rho, theta, phi
-
-    # get spherical coordinates for use later on
-    #rho, theta, phi = get_spher_coords()
-
-
-
-    ### FORCES CALCULATIONS
-
+    ### FORMULA CALCULATIONS
     # calculate forces of muscle exertions of the left arm
     def run_formula_calculations(self):
         #h_p = self.user_height   # meters      # height of person

@@ -123,6 +123,7 @@ class Pose_detection():
             print("Program closed.")
 
 
+
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
 
     # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
@@ -138,7 +139,7 @@ class Pose_detection():
 
         print("4")
         # calculate depth for given frame
-        self.ep.set_depth(self.ep.get_axes_set_depth_dict())                      # get depth_dict and calculate y axes values
+        self.ep.set_depth()                      # get depth_dict and calculate y axes values
         print("5")
 
     # calculate forces involved with muscles in the body
