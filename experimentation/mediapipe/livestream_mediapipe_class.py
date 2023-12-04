@@ -127,15 +127,19 @@ class Pose_detection():
 
     # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
     def extrapolate_depth(self, mediapipe_output):
+        print("1")
         # set the data for the current frame
         self.ep.update_current_frame(mediapipe_output, frame_counter)                       # update mediapipe data
-        
+        print("2")
         # calculations that don't need to run each frame (hence run every "tick")
         if (frame_counter % tick_length == 0):
+            print("3")
             self.ep.calc_conversion_ratio(real_height_metric = user_height)  # calculate conversion ratio (mediapipe units to meters)
 
+        print("4")
         # calculate depth for given frame
         self.ep.set_depth(self.ep.get_axes_set_depth_dict())                      # get depth_dict and calculate y axes values
+        print("5")
 
     # calculate forces involved with muscles in the body
     def calc_body_forces(self):
@@ -156,6 +160,7 @@ class Pose_detection():
     def draw_landmarks_on_frame(self, detection_result: PoseLandmarkerResult, rgb_image: mp.Image, _):  #(rgb_image, detection_result):
         pose_landmarks_list = detection_result.pose_landmarks
         annotated_image = np.copy(rgb_image.numpy_view())
+        mediapipe_out = np.ndarray((33, 3))
 
         # loop thru detected poses to visualize
         for idx in range(len(pose_landmarks_list)):
@@ -163,9 +168,14 @@ class Pose_detection():
 
             # draw the pose landmarks
             pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-            pose_landmarks_proto.landmark.extend([
-                landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) for landmark in pose_landmarks
-            ])
+            for landmark in pose_landmarks:
+                pose_landmarks_proto.landmark.extend([
+                    landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
+                ])
+                mediapipe_out[idx, 0] = landmark.x      # get landmark data (x)
+                mediapipe_out[idx, 1] = landmark.y      # get landmark data (y)
+                mediapipe_out[idx, 2] = landmark.z      # get landmark data (z)
+
             solutions.drawing_utils.draw_landmarks(
                 annotated_image,
                 pose_landmarks_proto,
@@ -180,8 +190,8 @@ class Pose_detection():
         ### DEPTH AND FORCES CALCULATIONS
         if (pose_landmarks_list):   # check if results exist before attempting calculations
             print("Extrapolating depth...")
-            print("DEBUG: Shape of pose_landmarks_list: %s" % np.shape(PoseLandmarkerResult.pose_landmarks))
-            #self.extrapolate_depth(pose_landmarks_list)
+            print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
+            self.extrapolate_depth(mediapipe_out)
             print("Calculating body forces...")
             self.calc_body_forces()
         

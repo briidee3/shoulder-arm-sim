@@ -39,8 +39,8 @@ class Extrapolate_forces():
         self.mediapipe_data_output = np.ndarray((1, 33, 3), dtype = "float64")
 
         # used for storing distance data (to prevent unnecessary recalculations)
-        self.dist_array = np.ndarray((1, 33, 33), dtype = "float64")         # indexed by two body part names/indices
-        self.max_array = np.ndarray((1, 33, 33), dtype = "float64")          # used for storing max distance data
+        self.dist_array = np.zeros((1, 33, 33), dtype = "float64")         # indexed by two body part names/indices
+        self.max_array = np.zeros((1, 33, 33), dtype = "float64")          # used for storing max distance data
 
         # spherical coordinates initialization
         self.rho = np.zeros((1, 33))
@@ -110,11 +110,16 @@ class Extrapolate_forces():
 
     # IMPORTANT: set mediapipe_data_output for the current frame
     def update_current_frame(self, mp_data_out, current_frame):
+        print("a")
         # add data of current frame to dataset
-        self.mediapipe_data_output = np.append(self.mediapipe_data_output, mp_data_out, axis = 0)
+        temp = np.zeros((1, 33, 3))                                                         # used for getting proper shape of ndarray to append
+        temp[0, :, :] = mp_data_out                                                         # set only value of ndarray to mp_data_out
+        self.mediapipe_data_output = np.append(self.mediapipe_data_output, temp, axis = 0)
+        print("b")
         # add new frame to dist_array
-        self.dist_array = np.append(self.dist_array, self.dist_array[-1, :, :], axis = 0)    # temporarily hold previous frame's data as placeholder
+        self.dist_array = np.append(self.dist_array, np.zeros(np.shape(self.dist_array)), axis = 0)   # temporarily hold previous frame's data as placeholder
 
+        print("c")
         # update current frame number
         self.cur_frame = current_frame
 
