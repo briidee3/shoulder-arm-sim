@@ -26,7 +26,7 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-import extrapolation as ep      # functions from previous iteration of project
+import extrapolation    # functions from previous iteration of project
 
 
 
@@ -38,33 +38,6 @@ user_weight = 90        # weight of the user
 tick_length = 60        # not used yet
 frame_counter = 0       # used for keeping track of current tick/frame
 
-
-
-### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
-
-# given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
-def extrapolate_depth(mediapipe_output):
-    # set the data for the current frame
-    ep.update_current_frame(mediapipe_output, frame_counter)                       # update mediapipe data
-    
-    # calculations that don't need to run each frame (hence run every "tick")
-    if (frame_counter % tick_length == 0):
-        ep.calc_conversion_ratio(real_height_metric = user_height)  # calculate conversion ratio (mediapipe units to meters)
-
-    # calculate depth for given frame
-    ep.set_depth(ep.get_axes_set_depth_dict())                      # get depth_dict and calculate y axes values
-
-# calculate forces involved with muscles in the body
-def calc_body_forces():
-    # force calculations
-    ep.set_elbow_angle()                                            # find angle at elbow
-    ep.set_spher_coords()                                           # calculate spherical coordinates
-    ep.run_formula_calculations()                                   # calculate forces
-
-    # display forces graph
-    ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
-
-    frame_conter += 1                                               # update frame counter
 
 
 ### OPTIONS
@@ -86,6 +59,9 @@ PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 
+# helps with counting frames across functions
+frame_counter = 0
+
 
 ### CLASS
 
@@ -105,8 +81,11 @@ class Pose_detection():
         )
         self.detector = PoseLandmarker.create_from_options(options) # load landmarker model for use in detection
         
-        extrapolate_depth(PoseLandmarkerResult, 0)                  # initialize extrapolation
-        ep.update_first_frame()
+        # initialize extrapolation and body force calculation object
+        self.ep = extrapolation.Extrapolate_forces()
+        print("Initialized Pose_detection()")
+        #self.extrapolate_depth(PoseLandmarkerResult)                  # initialize extrapolation
+        #self.ep.update_first_frame()
 
     # run the program
     def run(self):
@@ -134,22 +113,41 @@ class Pose_detection():
                     # display annotated image on screen
                     cv2.imshow( 'Live view + overlay (Press "q" to exit)', cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ) )
 
-                    
-
-                    # perform forces calculations
-                    extrapolate_depth(ret)
-
-
                     # allow resetting the data to allow others to use without restarting
                     #ep.reset_dist_array()
-
-
         finally:
             # release capture object from memory
             webcam_stream.release()
             # get rid of windows still up
             cv2.destroyAllWindows()
             print("Program closed.")
+
+
+    ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
+
+    # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
+    def extrapolate_depth(self, mediapipe_output):
+        # set the data for the current frame
+        self.ep.update_current_frame(mediapipe_output, frame_counter)                       # update mediapipe data
+        
+        # calculations that don't need to run each frame (hence run every "tick")
+        if (frame_counter % tick_length == 0):
+            self.ep.calc_conversion_ratio(real_height_metric = user_height)  # calculate conversion ratio (mediapipe units to meters)
+
+        # calculate depth for given frame
+        self.ep.set_depth(self.ep.get_axes_set_depth_dict())                      # get depth_dict and calculate y axes values
+
+    # calculate forces involved with muscles in the body
+    def calc_body_forces(self):
+        # force calculations
+        self.ep.set_elbow_angle()                                            # find angle at elbow
+        self.ep.set_spher_coords()                                           # calculate spherical coordinates
+        self.ep.run_formula_calculations()                                   # calculate forces
+
+        # display forces graph
+        self.ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
+
+        frame_conter += 1                                               # update frame counter
 
 
 
@@ -179,9 +177,13 @@ class Pose_detection():
         self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
         
         
-        # depth and forces calculations
-        extrapolate_depth(detection_result)
-        calc_body_forces()
+        ### DEPTH AND FORCES CALCULATIONS
+        if (pose_landmarks_list):   # check if results exist before attempting calculations
+            print("Extrapolating depth...")
+            print("DEBUG: Shape of pose_landmarks_list: %s" % np.shape(PoseLandmarkerResult.pose_landmarks))
+            #self.extrapolate_depth(pose_landmarks_list)
+            print("Calculating body forces...")
+            self.calc_body_forces()
         
         
         return #?
