@@ -25,6 +25,7 @@
 
 
 import numpy as np
+import math
 from matplotlib import pyplot as plt
 
 
@@ -179,22 +180,27 @@ class Extrapolate_forces():
     # get y axes/depths by order of body parts
     def set_depth(self):
         for vertices in self.vertex_order:
+            print(vertices)
             for i in enumerate(vertices):
-                if i < (len(vertices) - 1):
-                    y_dist_between_vertices = np.nan_to_num(self.get_depth(i, i + 1))   # calculate depth
+                print(i[0])
+                if i[0] != (vertices[-1]):
+                    y_dist_between_vertices = self.get_depth(i[0], i[0] + 1)          # calculate depth
+                    # check if "nan" value
+                    if math.isnan(y_dist_between_vertices):
+                        y_dist_between_vertices = 0                             # set all nan values to 0
                     # add previous anchor vertex
-                    if i > 0:       # if i is not left shoulder
-                        vertex_y = self.mediapipe_data_output[i - 1][1] +  y_dist_between_vertices      # add y depth of anchor (previous node) to current
+                    if i[0] > 0:       # if i is not left shoulder
+                        vertex_y = self.mediapipe_data_output[i[0] - 1][1] +  y_dist_between_vertices      # add y depth of anchor (previous node) to current
                     else:
                         vertex_y = y_dist_between_vertices
-                    self.mediapipe_data_output[i, 1] = vertex_y
+                    self.mediapipe_data_output[i[0], 1] = vertex_y
 
 
 
     ### FORCES CALCULATIONS
 
     # calculate elbow angle
-    def calc_elbow_angle(self, right_side = True):
+    def calc_elbow_angle(self, right_side = False):
         # coordinate data for shoulder, elbow, and wrist
         x = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 0]
         y = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 1]
@@ -210,15 +216,6 @@ class Extrapolate_forces():
 
         # calculate angle at elbow
         elbow_angle = np.arccos( ( (vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2]) ) / (forearm_length * upperarm_length) )
-
-        # Now put it in the data matrix for display by plotly
-
-        #self.mediapipe_data_output[30, :] = np.swapaxes(vector_a, 0, 1)  # swapped axes due to shape of 2D array
-        #self.mediapipe_data_output[31, :] = np.swapaxes(vector_b, 0, 1)
-
-        #self.mediapipe_data_output[32, 0] = forearm_length
-        #self.mediapipe_data_output[32, 1] = upperarm_length
-        #self.mediapipe_data_output[32, 2] = elbow_angle
 
         return elbow_angle
 
@@ -315,13 +312,11 @@ class Extrapolate_forces():
         # plot bicep forces
         return plt
 
-    # plot forces graph
-    #plot_bicep_forces().show()
 
 
-    ### CALIBRATION CONFIG
-    #TODO:
-    #   - take data frame from mediapipe and camera
-    #   - run same calculations as usual
-    #   - this is mostly a thing for the other end to deal with
+    ### USER INTERFACE
+
+    # implement the GUI from gui.py
+    #def display_output(self):
+        #
 

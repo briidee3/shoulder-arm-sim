@@ -59,8 +59,6 @@ PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 
-# helps with counting frames across functions
-frame_counter = 0
 
 
 ### CLASS
@@ -81,6 +79,13 @@ class Pose_detection():
         )
         self.detector = PoseLandmarker.create_from_options(options) # load landmarker model for use in detection
         
+
+        ### SETUP PIPELINE
+        
+        # helps with counting frames across functions
+        self.frame_counter = 0
+
+
         # initialize extrapolation and body force calculation object
         self.ep = extrapolation.Extrapolate_forces()
         print("Initialized Pose_detection()")
@@ -128,10 +133,8 @@ class Pose_detection():
 
     # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
     def extrapolate_depth(self, mediapipe_output):
-        print("1")
         # set the data for the current frame
         self.ep.update_current_frame(mediapipe_output, frame_counter)                       # update mediapipe data
-        print("2")
         # calculations that don't need to run each frame (hence run every "tick")
         if (frame_counter % tick_length == 0):
             print("3")
@@ -139,18 +142,19 @@ class Pose_detection():
 
         print("4")
         # calculate depth for given frame
-        #self.ep.set_depth()                      # get depth_dict and calculate y axes values
+        self.ep.set_depth()                      # get depth_dict and calculate y axes values
         print("5")
 
     # calculate forces involved with muscles in the body
     def calc_body_forces(self):
         # force calculations
-        self.ep.set_elbow_angle()                                            # find angle at elbow
-        self.ep.set_spher_coords()                                           # calculate spherical coordinates
-        self.ep.run_formula_calculations()                                   # calculate forces
+        #self.ep.calc_elbow_angle()                                            # find angle at elbow
+        #self.ep.calc_spher_coords()                                           # calculate spherical coordinates
+        self.ep.calc_bicep_force()                                            # calculate forces
+
 
         # display forces graph
-        self.ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
+        #self.ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
 
         frame_conter += 1                                               # update frame counter
 
@@ -178,8 +182,8 @@ class Pose_detection():
                     ])
                     index_offset = idx - 11
                     mediapipe_out[index_offset, 0] = landmark.x     # get landmark data (x)
-                    mediapipe_out[index_offset, 1] = landmark.y     # get landmark data (y)
-                    mediapipe_out[index_offset, 2] = landmark.z     # get landmark data (z)
+                    mediapipe_out[index_offset, 1] = 0              # set y (depth) data
+                    mediapipe_out[index_offset, 2] = landmark.y     # get landmark data (z) (using landmark.y due to different coordinate system)
             # check for index fingers (wingspan)
             elif (idx == 19 or idx == 20):                          # 19 = left index, 20 = right index (wingspan)
                 for landmark in pose_landmarks:
@@ -188,8 +192,8 @@ class Pose_detection():
                     ])
                     index_offset = idx - 13
                     mediapipe_out[index_offset, 0] = landmark.x     # get landmark data (x)
-                    mediapipe_out[index_offset, 1] = landmark.y     # get landmark data (y)
-                    mediapipe_out[index_offset, 2] = landmark.z     # get landmark data (z)
+                    mediapipe_out[index_offset, 1] = 0              # set y (depth) data
+                    mediapipe_out[index_offset, 2] = landmark.y     # get landmark data (z) (using landmark.y due to different coordinate system
              # don't save data in mediapipe_out if not arms, shoulders, or wrists
             else:
                 for landmark in pose_landmarks:
@@ -214,7 +218,7 @@ class Pose_detection():
             print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
             self.extrapolate_depth(mediapipe_out)
             print("Calculating body forces...")
-            #self.calc_body_forces()
+            self.calc_body_forces()
         
         
         return #?
