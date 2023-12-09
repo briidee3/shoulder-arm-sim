@@ -15,23 +15,10 @@
 #   - optimize code
 #       - minimize reads/writes
 #           - try to do in-place manipulations of data
-#   - take picture of user, notifying user, making em click a button, then counting down, snapping pic
-#       - this will be the calibration shot, and function "recalibrate" will do this.
-#       - this removes the need for lots of unnecessary calculations and reads/writes.
-#       - the output of this will be used to calculate depth and 
 
 
 import numpy as np
 from matplotlib import pyplot as plt
-
-
-#### CONSTANTS (for use with indexing)
-L_SHOULDER = 0
-R_SHOULDER = 1
-L_ELBOW = 2
-R_ELBOW = 3
-L_WRIST = 4
-R_WRIST = 5
 
 
 #### OBJECT FOR EASE OF MANAGEMENT OF EXTRAPOLATION OF DEPTH AND CALCULATION OF BODY FORCES
@@ -49,16 +36,16 @@ class Extrapolate_forces():
         ### IMPORTANT OBJECTS/VARIABLES
 
         # ndarray to store mediapipe data output, even if from other process(es)
-        self.mediapipe_data_output = np.ndarray((1, 6, 3), dtype = "float64")
+        self.mediapipe_data_output = np.ndarray((1, 33, 3), dtype = "float64")
 
         # used for storing distance data (to prevent unnecessary recalculations)
-        self.dist_array = np.zeros((6, 6), dtype = "float64")         # indexed by two body part names/indices
-        self.max_array = np.zeros((6, 6), dtype = "float64")          # used for storing max distance data
+        self.dist_array = np.zeros((1, 33, 33), dtype = "float64")         # indexed by two body part names/indices
+        self.max_array = np.zeros((1, 33, 33), dtype = "float64")          # used for storing max distance data
 
         # spherical coordinates initialization
-        self.rho = np.zeros((6))
-        self.theta = np.zeros((6))
-        self.phi = np.zeros((6))
+        self.rho = np.zeros((1, 33))
+        self.theta = np.zeros((1, 33))
+        self.phi = np.zeros((1, 33))
 
 
         self.cur_frame = 0   # used to keep track of current frame
@@ -124,7 +111,7 @@ class Extrapolate_forces():
     # IMPORTANT: set mediapipe_data_output for the current frame
     def update_current_frame(self, mp_data_out, current_frame):
         # add data of current frame to dataset
-        temp = np.zeros((1, 6, 3))                                                         # used for getting proper shape of ndarray to append
+        temp = np.zeros((1, 33, 3))                                                         # used for getting proper shape of ndarray to append
         temp[0, :, :] = mp_data_out                                                         # set only value of ndarray to mp_data_out
         self.mediapipe_data_output = np.append(self.mediapipe_data_output, temp, axis = 0)
         
@@ -186,7 +173,7 @@ class Extrapolate_forces():
     # reset dist array, for use when changing user and/or fixing tracking issues
     def reset_dist_array(self):
         #global dist_array   # using global variable
-        self.dist_array = np.ndarray((1, 6, 6), dtype = "float64")
+        self.dist_array = np.ndarray((1, 33, 33), dtype = "float64")
 
 
 
@@ -310,21 +297,21 @@ class Extrapolate_forces():
 
         # Now put it in the data matrix for display by plotly
 
-        #self.mediapipe_data_output[-1, 30, :] = np.swapaxes(vector_a, 0, 1)  # swapped axes due to shape of 2D array
-        #self.mediapipe_data_output[-1, 31, :] = np.swapaxes(vector_b, 0, 1)
+        self.mediapipe_data_output[-1, 30, :] = np.swapaxes(vector_a, 0, 1)  # swapped axes due to shape of 2D array
+        self.mediapipe_data_output[-1, 31, :] = np.swapaxes(vector_b, 0, 1)
 
-        #self.mediapipe_data_output[-1, 32, 0] = forearm_length
-        #self.mediapipe_data_output[-1, 32, 1] = upperarm_length
-        #self.mediapipe_data_output[-1, 32, 2] = elbow_angle
+        self.mediapipe_data_output[-1, 32, 0] = forearm_length
+        self.mediapipe_data_output[-1, 32, 1] = upperarm_length
+        self.mediapipe_data_output[-1, 32, 2] = elbow_angle
 
         return elbow_angle
 
     # get spherical coordinates for each of the 3 vertices (bodyparts) of interest
     def set_spher_coords(self):
         # append new empty data for current frame
-        #self.rho = np.append(self.rho, np.zeros((6)), axis = 0)
-        #self.theta = np.append(self.theta, np.zeros((6)), axis = 0)
-        #self.phi = np.append(self.phi, np.zeros((6)), axis = 0)
+        self.rho = np.append(self.rho, np.zeros((1, 33)), axis = 0)
+        self.theta = np.append(self.theta, np.zeros((1, 33)), axis = 0)
+        self.phi = np.append(self.phi, np.zeros((1, 33)), axis = 0)
 
         # set for [elbow, wrist]    using difference between current point and shoulder point
         for vertex in [1, 2]:       # using shoulder as origin, running for elbow (1) and wrist (2)
@@ -421,11 +408,4 @@ class Extrapolate_forces():
 
     # plot forces graph
     #plot_bicep_forces().show()
-
-
-    ### CALIBRATION CONFIG
-    #TODO:
-    #   - take data frame from mediapipe and camera
-    #   - run same calculations as usual
-    #   - this is mostly a thing for the other end to deal with
 
