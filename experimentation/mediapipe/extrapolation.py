@@ -26,12 +26,14 @@ from matplotlib import pyplot as plt
 
 
 #### CONSTANTS (for use with indexing)
-L_SHOULDER = 0
-R_SHOULDER = 1
-L_ELBOW = 2
-R_ELBOW = 3
-L_WRIST = 4
-R_WRIST = 5
+L_SHOULDER = 0#11
+R_SHOULDER = 1#12
+L_ELBOW = 2#13
+R_ELBOW = 3#14
+L_WRIST = 4#15
+R_WRIST = 5#16
+L_INDEX = 6#19
+R_INDEX = 7#20
 
 
 #### OBJECT FOR EASE OF MANAGEMENT OF EXTRAPOLATION OF DEPTH AND CALCULATION OF BODY FORCES
@@ -49,54 +51,18 @@ class Extrapolate_forces():
         ### IMPORTANT OBJECTS/VARIABLES
 
         # ndarray to store mediapipe data output, even if from other process(es)
-        self.mediapipe_data_output = np.ndarray((1, 6, 3), dtype = "float64")
+        self.mediapipe_data_output = np.ndarray((8, 3), dtype = "float64")
 
         # used for storing distance data (to prevent unnecessary recalculations)
-        self.dist_array = np.zeros((6, 6), dtype = "float64")         # indexed by two body part names/indices
-        self.max_array = np.zeros((6, 6), dtype = "float64")          # used for storing max distance data
+        self.dist_array = np.zeros((8, 8), dtype = "float64")         # indexed by two body part names/indices
+        self.max_array = np.zeros((8, 8), dtype = "float64")          # used for storing max distance data
 
         # spherical coordinates initialization
-        self.rho = np.zeros((6))
-        self.theta = np.zeros((6))
-        self.phi = np.zeros((6))
-
+        self.rho = np.zeros((8))
+        self.theta = np.zeros((8))
+        self.phi = np.zeros((8))
 
         self.cur_frame = 0   # used to keep track of current frame
-
-        # help with readability and usability and identification of data vertices
-        self.mediapipe_indices = ['nose',
-        'left_eye_inner',
-        'left_eye',
-        'left_eye_outer',
-        'right_eye_inner',
-        'right_eye',
-        'right_eye_outer',
-        'left_ear',
-        'right_ear',
-        'mouth_left',
-        'mouth_right',
-        'left_shoulder',
-        'right_shoulder',
-        'left_elbow',
-        'right_elbow',
-        'left_wrist',
-        'right_wrist',
-        'left_pinky',
-        'right_pinky',
-        'left_index',
-        'right_index',
-        'left_thumb',
-        'right_thumb',
-        'left_hip',
-        'right_hip',
-        'left_knee',
-        'right_knee',
-        'left_ankle',
-        'right_ankle',
-        'left_heel',
-        'right_heel',
-        'left_foot_index',
-        'right_foot_index']
 
         # convert mediapipe units to real world units (meters)
         self.sim_to_real_conversion_factor = 0   # declared here for later use in functions
@@ -123,70 +89,48 @@ class Extrapolate_forces():
 
     # IMPORTANT: set mediapipe_data_output for the current frame
     def update_current_frame(self, mp_data_out, current_frame):
-        # add data of current frame to dataset
-        temp = np.zeros((1, 6, 3))                                                         # used for getting proper shape of ndarray to append
-        temp[0, :, :] = mp_data_out                                                         # set only value of ndarray to mp_data_out
-        self.mediapipe_data_output = np.append(self.mediapipe_data_output, temp, axis = 0)
+        # set data of current frame dataset
+        self.mediapipe_data_output = mp_data_out
         
-        # add new frame to dist_array
-        self.dist_array = np.append(self.dist_array, np.zeros(np.shape(self.dist_array)), axis = 0)   # temporarily hold previous frame's data as placeholder
+        # reset dist_array
+        self.dist_array = np.zeros(np.shape(self.dist_array))
 
         # update current frame number
         self.cur_frame = current_frame
 
-    # used to account for the first frame being empty by default
-    def update_first_frame(self):
-        # remove first (empty) frame from datasets
-        self.mediapipe_data_output = np.delete(self.mediapipe_data_output, 0, axis = 0)
-        self.dist_array = np.delete(self.dist_array, 0, axis = 0)
+        # update calibration settings
+        self.calc_wingspan()
+
+    # IMPORTANT: temporary bandaid fix for calibration
+    def calc_wingspan(self):
+        self.calc_dist_between_vertices(L_INDEX, R_INDEX)
 
 
 
     ### HELPER FUNCTIONS:
 
-    # get indices for body parts
-    def get_index(self, body_part = 'left_wrist'):
-        return self.mediapipe_indices.index(body_part)
-
-    # function to get data for particular body part
-    #def get_bodypart_data(self, bodypart = "left_index"):
-    #    return self.mediapipe_indices.index(bodypart)
-
     # get distance between vertices for current frame
-    def cur_dist_between_vertices(self, first_part, second_part):
-        # calculate distance for parts in current frame and add to dist_array
-        self.dist_array[-1, first_part, second_part] = np.linalg.norm(
-                                                            self.mediapipe_data_output[-1, first_part, :] - 
-                                                            self.mediapipe_data_output[-1, second_part, :]
-                                                        )
+    def calc_dist_between_vertices(self, first_part, second_part):
+        # calculate distance for parts in current frame
+        dist = np.linalg.norm(
+                        self.mediapipe_data_output[first_part, :] - 
+                        self.mediapipe_data_output[second_part, :]
+                    )
+        
+        # update max distance between these parts, if necessary
+        if dist > self.max_array[first_part][second_part]:
+            self.max_array[first_part][second_part] = dist
 
-        return self.dist_array[-1, first_part, second_part]
+        return dist
 
-    # get median of largest distances between vertices/bodyparts
-    def calc_max_dist_between_parts(self, part_one, part_two):
-        #num_frames = int(np.shape(freemocap_3d_body_data[:,0,0])[0] * 0.05) # relative to length of capture recording
-        #ind = np.argpartition(dist_array, -num_frames)[-num_frames:-5]
-
-        # make sure you're not using garbage data
-        #if (num_frames < 50):
-            
-        #else:
-        #    ind = np.argpartition(dist_array, -50)[0:-5]
-
-        # return max distance between given parts
-        return np.max(self.dist_array[:, part_one, part_two])
-
-        #global dist_array                                                               # using global variable
-        #max_array[1, part_one, part_two] = np.median(dist_array[:, part_one, part_two]) # store data to prevent unnecessary recalculation
-
-    # return max distance between given parts
-    #def get_max_dist_between_parts(part_one, part_two):
-    #    return max_array[1, part_one, part_two]
-
-    # reset dist array, for use when changing user and/or fixing tracking issues
-    def reset_dist_array(self):
-        #global dist_array   # using global variable
-        self.dist_array = np.ndarray((1, 6, 6), dtype = "float64")
+    # retrieve the max distance between body parts found thus far
+    def get_max_dist(self, first_part, second_part):
+        return self.max_array[first_part][second_part]
+    
+    # reset max_array data to essentially reset the application
+    def reset_calibration(self):
+        self.max_array = np.zeros((8,8), dtype = "float64") # reset max distances
+        self.sim_to_real_conversion_factor = 0
 
 
 
@@ -195,10 +139,10 @@ class Extrapolate_forces():
     # calculate ratio for conversion of simulated units to metric units (meters) using wingspan and input real height
     def calc_conversion_ratio(self, real_height_metric = 1.78):
         # get ratio to real distance in meters using max distance between wrists via mediapipe output data
-        sim_wingspan = np.max(self.calc_max_dist_between_parts(
-                                self.get_index("left_index"), 
-                                self.get_index("right_index")
-                            ))
+        sim_wingspan = self.get_max_dist(
+                                L_INDEX, 
+                                R_INDEX
+                            )
 
         # set global conversion factor
         #global sim_to_real_conversion_factor
@@ -220,11 +164,11 @@ class Extrapolate_forces():
 
     # get depth for body part in most recent frame
     def get_depth(self, vertex_one, vertex_two):
-        cur_dist = self.cur_dist_between_vertices(vertex_one, vertex_two)    # current distance between given parts
-        max_dist = self.calc_max_dist_between_parts(self.dist_array)              # max distance between given parts
+        cur_dist = self.cur_dist_between_vertices(vertex_one, vertex_two)       # current distance between given parts
+        max_dist = self.calc_max_dist_between_parts(self.dist_array)            # max distance between given parts
         
-        angle = self.angle_from_normal(cur_dist, max_dist)                   # calculate difference between max distance and current distance
-        return np.sin(angle) * max_dist                                 # calculate depth
+        angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
+        return np.sin(angle) * max_dist                                         # calculate depth
 
     # get y axes/depths by order of body parts
     def get_y_axes(self):
@@ -242,16 +186,6 @@ class Extrapolate_forces():
                     group_y.append(vertex_y)
             y.append(group_y)
         return y
-
-    # get indices for body parts used
-    #def get_indices():
-    #    indices = list()
-    #    for vertices in depth_dict['vertex_order']:
-    #        for vertex in vertices:
-    #            indices.append(get_index(vertex))
-    #    return indices
-
-    #indices = get_indices()
 
     # approximate depth for the current frame
     def set_depth(self, depth_dict):

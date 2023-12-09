@@ -161,7 +161,7 @@ class Pose_detection():
     def draw_landmarks_on_frame(self, detection_result: PoseLandmarkerResult, rgb_image: mp.Image, _):  #(rgb_image, detection_result):
         pose_landmarks_list = detection_result.pose_landmarks
         annotated_image = np.copy(rgb_image.numpy_view())
-        mediapipe_out = np.ndarray((33, 3))
+        mediapipe_out = np.ndarray((8, 3))
 
         # loop thru detected poses to visualize
         for idx in range(len(pose_landmarks_list)):
@@ -169,13 +169,33 @@ class Pose_detection():
 
             # draw the pose landmarks
             pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-            for landmark in pose_landmarks:
-                pose_landmarks_proto.landmark.extend([
-                    landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
-                ])
-                mediapipe_out[idx, 0] = landmark.x      # get landmark data (x)
-                mediapipe_out[idx, 1] = landmark.y      # get landmark data (y)
-                mediapipe_out[idx, 2] = landmark.z      # get landmark data (z)
+            # note: the following may seem sub-optimal, however it prevents many unnecessary if statements in run time
+            # check if arms, shoulders, or wrists. if so, save and send that data to further process
+            if (idx >= 11) and (idx <= 16):                         # 11 = left shoulder, 17 = right wrist. 
+                for landmark in pose_landmarks:
+                    pose_landmarks_proto.landmark.extend([
+                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
+                    ])
+                    index_offset = idx - 11
+                    mediapipe_out[index_offset, 0] = landmark.x     # get landmark data (x)
+                    mediapipe_out[index_offset, 1] = landmark.y     # get landmark data (y)
+                    mediapipe_out[index_offset, 2] = landmark.z     # get landmark data (z)
+            # check for index fingers (wingspan)
+            elif (idx == 19 or idx == 20):                          # 19 = left index, 20 = right index (wingspan)
+                for landmark in pose_landmarks:
+                    pose_landmarks_proto.landmark.extend([
+                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
+                    ])
+                    index_offset = idx - 13
+                    mediapipe_out[index_offset, 0] = landmark.x     # get landmark data (x)
+                    mediapipe_out[index_offset, 1] = landmark.y     # get landmark data (y)
+                    mediapipe_out[index_offset, 2] = landmark.z     # get landmark data (z)
+             # don't save data in mediapipe_out if not arms, shoulders, or wrists
+            else:
+                for landmark in pose_landmarks:
+                    pose_landmarks_proto.landmark.extend([
+                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
+                    ])
 
             solutions.drawing_utils.draw_landmarks(
                 annotated_image,
