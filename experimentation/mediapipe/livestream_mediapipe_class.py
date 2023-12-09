@@ -60,7 +60,6 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 
 
 
-
 ### CLASS
 
 # set up a class to be used for running the pose detection program
@@ -137,27 +136,20 @@ class Pose_detection():
         self.ep.update_current_frame(mediapipe_output, frame_counter)                       # update mediapipe data
         # calculations that don't need to run each frame (hence run every "tick")
         if (frame_counter % tick_length == 0):
-            print("3")
             self.ep.calc_conversion_ratio(real_height_metric = user_height)  # calculate conversion ratio (mediapipe units to meters)
 
-        print("4")
         # calculate depth for given frame
         self.ep.set_depth()                      # get depth_dict and calculate y axes values
-        print("5")
 
     # calculate forces involved with muscles in the body
     def calc_body_forces(self):
         # force calculations
-        #self.ep.calc_elbow_angle()                                            # find angle at elbow
-        #self.ep.calc_spher_coords()                                           # calculate spherical coordinates
+        print("aa")
         self.ep.calc_bicep_force()                                            # calculate forces
-
+        print("ab")
 
         # display forces graph
         #self.ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
-
-        frame_conter += 1                                               # update frame counter
-
 
 
     # detector callback function
@@ -219,6 +211,8 @@ class Pose_detection():
             self.extrapolate_depth(mediapipe_out)
             print("Calculating body forces...")
             self.calc_body_forces()
+        
+        self.frame_counter += 1
         
         
         return #?
