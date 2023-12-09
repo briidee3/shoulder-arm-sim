@@ -12,6 +12,9 @@
 #       - don't start another until the current one is finished
 #   - set up multithreading
 #       - main process is running, then one thread for handling live stream, and another one for calculating skeleton
+#   - set up TKinter for GUI stuff
+#       - display annotated_image in tkinter window
+#       - set up a class variable for reading and writing calc_bicep_forces output (python dict object)
 
 
 from mediapipe import solutions
