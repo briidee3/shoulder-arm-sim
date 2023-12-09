@@ -19,6 +19,9 @@
 #       - this will be the calibration shot, and function "recalibrate" will do this.
 #       - this removes the need for lots of unnecessary calculations and reads/writes.
 #       - the output of this will be used to calculate depth and 
+#   - figure out if raw mediapipe output is x, y, z, or x, z, y
+#   - go back to line 198 (y_axes[2] += y_axes[0] shenanigans) and figure out if y_axes[0] or y_axes[1]
+#       - nevermind, i think you implemented it via emergence in the new function for set_depth
 
 
 import numpy as np
@@ -45,7 +48,10 @@ class Extrapolate_forces():
 
         self.user_height = 1.78      # user height (meters)
         self.user_weight = 90        # user weight (kilograms)
-
+        
+        # toggle for whether or not to calculate forces for each arm
+        self.toggle_left = True
+        self.toggle_right = True
 
 
         ### IMPORTANT OBJECTS/VARIABLES
@@ -58,9 +64,9 @@ class Extrapolate_forces():
         self.max_array = np.zeros((8, 8), dtype = "float64")          # used for storing max distance data
 
         # spherical coordinates initialization
-        self.rho = np.zeros((8))
-        self.theta = np.zeros((8))
-        self.phi = np.zeros((8))
+        #self.rho = np.zeros((8))
+        #self.theta = np.zeros((8))
+        #self.phi = np.zeros((8))
 
         self.cur_frame = 0   # used to keep track of current frame
 
@@ -71,18 +77,18 @@ class Extrapolate_forces():
         # ordered in a particular manner which uses the shoulders as anchors for the elbows, and elbows as anchors for the wrists
         self.vertex_order = [
             [
-                'left_shoulder',
-                'right_shoulder'
+                L_SHOULDER,
+                R_SHOULDER
             ],
             [
-                'left_shoulder',
-                'left_elbow',
-                'left_wrist',
+                L_SHOULDER,
+                L_ELBOW,
+                L_WRIST,
             ],
             [
-                'right_shoulder',
-                'right_elbow',
-                'right_wrist'
+                R_SHOULDER,
+                R_ELBOW,
+                R_WRIST
             ]
         ]
 
@@ -164,76 +170,39 @@ class Extrapolate_forces():
 
     # get depth for body part in most recent frame
     def get_depth(self, vertex_one, vertex_two):
-        cur_dist = self.cur_dist_between_vertices(vertex_one, vertex_two)       # current distance between given parts
-        max_dist = self.calc_max_dist_between_parts(self.dist_array)            # max distance between given parts
+        cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two)      # current distance between given parts
+        max_dist = self.get_max_dist(vertex_one, vertex_two)                    # max distance between given parts
         
         angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
         return np.sin(angle) * max_dist                                         # calculate depth
 
     # get y axes/depths by order of body parts
-    def get_y_axes(self):
-        y = list()
+    def set_depth(self):
         for vertices in self.vertex_order:
-            group_y = list()
-            num_vertices = len(vertices)
-            for i, vertex in enumerate(vertices):
-                if i < (num_vertices - 1):
-                    y_dist_between_vertices = np.nan_to_num(self.get_depth(self.get_index(vertices[i]), self.get_index(vertices[i + 1])))
-                    if i > 0:
-                        vertex_y = group_y[i - 1] +  y_dist_between_vertices    # add y depth of anchor to current
+            for i in enumerate(vertices):
+                if i < (len(vertices) - 1):
+                    y_dist_between_vertices = np.nan_to_num(self.get_depth(i, i + 1))   # calculate depth
+                    # add previous anchor vertex
+                    if i > 0:       # if i is not left shoulder
+                        vertex_y = self.mediapipe_data_output[i - 1][1] +  y_dist_between_vertices      # add y depth of anchor (previous node) to current
                     else:
                         vertex_y = y_dist_between_vertices
-                    group_y.append(vertex_y)
-            y.append(group_y)
-        return y
-
-    # approximate depth for the current frame
-    def set_depth(self, depth_dict):
-        print("a")
-        # get y axes
-        y_axes = self.get_y_axes()
-        print("b")
-        # account for difference between shoulder y-axes
-        y_axes[2] += y_axes[0]  # by adding it to the branch off the right shoulder
-
-        print("c")
-        # put together dictionary to coordinate vertex pairs and y-axes coordinates (calculated depth)
-        depth_dict = {
-            'vertex_order': self.vertex_order,       # pairs of body parts/segments
-            'y_axes': y_axes,                   # approximated depth
-        }
-        #global mediapipe_data_output                                    # allow use of global variable
-        # go through and set y-axes values accordingly
-        print("d")
-        for i, order_group in enumerate(depth_dict['y_axes']):
-            cur_length = len(depth_dict['vertex_order'][i])
-            # go thru all vertices in current group
-            for j, vertex in enumerate(order_group):
-                if j < (cur_length - 1):
-                    print("e")
-                    # set y axis for each vertex in the order group
-                    cur_vertex = depth_dict['vertex_order'][i][j + 1]   # + 1 so that it applies to the non-anchor vertex
-                    print("f")
-                    vertex_index = self.mediapipe_indices.index(cur_vertex)
-                    print("g")
-                    self.mediapipe_data_output[-1, vertex_index, 1] = vertex # set depth directly in dataset
-                    print("h")
+                    self.mediapipe_data_output[i, 1] = vertex_y
 
 
 
     ### FORCES CALCULATIONS
 
     # calculate elbow angle
-    def set_elbow_angle(self):
-        #global mediapipe_data_output                                # allow manipulation of global variable
-        # coordinate data for left shoulder, elbow, and wrist
-        x = self.mediapipe_data_output[-1, 11:17:2, 0] 
-        y = self.mediapipe_data_output[-1, 11:17:2, 1]
-        z = self.mediapipe_data_output[-1, 11:17:2, 2]
+    def calc_elbow_angle(self, right_side = True):
+        # coordinate data for shoulder, elbow, and wrist
+        x = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 0]
+        y = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 1]
+        z = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 2]
 
         # calculate vectors for getting angle at elbow
-        vector_a = [(x[-1, 0] - x[-1, 1]), (y[-1, 0] - y[-1, 1]), (z[-1, 0] - z[-1, 1])]
-        vector_b = [(x[-1, 2] - x[-1, 1]), (y[-1, 2] - y[-1, 1]), (z[-1, 2] - z[-1, 1])]
+        vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]
+        vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]
 
         # calculate length of arm segments via vector math
         forearm_length = np.sqrt( (vector_b[0] ** 2) + (vector_b[1] ** 2) + (vector_b[2] ** 2) )
@@ -244,38 +213,36 @@ class Extrapolate_forces():
 
         # Now put it in the data matrix for display by plotly
 
-        #self.mediapipe_data_output[-1, 30, :] = np.swapaxes(vector_a, 0, 1)  # swapped axes due to shape of 2D array
-        #self.mediapipe_data_output[-1, 31, :] = np.swapaxes(vector_b, 0, 1)
+        #self.mediapipe_data_output[30, :] = np.swapaxes(vector_a, 0, 1)  # swapped axes due to shape of 2D array
+        #self.mediapipe_data_output[31, :] = np.swapaxes(vector_b, 0, 1)
 
-        #self.mediapipe_data_output[-1, 32, 0] = forearm_length
-        #self.mediapipe_data_output[-1, 32, 1] = upperarm_length
-        #self.mediapipe_data_output[-1, 32, 2] = elbow_angle
+        #self.mediapipe_data_output[32, 0] = forearm_length
+        #self.mediapipe_data_output[32, 1] = upperarm_length
+        #self.mediapipe_data_output[32, 2] = elbow_angle
 
         return elbow_angle
 
     # get spherical coordinates for each of the 3 vertices (bodyparts) of interest
-    def set_spher_coords(self):
-        # append new empty data for current frame
-        #self.rho = np.append(self.rho, np.zeros((6)), axis = 0)
-        #self.theta = np.append(self.theta, np.zeros((6)), axis = 0)
-        #self.phi = np.append(self.phi, np.zeros((6)), axis = 0)
-
+    # vertex_one is the anchor point, and vertex_two is calculated based on its anchor
+    def set_spher_coords(self, vertex_one, vertex_two):
         # set for [elbow, wrist]    using difference between current point and shoulder point
-        for vertex in [1, 2]:       # using shoulder as origin, running for elbow (1) and wrist (2)
-            if vertex == 1:         # if elbow (from shoulder to elbow)
-                cur_shoulder = self.mediapipe_data_output[-1, 11, :]    # shoulder
-            elif vertex == 2:       # if wrist (from elbow to wrist)
-                cur_shoulder = self.mediapipe_data_output[-1, 13, :]    # elbow
-            cur_bodypart = self.mediapipe_data_output[-1, (11 + (vertex * 2) ), :]
+        #for vertex in [1, 2]:       # using shoulder as origin, running for elbow (1) and wrist (2)
+        #    if vertex == 1:         # if elbow (from shoulder to elbow)
+        #        cur_anchor = self.mediapipe_data_output[(L_SHOULDER + (int)(is_right)), :]    # shoulder
+        #    elif vertex == 2:       # if wrist (from elbow to wrist)
+        #        cur_anchor = self.mediapipe_data_output[(L_ELBOW + (int)(is_right)), :]       # elbow
+        #    cur_bodypart = self.mediapipe_data_output[(L_SHOULDER + (int)(is_right) + (vertex * 2) ), :]
             
-            # effectively sets origin to cur_shoulder
-            x_diff = cur_bodypart[-1, 0] - cur_shoulder[-1, 0]
-            y_diff = cur_bodypart[-1, 1] - cur_shoulder[-1, 1]
-            z_diff = cur_bodypart[-1, 2] - cur_shoulder[-1, 2]
+        # effectively sets origin to cur_anchor
+        x_diff = vertex_two[0] - vertex_one[0]
+        y_diff = vertex_two[1] - vertex_one[1]
+        z_diff = vertex_two[2] - vertex_one[2]
 
-            self.rho[-1, vertex] = np.sqrt((x_diff ** 2) + (y_diff ** 2) + (z_diff ** 2))
-            self.theta[-1, vertex] = np.arctan(y_diff / x_diff)         # swapped due to equations having different Cartesian coordinate system layout
-            self.phi[-1, vertex] = np.arccos(z_diff / self.rho[-1, vertex])
+        rho = np.sqrt((x_diff ** 2) + (y_diff ** 2) + (z_diff ** 2))
+        theta = np.arctan(y_diff / x_diff)         # swapped due to equations having different Cartesian coordinate system layout
+        phi = np.arccos(z_diff / rho)
+
+        return rho, theta, phi
 
     ### FORMULA CALCULATIONS
     # calculate forces of muscle exertions of the left arm
@@ -298,15 +265,15 @@ class Extrapolate_forces():
         #u = h_p * 0.173                         # length of upper arm
 
         # instead of using averages for segment length, use calculated instead
-        f = self.rho[-1, 2] * conv_factor
-        u = self.rho[-1, 1] * conv_factor
+        f = self.rho[2] * conv_factor
+        u = self.rho[1] * conv_factor
         b = u * 0.11 #0.636                   # calculated via algebra using pre-existing average proportions data
         w_fa = self.user_weight * (f * 0.1065)       # use ratio of f to weight proportion to get weight with calculated f 
         cgf = 2 * (f ** 2)                     # calculated via algebra using pre-existing average proportions data
 
         # angles
-        theta_arm = (np.pi / 2) - self.phi[-1, 1]                         # angle at shoulder
-        theta_uarm = (np.pi / 2) + self.phi[-1, 2]                        # angle of upper arm
+        theta_arm = (np.pi / 2) - self.phi[1]                         # angle at shoulder
+        theta_uarm = (np.pi / 2) + self.phi[2]                        # angle of upper arm
         theta_u = self.set_elbow_angle()  #theta_arm + theta_uarm                            # angle at elbow
         theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
         theta_la = np.cos(theta_uarm)   #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
@@ -323,14 +290,14 @@ class Extrapolate_forces():
         # save calculations in a way to help prep for visual in plotly output
 
         # theta-arm, bicep force, theta-u
-        self.mediapipe_data_output[-1, 26, 0] = np.rad2deg(theta_arm)
-        self.mediapipe_data_output[-1, 26, 1] = force_bicep 
-        self.mediapipe_data_output[-1, 26, 2] = np.rad2deg(theta_u)
+        #self.mediapipe_data_output[26, 0] = np.rad2deg(theta_arm)
+        #self.mediapipe_data_output[26, 1] = force_bicep 
+        #self.mediapipe_data_output[26, 2] = np.rad2deg(theta_u)
 
         # rho, theta, phi
-        self.mediapipe_data_output[-1, 27, :] = self.rho
-        self.mediapipe_data_output[-1, 28, :] = np.rad2deg(self.theta) 
-        self.mediapipe_data_output[-1, 29, :] = np.rad2deg(self.phi)
+        #self.mediapipe_data_output[27, :] = self.rho
+        #self.mediapipe_data_output[28, :] = np.rad2deg(self.theta) 
+        #self.mediapipe_data_output[29, :] = np.rad2deg(self.phi)
 
     #run_formula_calculations()
 
