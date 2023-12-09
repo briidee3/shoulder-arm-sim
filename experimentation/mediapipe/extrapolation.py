@@ -224,7 +224,7 @@ class Extrapolate_forces():
 
     # get spherical coordinates for each of the 3 vertices (bodyparts) of interest
     # vertex_one is the anchor point, and vertex_two is calculated based on its anchor
-    def set_spher_coords(self, vertex_one, vertex_two):
+    def calc_spher_coords(self, vertex_one, vertex_two):
         # set for [elbow, wrist]    using difference between current point and shoulder point
         #for vertex in [1, 2]:       # using shoulder as origin, running for elbow (1) and wrist (2)
         #    if vertex == 1:         # if elbow (from shoulder to elbow)
@@ -244,37 +244,36 @@ class Extrapolate_forces():
 
         return rho, theta, phi
 
+
+
     ### FORMULA CALCULATIONS
-    # calculate forces of muscle exertions of the left arm
-    def run_formula_calculations(self):
-        #h_p = self.user_height   # meters      # height of person
-        #w_p = self.user_weight   # kilograms   # weight of person
+    # calculate forces of muscle exertions of the arm
+    def run_formula_calculations(self, is_right = False):   # allow choosing which arm to use
+        # constants, used for organization and readability
+        RHO = 0
+        THETA = 1
+        PHI = 2
+        
         w_bal = 3           # kilograms   # weight of ball
 
         # convert sim units to metric units
         conv_factor = self.get_conversion_ratio()
 
-        # convert rho from simulated units to metric units
-        #metric_rho = self.rho * conv_factor
-
-        # equations used primarily from the paper labeled "shoulderarm3.pdf" in the dropbox, as well as some info from emails between Dr. Liu and I (Bri)
-        #w_fa = w_p * 0.023                      # weight of forearm
-        #cgf = h_p * 0.432 * 0.216               # center of gravity of forearm
-        #f = h_p * 0.216                         # length of forearm
-        #b = f * 0.11                            # dist between elbow and bicep insertion point
-        #u = h_p * 0.173                         # length of upper arm
+        # get spherical coordinate data for arm segments
+        uarm_spher_coords = self.calc_spher_coords((L_SHOULDER + (int)(is_right)), L_ELBOW + (int)(is_right))
+        farm_spher_coords = self.calc_spher_coords((L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
 
         # instead of using averages for segment length, use calculated instead
-        f = self.rho[2] * conv_factor
-        u = self.rho[1] * conv_factor
+        f = farm_spher_coords[RHO] * conv_factor
+        u = uarm_spher_coords[RHO] * conv_factor
         b = u * 0.11 #0.636                   # calculated via algebra using pre-existing average proportions data
         w_fa = self.user_weight * (f * 0.1065)       # use ratio of f to weight proportion to get weight with calculated f 
         cgf = 2 * (f ** 2)                     # calculated via algebra using pre-existing average proportions data
 
         # angles
-        theta_arm = (np.pi / 2) - self.phi[1]                         # angle at shoulder
-        theta_uarm = (np.pi / 2) + self.phi[2]                        # angle of upper arm
-        theta_u = self.set_elbow_angle()  #theta_arm + theta_uarm                            # angle at elbow
+        theta_arm = (np.pi / 2) - farm_spher_coords[THETA]                         # angle at shoulder
+        theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]                        # angle of upper arm
+        theta_u = self.calc_elbow_angle()  #theta_arm + theta_uarm                            # angle at elbow
         theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
         theta_la = np.cos(theta_uarm)   #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
 
