@@ -248,7 +248,7 @@ class Extrapolate_forces():
 
     ### FORMULA CALCULATIONS
     # calculate forces of muscle exertions of the arm
-    def run_formula_calculations(self, is_right = False):   # allow choosing which arm to use
+    def calc_bicep_force(self, is_right = False):   # allow choosing which arm to use
         # constants, used for organization and readability
         RHO = 0
         THETA = 1
@@ -286,29 +286,25 @@ class Extrapolate_forces():
         force_bicep = (w_fa * la_fa + w_bal * la_bal) / la_bic      # force applied by bicep muscle
 
 
-        # save calculations in a way to help prep for visual in plotly output
+        # set/return data in dictionary format
+        calculated_data = {
+            "bicep_force": force_bicep,
+            "elbow_angle": theta_u,
+            "uarm_spher_coords": uarm_spher_coords,
+            "farm_spher_coords": farm_spher_coords
+        }
 
-        # theta-arm, bicep force, theta-u
-        #self.mediapipe_data_output[26, 0] = np.rad2deg(theta_arm)
-        #self.mediapipe_data_output[26, 1] = force_bicep 
-        #self.mediapipe_data_output[26, 2] = np.rad2deg(theta_u)
-
-        # rho, theta, phi
-        #self.mediapipe_data_output[27, :] = self.rho
-        #self.mediapipe_data_output[28, :] = np.rad2deg(self.theta) 
-        #self.mediapipe_data_output[29, :] = np.rad2deg(self.phi)
-
-    #run_formula_calculations()
+        return calculated_data
 
 
 
     ### BICEP FORCES GRAPH
 
     # graph bicep forces
-    def plot_bicep_forces(self):#body_data = mediapipe_data_output):
+    def plot_bicep_forces(self, bicep_force, elbow_angle):
         # plot bicep force / theta_u
-        y = np.abs(self.mediapipe_data_output[:, 26, 1])             # bicep force
-        x = np.rad2deg(self.mediapipe_data_output[:, 32, 2])#freemocap_3d_body_data[:, 26, 2]))                     # angle at elbow
+        y = np.abs(bicep_force)            # bicep force
+        x = np.rad2deg(elbow_angle)        # angle at elbow
 
         # plot
         plt.scatter(x,y)
