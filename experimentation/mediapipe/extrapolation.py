@@ -51,8 +51,8 @@ class Extrapolate_forces():
         self.user_weight = 90        # user weight (kilograms)
         
         # toggle for whether or not to calculate forces for each arm
-        self.toggle_left = True
-        self.toggle_right = True
+        #self.toggle_left = True
+        #self.toggle_right = True
 
 
         ### IMPORTANT OBJECTS/VARIABLES

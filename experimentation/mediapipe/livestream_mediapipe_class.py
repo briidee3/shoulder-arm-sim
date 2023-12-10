@@ -19,7 +19,9 @@
 
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
+
 import numpy as np
+import math
 
 import cv2
 import threading
@@ -29,21 +31,32 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-import extrapolation    # functions from previous iteration of project
+# functions for data calculations and manipulations
+import extrapolation
+
+# functions for GUI setup/management
+from tkinter import *
+from PIL import Image
+from PIL import ImageTk
 
 
 
 # user input variables (treated as constants)
-user_height = 1.78      # height of the user
-user_weight = 90        # weight of the user
+#user_height = 1.78      # height of the user
+#user_weight = 90        # weight of the user
 
 # number of frames to wait between updates of certain data (so as to not bog down the machine each frame)
-tick_length = 60        # not used yet
-frame_counter = 0       # used for keeping track of current tick/frame
+#tick_length = 60        # not used yet
+#frame_counter = 0       # used for keeping track of current tick/frame
+
+
+# load and prep placeholder image for program initialization
+no_image_path = './no_image.png'        # placeholder image location
+no_image = ImageTk.PhotoImage(Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR2RGB)))
 
 
 
-### OPTIONS
+### MEDIAPIPE OPTIONS
 
 # model to be used as "Pose Landmarker"
 pose_landmarker = './landmarkers/pose_landmarker_full.task'
@@ -79,20 +92,31 @@ class Pose_detection():
             running_mode = VisionRunningMode.LIVE_STREAM,
             result_callback = self.draw_landmarks_on_frame
         )
-        self.detector = PoseLandmarker.create_from_options(options) # load landmarker model for use in detection
+        self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
         
 
-        ### SETUP PIPELINE
+        ### SET UP PIPELINE
         
         # helps with counting frames across functions
-        self.frame_counter = 0
-
+        self.frame_counter = 0                                          # used to keep track of which frame is which
+        self.tick_length = 60                                           # num of frames between periodic updater functions (e.g. calibration)
 
         # initialize extrapolation and body force calculation object
         self.ep = extrapolation.Extrapolate_forces()
         print("Initialized Pose_detection()")
-        #self.extrapolate_depth(PoseLandmarkerResult)                  # initialize extrapolation
-        #self.ep.update_first_frame()
+
+        # set up dictionary to read from for gui display of data
+        self.calculated_data = {
+            "bicep_force": math.nan,
+            "elbow_angle": math.nan,
+            "uarm_spher_coords": [math.nan, math.nan, math.nan],
+            "farm_spher_coords": [math.nan, math.nan, math.nan]
+        }
+
+        # initialize tkinter image panel
+        self.image_panel = Label(image = no_image)
+        self.image_panel.image = no_image
+        self.image_panel.pack(side = "left", padx = 10, pady = 10)
 
     # run the program
     def run(self):
@@ -118,7 +142,10 @@ class Pose_detection():
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
                     # display annotated image on screen
-                    cv2.imshow( 'Live view + overlay (Press "q" to exit)', cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ) )
+                    #cv2.imshow( 'Live view + overlay (Press "q" to exit)', cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ) )
+
+                    # update gui
+                    self.update_display(self.annotated_image)
 
                     # allow resetting the data to allow others to use without restarting
                     #ep.reset_dist_array()
@@ -219,6 +246,15 @@ class Pose_detection():
         
         
         return #?
+    
+    # set up and run gui via opencv and tkinter
+    def update_display(self, img):
+        # update image
+        img = ImageTk.PhotoImage(Image.fromarray(img))
+        self.image_panel.configure(image = img)
+        self.image_panel.image = img
+
+        # update data
 
 
 
