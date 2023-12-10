@@ -50,11 +50,6 @@ from PIL import ImageTk
 #frame_counter = 0       # used for keeping track of current tick/frame
 
 
-# load and prep placeholder image for program initialization
-no_image_path = './no_image.png'        # placeholder image location
-no_image = ImageTk.PhotoImage(Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR2RGB)))
-
-
 
 ### MEDIAPIPE OPTIONS
 
@@ -101,22 +96,13 @@ class Pose_detection():
         self.frame_counter = 0                                          # used to keep track of which frame is which
         self.tick_length = 60                                           # num of frames between periodic updater functions (e.g. calibration)
 
+        # user input data
+        self.user_height = 1.78                                         # in meters
+        self.user_weight = 90                                           # in kilograms
+
         # initialize extrapolation and body force calculation object
         self.ep = extrapolation.Extrapolate_forces()
         print("Initialized Pose_detection()")
-
-        # set up dictionary to read from for gui display of data
-        self.calculated_data = {
-            "bicep_force": math.nan,
-            "elbow_angle": math.nan,
-            "uarm_spher_coords": [math.nan, math.nan, math.nan],
-            "farm_spher_coords": [math.nan, math.nan, math.nan]
-        }
-
-        # initialize tkinter image panel
-        self.image_panel = Label(image = no_image)
-        self.image_panel.image = no_image
-        self.image_panel.pack(side = "left", padx = 10, pady = 10)
 
     # run the program
     def run(self):
@@ -142,10 +128,10 @@ class Pose_detection():
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
                     # display annotated image on screen
-                    #cv2.imshow( 'Live view + overlay (Press "q" to exit)', cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ) )
+                    cv2.imshow( 'Live view + overlay (Press "q" to exit)', cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ) )
 
                     # update gui
-                    self.update_display(self.annotated_image)
+                    #self.update_display(self.annotated_image)
 
                     # allow resetting the data to allow others to use without restarting
                     #ep.reset_dist_array()
@@ -163,10 +149,10 @@ class Pose_detection():
     # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
     def extrapolate_depth(self, mediapipe_output):
         # set the data for the current frame
-        self.ep.update_current_frame(mediapipe_output, frame_counter)                       # update mediapipe data
+        self.ep.update_current_frame(mediapipe_output, self.frame_counter)                       # update mediapipe data
         # calculations that don't need to run each frame (hence run every "tick")
-        if (frame_counter % tick_length == 0):
-            self.ep.calc_conversion_ratio(real_height_metric = user_height)  # calculate conversion ratio (mediapipe units to meters)
+        if (self.frame_counter % self.tick_length == 0):
+            self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
 
         # calculate depth for given frame
         self.ep.set_depth()                      # get depth_dict and calculate y axes values
@@ -174,9 +160,7 @@ class Pose_detection():
     # calculate forces involved with muscles in the body
     def calc_body_forces(self):
         # force calculations
-        print("aa")
         self.ep.calc_bicep_force()                                            # calculate forces
-        print("ab")
 
         # display forces graph
         #self.ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
@@ -246,16 +230,6 @@ class Pose_detection():
         
         
         return #?
-    
-    # set up and run gui via opencv and tkinter
-    def update_display(self, img):
-        # update image
-        img = ImageTk.PhotoImage(Image.fromarray(img))
-        self.image_panel.configure(image = img)
-        self.image_panel.image = img
-
-        # update data
-
 
 
 # try running everything
