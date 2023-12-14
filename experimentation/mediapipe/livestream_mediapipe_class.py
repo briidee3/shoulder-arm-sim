@@ -83,8 +83,8 @@ class Pose_detection(threading.Thread):
         # make video capture object via webcam
         self.webcam_stream = cv2.VideoCapture(0)
         # set height and width accordingly
-        HEIGHT = self.webcam_stream.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        WIDTH = self.webcam_stream.get(cv2.CAP_PROP_FRAME_WIDTH)
+        #HEIGHT = self.webcam_stream.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        #WIDTH = self.webcam_stream.get(cv2.CAP_PROP_FRAME_WIDTH)
         
         # initialization of image (updated asynchronously)
         self.annotated_image = np.zeros(((int)(HEIGHT), (int)(WIDTH), 3), np.uint8)
@@ -101,7 +101,8 @@ class Pose_detection(threading.Thread):
         ### SET UP PIPELINE
 
         # thread for running calculations
-        self.pose_detection_thread = threading.Thread(target = self.run, args = ())
+        #self.pose_detection_thread = threading.Thread(target = self.run, args = ())
+        self.stop = False
 
         # allow use of current frame from external program (GUI)
         self.ret = None
@@ -140,7 +141,7 @@ class Pose_detection(threading.Thread):
                 print("Error opening webcam")
             else:
                 # main program loop
-                while not ((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
+                while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
                     # get current millisecond for use by detector
                     cur_msec = (int)(time.time() * 1000)
 
@@ -170,6 +171,7 @@ class Pose_detection(threading.Thread):
                     # allow resetting the data to allow others to use without restarting
                     #ep.reset_dist_array()
         finally:
+            self.stop = True
             # release capture object from memory
             self.webcam_stream.release()
             # get rid of windows still up
@@ -193,6 +195,10 @@ class Pose_detection(threading.Thread):
     # get function for video height and width
     def get_height_width(self):
         return HEIGHT, WIDTH
+    
+    # callback function to terminate program
+    def stop_program(self):
+        self.stop = True
 
     # set up GUI
     #def init_gui(self):
@@ -289,7 +295,7 @@ class Pose_detection(threading.Thread):
         
         
         ### DEPTH AND FORCES CALCULATIONS
-        if (pose_landmarks_list):   # check if results exist before attempting calculations
+        if (pose_landmarks_list) and not self.stop:   # check if results exist (and that program isn't stopping) before attempting calculations
             print("Extrapolating depth...")
             print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
             self.extrapolate_depth(mediapipe_out)

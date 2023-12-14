@@ -76,7 +76,10 @@ class SimGUI():
         # start updater loop
         self.update_display()
         #self.mediapipe_runtime.run()
-    
+
+        # handle when to close
+        self.root.protocol("WM_DELETE_WINDOW", self.__del__)
+
         # start the display
         self.root.mainloop()
 
@@ -100,7 +103,9 @@ class SimGUI():
     def __del__(self):
         if self.mediapipe_runtime.webcam_stream.isOpened():
             self.mediapipe_runtime.webcam_stream.release()
+        self.mediapipe_runtime.stop_program()
         self.mediapipe_runtime.join()
 
 gui = SimGUI()
 gui.start()
+#gui.mediapipe_runtime.join()
