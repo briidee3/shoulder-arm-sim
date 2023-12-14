@@ -33,8 +33,6 @@ class SimGUI():
         
         ### DATA AND CONSTANTS
         
-        #self.cur_frame = cv2.imread(no_image_path)                  # current frame to display in window
-        
         # set up dictionary to read from for gui display of data
         self.calculated_data = {
             "bicep_force": math.nan,
@@ -45,8 +43,6 @@ class SimGUI():
 
         # initialize mediapipe
         self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker)
-        #self.mediapipe_runtime_thread = threading.Thread(target = self.mediapipe_runtime.run, args = ())
-        #self.mediapipe_runtime_thread.start()
         self.mediapipe_runtime.start()
 
         ### GUI SETUP
@@ -67,8 +63,6 @@ class SimGUI():
         self.image_label = Label(self.gui)
         self.image_label.grid()
         self.image_label.photo = None
-        #self.image_panel = Label(self.root, name = "image", image = ImageTk.PhotoImage(no_image))                                     # initialize image panel
-        #self.image_panel.pack(side = "left", padx = 10, pady = 10)
         #self.bicep_force = Label(self.root, text = "Bicep force: %s" % self.calculated_data["bicep_force"])
     
     # start/run the gui display
@@ -86,13 +80,11 @@ class SimGUI():
     # update the data being displayed
     def update_display(self):#, new_frame, data_dict):
         # handle frame/image data
-        #self.root.setvar(name = "image", value = ImageTk.PhotoImage(Image.fromarray(self.mediapipe_runtime.get_cur_frame())))
         ret, frame = self.mediapipe_runtime.get_cur_frame()
         
         if ret:
             self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(frame))
             self.image_label.configure(image = self.image_label.photo)
-
 
         # handle numerical data
 
@@ -108,4 +100,3 @@ class SimGUI():
 
 gui = SimGUI()
 gui.start()
-#gui.mediapipe_runtime.join()

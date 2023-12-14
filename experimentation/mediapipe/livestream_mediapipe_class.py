@@ -41,16 +41,6 @@ from PIL import ImageTk
 
 
 
-# user input variables (treated as constants)
-#user_height = 1.78      # height of the user
-#user_weight = 90        # weight of the user
-
-# number of frames to wait between updates of certain data (so as to not bog down the machine each frame)
-#tick_length = 60        # not used yet
-#frame_counter = 0       # used for keeping track of current tick/frame
-
-
-
 ### MEDIAPIPE OPTIONS
 
 # model to be used as "Pose Landmarker"
@@ -101,7 +91,6 @@ class Pose_detection(threading.Thread):
         ### SET UP PIPELINE
 
         # thread for running calculations
-        #self.pose_detection_thread = threading.Thread(target = self.run, args = ())
         self.stop = False
 
         # allow use of current frame from external program (GUI)
@@ -120,19 +109,6 @@ class Pose_detection(threading.Thread):
         self.ep = extrapolation.Extrapolate_forces()
         print("Initialized Pose_detection()")
 
-        # GUI setup
-        ##self.root = Tk()
-        ##self.root.title("Biomechanics Simulation")
-        #self.image_panel = Label(self.root, image = ImageTk.PhotoImage(Image.fromarray(self.annotated_image)))
-        #self.image_panel.pack(side = "left", padx = 10, pady = 10)
-        #self.init_gui()
-        # create frame
-        ##self.gui = Frame(self.root, bg = "white")
-        ##self.gui.grid()
-        # create image label in frame
-        ##self.image_label = Label(self.gui)
-        ##self.image_label.grid()
-
     # run the program
     def run(self):
         try:
@@ -148,28 +124,8 @@ class Pose_detection(threading.Thread):
                     # capture video for each frame
                     self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
 
-                    # show (raw) frame on screen (without skeleton overlay)
-                    #cv2.imshow('Live Webcam View (Press "q" to exit)', self.cur_frame)
-
-
-                    # show current frame with skeleton overlay on screen
-                    # 
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
-                    # update image in tkinter gui
-                    #if self.ret:        # ensure frame was read properly
-                    #    imgtk = ImageTk.PhotoImage(image = Image.fromarray(self.annotated_image))
-                    #    self.image_label.photo = imgtk
-                    #    self.image_label.configure(image = imgtk)
-                    #self.image_label.after(1, )
-                    # display annotated image on screen
-                    #cv2.imshow( 'Live view + overlay (Press "q" to exit)',  cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ))
-
-                    # update gui
-                    #self.update_display(self.annotated_image)
-
-                    # allow resetting the data to allow others to use without restarting
-                    #ep.reset_dist_array()
         finally:
             self.stop = True
             # release capture object from memory
@@ -199,25 +155,6 @@ class Pose_detection(threading.Thread):
     # callback function to terminate program
     def stop_program(self):
         self.stop = True
-
-    # set up GUI
-    #def init_gui(self):
-        # start update loop
-        #self.update_gui()
-
-        # start gui display
-   #     self.root.mainloop()
-
-    # update loop for GUI
-    #def update_gui(self):
-    #    # update image
-    #    self.image_panel.config(image = ImageTk.PhotoImage(Image.fromarray(self.annotated_image)))#
-    #
-    #    # call next update cycle
-    #    self.root.after(17, self.update_gui())          # update ~60 times a second
-
-
-    
 
 
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
@@ -306,21 +243,4 @@ class Pose_detection(threading.Thread):
         
         
         return #?
-    
-    # run the program
-    #def start(self):
-        # run the object/program
-        #self.pose_detection_thread.start()
-        #self.init_gui()
-
-
-# try running everything
-
-# make new object of type Pose_detection (defined above)
-#program = Pose_detection(pose_landmarker)
-# run the object/program
-#pose_detection_thread = threading.Thread(target = program.run, args = ())
-#pose_detection_thread.start()
-#program.init_gui()
-#program.run
 
