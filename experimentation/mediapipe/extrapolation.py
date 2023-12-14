@@ -180,9 +180,9 @@ class Extrapolate_forces():
     # get y axes/depths by order of body parts
     def set_depth(self):
         for vertices in self.vertex_order:
-            print(vertices)
+            #print(vertices)
             for i in enumerate(vertices):
-                print(i[1])
+                #print(i[1])
                 if i[1] != (vertices[-1]):
                     y_dist_between_vertices = self.get_depth(i[1], i[1] + 1)          # calculate depth
                     # check if "nan" value
