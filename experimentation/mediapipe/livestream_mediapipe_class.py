@@ -91,6 +91,9 @@ class Pose_detection():
         
 
         ### SET UP PIPELINE
+
+        # allow use of current frame from external program (GUI)
+        self.cur_frame = None
         
         # helps with counting frames across functions
         self.frame_counter = 0                                          # used to keep track of which frame is which
@@ -128,7 +131,7 @@ class Pose_detection():
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
                     # display annotated image on screen
-                    cv2.imshow( 'Live view + overlay (Press "q" to exit)', cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ) )
+                    cv2.imshow( 'Live view + overlay (Press "q" to exit)',  cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ))
 
                     # update gui
                     #self.update_display(self.annotated_image)
@@ -142,6 +145,20 @@ class Pose_detection():
             cv2.destroyAllWindows()
             print("Program closed.")
 
+    # helper function for use by GUI, returns current frame
+    #def get_cur_frame(self):
+    #    return self.annotated_image
+   # 
+   # # allow setting of height via external package/program
+   # def set_height(self, height):
+   #     self.user_height = height
+   #     return self.user_height
+   # 
+   # # allow setting of weight via external package/program
+   # def set_height(self, weight):
+   #     self.user_weight = weight
+   #     return self.user_weight
+    
 
 
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS

@@ -33,7 +33,7 @@ class SimGUI():
         
         ### DATA AND CONSTANTS
         
-        self.cur_frame = cv2.imread(no_image_path)                  # current frame to display in window
+        #self.cur_frame = cv2.imread(no_image_path)                  # current frame to display in window
         
         # set up dictionary to read from for gui display of data
         self.calculated_data = {
@@ -48,22 +48,32 @@ class SimGUI():
         self.mediapipe_runtime_thread = threading.Thread(target = self.mediapipe_runtime.run, args = ())
 
         ### GUI SETUP
-
-        self.root = Tk()                                            # initialize root of the tkinter gui display
-        self.image_panel = None                                     # initialize image panel
+        
+        # initialize root of the tkinter gui display
+        self.root = Tk()
 
         # configure UI
+        self.image_panel = Label(self.root, image = ImageTk.PhotoImage(no_image))                                     # initialize image panel
         self.image_panel.pack(side = "left", padx = 10, pady = 10)
-        self.bicep_force = Label(self.root, text = "Bicep force: %s" % self.calculated_data["bicep_force"])
+        #self.bicep_force = Label(self.root, text = "Bicep force: %s" % self.calculated_data["bicep_force"])
     
     # start/run the gui display
     def start(self):
+        # start updater loop
+        self.update_display()
+    
         # start the display
         self.root.mainloop()
 
     # update the data being displayed
-    def update_display(self, new_frame, data_dict):
+    def update_display(self):#, new_frame, data_dict):
         # handle frame/image data
-        self.cur_frame = new_frame
+        self.image_panel.setvar(image = ImageTk.PhotoImage(Image.fromarray(self.mediapipe_runtime.get_cur_frame())))
 
         # handle numerical data
+
+        # call next update cycle
+        self.root.after(17, self.update_display())      # update approximately 60 times per second
+
+gui = SimGUI()
+gui.start()
