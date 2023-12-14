@@ -217,7 +217,7 @@ class Extrapolate_forces():
         # calculate angle at elbow
         elbow_angle = np.arccos( ( (vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2]) ) / (forearm_length * upperarm_length) )
 
-        print(elbow_angle)
+        #print(elbow_angle)
         return elbow_angle
 
     # get spherical coordinates for each of the 3 vertices (bodyparts) of interest
