@@ -107,6 +107,18 @@ class Pose_detection():
         self.ep = extrapolation.Extrapolate_forces()
         print("Initialized Pose_detection()")
 
+        # GUI setup
+        self.root = Tk()
+        #self.image_panel = Label(self.root, image = ImageTk.PhotoImage(Image.fromarray(self.annotated_image)))
+        #self.image_panel.pack(side = "left", padx = 10, pady = 10)
+        #self.init_gui()
+        # create frame
+        self.gui = Frame(self.root, bg = "white")
+        self.gui.grid()
+        # create image label in frame
+        self.image_label = Label(self.gui)
+        self.image_label.grid()
+
     # run the program
     def run(self):
         try:
@@ -130,8 +142,12 @@ class Pose_detection():
                     # 
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
+                    # update image in tkinter gui
+                    self.image_label.imgtk = ImageTk.PhotoImage(image = Image.fromarray(self.annotated_image))
+                    self.image_label.configure(image = self.image_label.imgtk)
+                    #self.image_label.after(1, )
                     # display annotated image on screen
-                    cv2.imshow( 'Live view + overlay (Press "q" to exit)',  cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ))
+                    #cv2.imshow( 'Live view + overlay (Press "q" to exit)',  cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ))
 
                     # update gui
                     #self.update_display(self.annotated_image)
@@ -158,6 +174,24 @@ class Pose_detection():
    # def set_height(self, weight):
    #     self.user_weight = weight
    #     return self.user_weight
+
+    # set up GUI
+    def init_gui(self):
+        # start update loop
+        #self.update_gui()
+
+        # start gui display
+        self.root.mainloop()
+
+    # update loop for GUI
+    #def update_gui(self):
+    #    # update image
+    #    self.image_panel.config(image = ImageTk.PhotoImage(Image.fromarray(self.annotated_image)))#
+    #
+    #    # call next update cycle
+    #    self.root.after(17, self.update_gui())          # update ~60 times a second
+
+
     
 
 
@@ -254,7 +288,9 @@ class Pose_detection():
 # make new object of type Pose_detection (defined above)
 program = Pose_detection(pose_landmarker)
 # run the object/program
-program.run()
+pose_detection_thread = threading.Thread(target = program.run, args = ())
+pose_detection_thread.start()
+program.init_gui()
 
 
 

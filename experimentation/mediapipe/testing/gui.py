@@ -53,7 +53,7 @@ class SimGUI():
         self.root = Tk()
 
         # configure UI
-        self.image_panel = Label(self.root, image = ImageTk.PhotoImage(no_image))                                     # initialize image panel
+        self.image_panel = Label(self.root, name = "image", image = ImageTk.PhotoImage(no_image))                                     # initialize image panel
         self.image_panel.pack(side = "left", padx = 10, pady = 10)
         #self.bicep_force = Label(self.root, text = "Bicep force: %s" % self.calculated_data["bicep_force"])
     
@@ -68,7 +68,7 @@ class SimGUI():
     # update the data being displayed
     def update_display(self):#, new_frame, data_dict):
         # handle frame/image data
-        self.image_panel.setvar(image = ImageTk.PhotoImage(Image.fromarray(self.mediapipe_runtime.get_cur_frame())))
+        self.root.setvar(name = "image", value = ImageTk.PhotoImage(Image.fromarray(self.mediapipe_runtime.get_cur_frame())))
 
         # handle numerical data
 
