@@ -59,7 +59,6 @@ WIDTH = 640
 HEIGHT = 480
 
 # use opencv VideoCapture to start webcam capture
-webcam_stream = cv2.VideoCapture(0)     # make video capture object
 #ret, cur_frame = webcam_stream.read()   # called pre-loop for access outside of the loop
 
 # PoseLandmarker task object callback references
@@ -74,12 +73,21 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 ### CLASS
 
 # set up a class to be used for running the pose detection program
-class Pose_detection():
+class Pose_detection(threading.Thread):
 
     # initialization
     def __init__(self, model_path) -> None:
+        # initialize thread
+        threading.Thread.__init__(self)
+
+        # make video capture object via webcam
+        self.webcam_stream = cv2.VideoCapture(0)
+        # set height and width accordingly
+        HEIGHT = self.webcam_stream.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        WIDTH = self.webcam_stream.get(cv2.CAP_PROP_FRAME_WIDTH)
+        
         # initialization of image (updated asynchronously)
-        self.annotated_image = np.zeros((HEIGHT, WIDTH, 3), np.uint8)
+        self.annotated_image = np.zeros(((int)(HEIGHT), (int)(WIDTH), 3), np.uint8)
 
         # options for pose landmarker
         options = PoseLandmarkerOptions(
@@ -92,7 +100,11 @@ class Pose_detection():
 
         ### SET UP PIPELINE
 
+        # thread for running calculations
+        self.pose_detection_thread = threading.Thread(target = self.run, args = ())
+
         # allow use of current frame from external program (GUI)
+        self.ret = None
         self.cur_frame = None
         
         # helps with counting frames across functions
@@ -108,31 +120,32 @@ class Pose_detection():
         print("Initialized Pose_detection()")
 
         # GUI setup
-        self.root = Tk()
+        ##self.root = Tk()
+        ##self.root.title("Biomechanics Simulation")
         #self.image_panel = Label(self.root, image = ImageTk.PhotoImage(Image.fromarray(self.annotated_image)))
         #self.image_panel.pack(side = "left", padx = 10, pady = 10)
         #self.init_gui()
         # create frame
-        self.gui = Frame(self.root, bg = "white")
-        self.gui.grid()
+        ##self.gui = Frame(self.root, bg = "white")
+        ##self.gui.grid()
         # create image label in frame
-        self.image_label = Label(self.gui)
-        self.image_label.grid()
+        ##self.image_label = Label(self.gui)
+        ##self.image_label.grid()
 
     # run the program
     def run(self):
         try:
             # display and update video stream
-            if webcam_stream.isOpened() == False:
+            if self.webcam_stream.isOpened() == False:
                 print("Error opening webcam")
             else:
                 # main program loop
-                while not ((cv2.waitKey(1) & 0xFF == ord('q'))):# or ret != True):
+                while not ((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
                     # get current millisecond for use by detector
                     cur_msec = (int)(time.time() * 1000)
 
                     # capture video for each frame
-                    self.ret, self.cur_frame = webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                    self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
 
                     # show (raw) frame on screen (without skeleton overlay)
                     #cv2.imshow('Live Webcam View (Press "q" to exit)', self.cur_frame)
@@ -143,8 +156,10 @@ class Pose_detection():
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
                     # update image in tkinter gui
-                    self.image_label.imgtk = ImageTk.PhotoImage(image = Image.fromarray(self.annotated_image))
-                    self.image_label.configure(image = self.image_label.imgtk)
+                    #if self.ret:        # ensure frame was read properly
+                    #    imgtk = ImageTk.PhotoImage(image = Image.fromarray(self.annotated_image))
+                    #    self.image_label.photo = imgtk
+                    #    self.image_label.configure(image = imgtk)
                     #self.image_label.after(1, )
                     # display annotated image on screen
                     #cv2.imshow( 'Live view + overlay (Press "q" to exit)',  cv2.cvtColor( self.annotated_image, cv2.COLOR_RGB2BGR ))
@@ -156,32 +171,36 @@ class Pose_detection():
                     #ep.reset_dist_array()
         finally:
             # release capture object from memory
-            webcam_stream.release()
+            self.webcam_stream.release()
             # get rid of windows still up
             cv2.destroyAllWindows()
             print("Program closed.")
 
     # helper function for use by GUI, returns current frame
-    #def get_cur_frame(self):
-    #    return self.annotated_image
-   # 
-   # # allow setting of height via external package/program
-   # def set_height(self, height):
-   #     self.user_height = height
-   #     return self.user_height
-   # 
-   # # allow setting of weight via external package/program
-   # def set_height(self, weight):
-   #     self.user_weight = weight
-   #     return self.user_weight
+    def get_cur_frame(self):
+        return self.ret, self.annotated_image
+    
+    # allow setting of height via external package/program
+    def set_height(self, height):
+        self.user_height = height
+        return self.user_height
+    
+    # allow setting of weight via external package/program
+    def set_weight(self, weight):
+        self.user_weight = weight
+        return self.user_weight
+    
+    # get function for video height and width
+    def get_height_width(self):
+        return HEIGHT, WIDTH
 
     # set up GUI
-    def init_gui(self):
+    #def init_gui(self):
         # start update loop
         #self.update_gui()
 
         # start gui display
-        self.root.mainloop()
+   #     self.root.mainloop()
 
     # update loop for GUI
     #def update_gui(self):
@@ -281,17 +300,21 @@ class Pose_detection():
         
         
         return #?
+    
+    # run the program
+    #def start(self):
+        # run the object/program
+        #self.pose_detection_thread.start()
+        #self.init_gui()
 
 
 # try running everything
 
 # make new object of type Pose_detection (defined above)
-program = Pose_detection(pose_landmarker)
+#program = Pose_detection(pose_landmarker)
 # run the object/program
-pose_detection_thread = threading.Thread(target = program.run, args = ())
-pose_detection_thread.start()
-program.init_gui()
-
-
-
+#pose_detection_thread = threading.Thread(target = program.run, args = ())
+#pose_detection_thread.start()
+#program.init_gui()
+#program.run
 
