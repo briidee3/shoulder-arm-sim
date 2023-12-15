@@ -135,12 +135,7 @@ class Pose_detection(threading.Thread):
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
         finally:
-            self.stop = True
-            # release capture object from memory
-            self.webcam_stream.release()
-            # get rid of windows still up
-            cv2.destroyAllWindows()
-            print("Program closed.")
+            self.stop_program()
 
     # helper function for use by GUI, returns current frame
     def get_cur_frame(self):
@@ -164,9 +159,18 @@ class Pose_detection(threading.Thread):
     def get_height_width(self):
         return HEIGHT, WIDTH
     
+    # set stop variable
+    def set_stop(self, set = True):
+        self.stop = set
+    
     # callback function to terminate program
     def stop_program(self):
-        self.stop = True
+        self.stop = True    # redundancy
+        # release capture object from memory
+        self.webcam_stream.release()
+        # get rid of windows still up
+        cv2.destroyAllWindows()
+        print("Program closed.")
 
 
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS

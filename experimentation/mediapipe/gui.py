@@ -49,6 +49,11 @@ class SimGUI():
 
         # delay between frames
         self.delay = 15
+
+        # data update interval
+        self.update_interval = 15
+
+        # image height/width
         self.height, self.width = self.mediapipe_runtime.get_height_width()
         
         # initialize root of the tkinter gui display
@@ -91,8 +96,9 @@ class SimGUI():
     
     # start/run the gui display
     def start(self):
-        # start updater loop
-        self.update_display()
+        # start updater loops
+        self.update_display()                               # update display
+        #self.update_data()                                  # update numerical data
         #self.mediapipe_runtime.run()
 
         # handle program close
@@ -110,23 +116,31 @@ class SimGUI():
             self.image_label.configure(image = self.image_label.photo)
             self.calculated_data = self.mediapipe_runtime.get_calculated_data()
 
-        # handle numerical data
-        self.root.after(1, self.update_data)
-
         # call next update cycle
         self.root.after(self.delay, self.update_display)    # update approximately 60 times per second
 
     # update numerical data in gui
     def update_data(self):
+        # update data
         self.bicep_var.set("Bicep force: %s" % self.calculated_data["bicep_force"])
         self.elbow_var.set("Elbow angle: %s" % self.calculated_data["elbow_angle"])
 
+        # call next update cycle
+        self.root.after(self.update_interval, self.update_data)
+
     # handle end of runtime
     def __del__(self):
+        # stop gui
+        self.root.destroy()
+
+        # stop mediapipe
         if self.mediapipe_runtime.webcam_stream.isOpened():
             self.mediapipe_runtime.webcam_stream.release()
-        self.mediapipe_runtime.stop_program()
+        self.mediapipe_runtime.set_stop(True)
         self.mediapipe_runtime.join()
+
+        # end gui
+        #self.root.destroy()
 
 gui = SimGUI()
 gui.start()
