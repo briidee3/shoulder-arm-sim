@@ -300,7 +300,7 @@ class Extrapolate_forces():
 
     ### FORMULA CALCULATIONS
     # calculate forces of muscle exertions of the arm
-    def calc_bicep_force(self, is_right = False):   # allow choosing which arm to use
+    def calc_bicep_force(self):#, is_right = False):   # allow choosing which arm to use
         # constants, used for organization and readability
         RHO = 0
         THETA = 1
@@ -308,46 +308,66 @@ class Extrapolate_forces():
         
         w_bal = self.ball_mass           # kilograms   # weight of ball
 
-        # only calculate the following if the elbow angle exists
-        elbow_angle = self.calc_elbow_angle(is_right)
-        if math.isnan(elbow_angle):
-            return math.nan                                         # if elbow_angle == nan, exit function by returning nan
+        # temp storage for getting both arms in one data frame
+        right_elbow_angle = 0
+        right_bicep_force = 0
+        left_elbow_angle = 0
+        left_bicep_force = 0
 
-        # convert sim units to metric units
-        conv_factor = self.sim_to_real_conversion_factor
+        # run through once for left, once for right
+        for is_right in [0, 1]:
+            # only calculate the following if the elbow angle exists
+            elbow_angle = self.calc_elbow_angle(is_right)
+            if math.isnan(elbow_angle):
+                return math.nan                                         # if elbow_angle == nan, exit function by returning nan
 
-        # get spherical coordinate data for arm segments
-        uarm_spher_coords = self.calc_spher_coords((L_SHOULDER + (int)(is_right)), (L_ELBOW + (int)(is_right)))
-        farm_spher_coords = self.calc_spher_coords((L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
+            # convert sim units to metric units
+            conv_factor = self.sim_to_real_conversion_factor
 
-        # instead of using averages for segment length, use calculated instead
-        f = farm_spher_coords[RHO] * conv_factor
-        u = uarm_spher_coords[RHO] * conv_factor
-        #print("%0.2f" % f)
-        b = u * 0.11 #0.636                                         # calculated via algebra using pre-existing average proportions data
-        w_fa = self.user_weight * (f * 0.1065)                      # use ratio of f to weight proportion to get weight with calculated f 
-        cgf = 2 * (f ** 2)                                          # calculated via algebra using pre-existing average proportions data
+            # get spherical coordinate data for arm segments
+            uarm_spher_coords = self.calc_spher_coords((L_SHOULDER + (int)(is_right)), (L_ELBOW + (int)(is_right)))
+            farm_spher_coords = self.calc_spher_coords((L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
 
-        # angles
-        theta_arm = (np.pi / 2) - farm_spher_coords[THETA]          # angle at shoulder
-        theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]         # angle of upper arm
-        theta_u = elbow_angle#theta_arm + theta_uarm                # angle at elbow
-        theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
-        theta_la = np.cos(theta_uarm) #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
+            # instead of using averages for segment length, use calculated instead
+            f = farm_spher_coords[RHO] * conv_factor
+            u = uarm_spher_coords[RHO] * conv_factor
+            #print("%0.2f" % f)
+            b = u * 0.11 #0.636                                         # calculated via algebra using pre-existing average proportions data
+            w_fa = self.user_weight * (f * 0.1065)                      # use ratio of f to weight proportion to get weight with calculated f 
+            cgf = 2 * (f ** 2)                                          # calculated via algebra using pre-existing average proportions data
 
-        # lever arms
-        la_fa = cgf * theta_la                                      # forearm lever arm
-        la_bal = f * theta_la                                       # ball lever arm
-        la_bic = b * np.sin(theta_b)                                # bicep lever arm
+            # angles
+            #theta_arm = (np.pi / 2) - farm_spher_coords[THETA]          # angle at shoulder
+            theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]         # angle of upper arm
+            theta_u = elbow_angle#theta_arm + theta_uarm                # angle at elbow
+            theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
+            theta_la = np.cos(theta_uarm) #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
 
-        # forces
-        force_bicep = (w_fa * la_fa + w_bal * la_bal) / la_bic      # force applied by bicep muscle
+            # lever arms
+            la_fa = cgf * theta_la                                      # forearm lever arm
+            la_bal = f * theta_la                                       # ball lever arm
+            la_bic = b * np.sin(theta_b)                                # bicep lever arm
+
+            # forces
+            force_bicep = (w_fa * la_fa + w_bal * la_bal) / la_bic      # force applied by bicep muscle
+
+            # handle which arm is currently calculating
+            if is_right:
+                right_elbow_angle = elbow_angle
+                right_bicep_force = force_bicep         # seems to be having issues; may be due to being flipped relative to left, and trig functions don't account for that.
+            else:
+                left_elbow_angle = elbow_angle
+                left_bicep_force = force_bicep
+
+
 
 
         # set/return data in dictionary format
         calculated_data = {
-            "bicep_force": str("%0.2f" % force_bicep),
-            "elbow_angle": str("%0.2f" % np.rad2deg(theta_u)),
+            "right_bicep_force": str("%0.2f" % right_bicep_force),
+            "right_elbow_angle": str("%0.2f" % np.rad2deg(right_elbow_angle)),
+            "left_bicep_force": str("%0.2f" % left_bicep_force),
+            "left_elbow_angle": str("%0.2f" % np.rad2deg(left_elbow_angle)),
             "uarm_spher_coords": str(uarm_spher_coords),
             "farm_spher_coords": str(farm_spher_coords)
         }

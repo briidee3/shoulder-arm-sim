@@ -35,8 +35,10 @@ class SimGUI():
 
         # set up dictionary to read from for gui display of data
         self.calculated_data = {
-            "bicep_force": "NaN",
-            "elbow_angle": "NaN",
+            "right_bicep_force": "NaN",
+            "right_elbow_angle": "NaN",
+            "left_bicep_force": "NaN",
+            "left_elbow_angle": "NaN",
             "uarm_spher_coords": "NaN",#["NaN", "NaN", "NaN"],
             "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
         }
@@ -44,6 +46,10 @@ class SimGUI():
         # initialize mediapipe
         self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker)
         self.mediapipe_runtime.start()
+
+        # allow entry in imperial (instead of metric)
+        self.use_imperial = False
+
 
         ### GUI SETUP
 
@@ -80,12 +86,35 @@ class SimGUI():
         self.settings = LabelFrame(self.data, text = "Settings:")
         self.settings.grid(row = 0, column = 0)
 
+        # settings for unit conversion factor (metric <--> sim units)
+        self.ucf_label = Label(self.settings, text = "Unit conversion factor: ", height = 1, width = 20)
+                               #cursor = "Approximate conversion ratio between metric units and simulation units.\n" + 
+                               #         "Only intended for use with \"Manual\" functionality.")
+        self.ucf_var = StringVar()
+        self.ucf_entry = Entry(self.settings, textvariable = self.ucf_var)
+        self.ucf_toggle_var = IntVar()
+        self.ucf_toggle = Checkbutton(self.settings, text = "Manual", variable = self.ucf_toggle_var,
+                                      onvalue = 1, offvalue = 0, height = 1, width = 10, command = self.toggle_manual_conversion)
+        self.ucf_submit = Button(self.settings, text = "Submit", command = self.set_conversion_ratio)
+        self.ucf_label.grid(row = 1, column = 0)
+        self.ucf_entry.grid(row = 1, column = 1)
+        self.ucf_toggle.grid(row = 2, column = 0)
+        self.ucf_submit.grid(row = 2, column = 1)
+
+        # allow entry in imperial (as opposed to metric)
+        self.ms_label = Label(self.settings, text = "Use imperial system? (Default: metric)")
+        self.ms_var = IntVar()
+        self.ms_toggle = Checkbutton(self.settings, variable = self.ms_var, onvalue = 1, offvalue = 0, command = self.toggle_imperial)
+        self.ms_label.grid(row = 3, column = 0)
+        self.ms_toggle.grid(row = 3, column = 1)
+
+
         # grid section for user input
         self.user_input = LabelFrame(self.data, text = "User input:")
         self.user_input.grid(row = 1, column = 0)
 
         # height user input
-        self.height_label = Label(self.user_input, text = "User height: ", height = 1, width = 15)
+        self.height_label = Label(self.user_input, text = "User height (meters): ", height = 1, width = 20)
         self.height_var = StringVar()
         self.height_var.set("1.78")                    # set to default value
         self.height_entry = Entry(self.user_input, textvariable = self.height_var)
@@ -93,7 +122,7 @@ class SimGUI():
         self.height_entry.grid(row = 1, column = 1)
 
         # weight user input
-        self.weight_label = Label(self.user_input, text = "User weight: ", height = 1, width = 15)
+        self.weight_label = Label(self.user_input, text = "User weight (kilograms): ", height = 1, width = 20)
         self.weight_var = StringVar()
         self.weight_var.set("90")                    # set to default value
         self.weight_entry = Entry(self.user_input, textvariable = self.weight_var)
@@ -101,14 +130,14 @@ class SimGUI():
         self.weight_entry.grid(row = 2, column = 1)
 
         # ball mass user input
-        self.bm_label = Label(self.user_input, text = "Ball mass: ", height = 1, width = 15)
+        self.bm_label = Label(self.user_input, text = "Ball mass (kilograms): ", height = 1, width = 20)
         self.bm_var = StringVar()
         self.bm_var.set("3")                    # set to default value
         self.bm_entry = Entry(self.user_input, textvariable = self.bm_var)
         self.bm_label.grid(row = 3, column = 0)
         self.bm_entry.grid(row = 3, column = 1)
 
-        # button to submit height and weight
+        # button to submit height and weight and ball mass
         self.submit_hw = Button(self.user_input, text = "Submit", command = self.hw_submit)
         self.submit_hw.grid(row = 4, column = 1)
 
@@ -117,21 +146,43 @@ class SimGUI():
         self.data_output = LabelFrame(self.data, text = "Data output:")
         self.data_output.grid(row = 2, column = 0)
 
+        # RIGHT ARM:
+        self.do_right = LabelFrame(self.data_output, text = "Right arm:")
+        self.do_right.grid(row = 1, column = 0)
         # bicep force output
-        self.bicep_label = Label(self.data_output, text = "Bicep force: ", height = 1, width = 15)
-        self.bicep_var = StringVar()
-        self.bicep_var.set(str(self.calculated_data["bicep_force"]))
-        self.bicep_force = Label(self.data_output, textvariable = self.bicep_var, height = 1, width = 10, relief = GROOVE)
-        self.bicep_label.grid(row = 1, column = 0)
-        self.bicep_force.grid(row = 1, column = 1)
+        self.right_bicep_label = Label(self.do_right, text = "Bicep force (Newtons): ", height = 1, width = 20)
+        self.right_bicep_var = StringVar()
+        self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
+        self.right_bicep_force = Label(self.do_right, textvariable = self.right_bicep_var, height = 1, width = 10, relief = GROOVE)
+        self.right_bicep_label.grid(row = 1, column = 0)
+        self.right_bicep_force.grid(row = 1, column = 1)
 
         # elbow angle output
-        self.elbow_label = Label(self.data_output, text = "Elbow angle: ", height = 1, width = 15)
-        self.elbow_var = StringVar()
-        self.elbow_var.set("Elbow angle: %s" % self.calculated_data["elbow_angle"])
-        self.elbow_angle = Label(self.data_output, textvariable = self.elbow_var, height = 1, width = 10, relief = GROOVE)
-        self.elbow_label.grid(row = 2, column = 0)
-        self.elbow_angle.grid(row = 2, column = 1)
+        self.right_elbow_label = Label(self.do_right, text = "Elbow angle (Degrees): ", height = 1, width = 20)
+        self.right_elbow_var = StringVar()
+        self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
+        self.right_elbow_angle = Label(self.do_right, textvariable = self.right_elbow_var, height = 1, width = 10, relief = GROOVE)
+        self.right_elbow_label.grid(row = 2, column = 0)
+        self.right_elbow_angle.grid(row = 2, column = 1)
+
+        # LEFT ARM:
+        self.do_left = LabelFrame(self.data_output, text = "Left arm:")
+        self.do_left.grid(row = 2, column = 0)
+        # bicep force output
+        self.left_bicep_label = Label(self.do_left, text = "Bicep force (Newtons): ", height = 1, width = 20)
+        self.left_bicep_var = StringVar()
+        self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
+        self.left_bicep_force = Label(self.do_left, textvariable = self.left_bicep_var, height = 1, width = 10, relief = GROOVE)
+        self.left_bicep_label.grid(row = 1, column = 0)
+        self.left_bicep_force.grid(row = 1, column = 1)
+
+        # elbow angle output
+        self.left_elbow_label = Label(self.do_left, text = "Elbow angle (Degrees): ", height = 1, width = 20)
+        self.left_elbow_var = StringVar()
+        self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
+        self.left_elbow_angle = Label(self.do_left, textvariable = self.left_elbow_var, height = 1, width = 10, relief = GROOVE)
+        self.left_elbow_label.grid(row = 2, column = 0)
+        self.left_elbow_angle.grid(row = 2, column = 1)
 
         # set up height and weight inputs
         #self.input_height = Text(self.root, height = 1, width = 8, bg = "gray")
@@ -172,8 +223,12 @@ class SimGUI():
     # update numerical data in gui
     def update_data(self):
         # update data
-        self.bicep_var.set(str(self.calculated_data["bicep_force"]))
-        self.elbow_var.set(str(self.calculated_data["elbow_angle"]))
+        self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
+        self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
+        self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
+        self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
+        #if not self.toggle_manual_conversion:
+        self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
 
         # call next update cycle
         self.gui.after(self.update_interval, self.update_data)
@@ -183,11 +238,46 @@ class SimGUI():
 
     # height and weight submission
     def hw_submit(self):
-        height = self.height_entry.get()
-        weight = self.weight_entry.get()
-        ball = self.bm_entry.get()
+        height = float(self.height_entry.get())
+        weight = float(self.weight_entry.get())
+        ball = float(self.bm_entry.get())
+
+        # convert from imperial to metric (if used)
+        if self.use_imperial:
+            height = height / 3.28084   # feet to meters
+            weight = weight / 2.2046    # pounds to kilograms
+            ball = ball / 2.2046        # pounds to kilograms
 
         self.mediapipe_runtime.ep.set_hwb(height, weight, ball)
+
+    # handle toggleable measurement system
+    def toggle_imperial(self):
+        toggle = bool(self.ms_var.get())
+
+        self.use_imperial = toggle
+
+        # change GUI to accomodate
+        if toggle:
+            self.height_label.config(text = "User height (feet): ")
+            self.weight_label.config(text = "User weight (pounds): ")
+            self.bm_label.config(text = "Ball mass (pounds): ")
+        # if untoggled, return to default
+        else:
+            self.height_label.config(text = "User height (meters): ")
+            self.weight_label.config(text = "User weight (kilograms): ")
+            self.bm_label.config(text = "Ball mass (kilograms): ")
+
+    # handle togglable manual conversion factor/ratio
+    def toggle_manual_conversion(self):
+        toggle = bool(self.ucf_toggle_var.get())
+
+        self.mediapipe_runtime.toggle_auto_conversion(toggle)
+
+    # set manual conversion factor/ratio
+    def set_conversion_ratio(self):
+        ratio = float(self.ucf_entry.get())
+
+        self.mediapipe_runtime.ep.set_conversion_ratio(ratio)
 
 
 

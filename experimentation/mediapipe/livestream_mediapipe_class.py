@@ -90,8 +90,9 @@ class Pose_detection(threading.Thread):
 
         ### SET UP PIPELINE
 
-        # thread for running calculations
+        # boolean handlers
         self.stop = False
+        self.toggle_auto_calibrate = False
 
         # allow use of current frame from external program (GUI)
         self.ret = None
@@ -184,7 +185,7 @@ class Pose_detection(threading.Thread):
         # set the data for the current frame
         self.ep.update_current_frame(mediapipe_output, self.frame_counter)    # update mediapipe data
         # calculations that don't need to run each frame (hence run every "tick")
-        if (self.frame_counter % self.tick_length == 0):
+        if not self.toggle_auto_calibrate and (self.frame_counter % self.tick_length == 0):
             self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
 
         # calculate depth for given frame
@@ -254,6 +255,13 @@ class Pose_detection(threading.Thread):
         
         
         return #?
+    
+
+    ### HELPER FUNCTIONS
+
+    # handle toggleable auto calibration/conversion ratio calculation
+    def toggle_auto_conversion(self, toggle):
+        self.toggle_auto_calibrate = toggle
 
 
 #testing = Pose_detection(pose_landmarker)
