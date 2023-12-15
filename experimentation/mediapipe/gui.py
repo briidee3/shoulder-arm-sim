@@ -4,11 +4,14 @@
 
 import numpy as np
 import math
+from matplotlib import pyplot as plt
+
 import threading
 
 import cv2
 
 from tkinter import *
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image
 from PIL import ImageTk
 
@@ -43,12 +46,20 @@ class SimGUI():
             "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
         }
 
+        # store past bicep force calculations
+        self.history_bicep_force = np.ndarray((1), dtype = "float32")
+        self.history_elbow_angle = np.ndarray((1), dtype = "float32")
+        self.hbf_max_len = 1000             # max length for history of bicep force
+
         # initialize mediapipe
         self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker)
         self.mediapipe_runtime.start()
 
         # allow entry in imperial (instead of metric)
         self.use_imperial = False
+
+        # allow auto update of graph (WARNING: lags current setup)
+        self.auto_update_graph = False
 
 
         ### GUI SETUP
@@ -184,15 +195,30 @@ class SimGUI():
         self.left_elbow_label.grid(row = 2, column = 0)
         self.left_elbow_angle.grid(row = 2, column = 1)
 
-        # set up height and weight inputs
-        #self.input_height = Text(self.root, height = 1, width = 8, bg = "gray")
-        #self.update_height = Button(self.root, height = 1, width = 8, text = "Update", 
-        #                            command = self.mediapipe_runtime.set_height(self.input_height.get("1.0", "end-1c")))
-        #self.input_weight = Text(self.root, height = 1, width = 8, bg = "gray")
-        #self.update_weight = Button(self.root, height = 1, width = 8, text = "Update", 
-        #                            command = self.mediapipe_runtime.set_weight(self.input_weight.get("1.0", "end-1c")))
 
-        #self.bicep_force = Label(self.root, text = "Bicep force: %s" % self.calculated_data["bicep_force"])
+        # set up bicep force scatter plot
+        self.fig, self.ax = plt.subplots()
+        #self.hist_bf_plot = self.ax.scatter(self.history_elbow_angle, self.history_bicep_force)
+        self.ax.set_ylim(ymin = 0, ymax = 1000)
+        self.ax.set_xlim(xmin = 0, xmax = 180)
+        self.ax.set_xlabel("Elbow angle")
+        self.ax.set_ylabel("Bicep force")
+        self.ax.set_title("Bicep force vs Elbow angle (left arm)")
+
+        # setup plot in tkinter gui (alongside button to update it)
+        self.forces_graph = FigureCanvasTkAgg(self.fig, master = self.gui)
+        self.forces_graph_widget = self.forces_graph.get_tk_widget()
+        self.forces_graph_widget.grid(row = 1, column = 0)
+        self.forces_graph_grid = LabelFrame(self.gui, text = "Graph settings:")
+        self.forces_graph_grid.grid(row = 1, column = 1)
+        self.forces_graph_update = Button(self.forces_graph_grid, text = "Update graph", command = self.update_scatterplot)
+        self.forces_graph_au_var = IntVar()
+        self.forces_graph_autoupdate = Checkbutton(self.forces_graph_grid, text = "Auto update graph", variable = self.forces_graph_au_var, onvalue = 1, offvalue = 0, command = self.toggle_graph_autoupdate)
+        self.forces_graph_update.grid(row = 0, column = 0)
+        self.forces_graph_autoupdate.grid(row = 1, column = 0)
+
+
+
     
     # start/run the gui display
     def start(self):
@@ -230,6 +256,12 @@ class SimGUI():
         #if not self.toggle_manual_conversion:
         self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
 
+        # update elbow angle and bicep force data
+        self.update_bicep_array()
+        # optional live plot updater
+        if self.auto_update_graph:
+            self.update_scatterplot()
+
         # call next update cycle
         self.gui.after(self.update_interval, self.update_data)
 
@@ -266,6 +298,12 @@ class SimGUI():
             self.height_label.config(text = "User height (meters): ")
             self.weight_label.config(text = "User weight (kilograms): ")
             self.bm_label.config(text = "Ball mass (kilograms): ")
+    
+    # handle toggle of auto graph update
+    def toggle_graph_autoupdate(self):
+        toggle = bool(self.forces_graph_au_var)
+
+        self.auto_update_graph = toggle
 
     # handle togglable manual conversion factor/ratio
     def toggle_manual_conversion(self):
@@ -280,6 +318,22 @@ class SimGUI():
         self.mediapipe_runtime.ep.set_conversion_ratio(ratio)
 
 
+    # handle keeping track of the past n timesteps of (left arm) body force calculations
+    def update_bicep_array(self):
+        # if above certain n value, remove the oldest data before adding the newest
+        if (np.shape(self.history_bicep_force)[0] >= self.hbf_max_len):
+            np.delete(self.history_bicep_force, 0)
+            np.delete(self.history_elbow_angle, 0)  # assume same is true for elbow data
+        
+        # append newest data to array for use by matplotlib to display graph
+        self.history_bicep_force = np.append(self.history_bicep_force, float(self.calculated_data["left_bicep_force"]))
+        self.history_elbow_angle = np.append(self.history_elbow_angle, float(self.calculated_data["left_elbow_angle"]))
+
+    # update scatterplot of bicep forces vs elbow angle
+    def update_scatterplot(self):
+        # update plot
+        self.ax.scatter(self.history_elbow_angle, self.history_bicep_force)
+        self.fig.canvas.draw()
 
     # handle end of runtime
     def __del__(self):
