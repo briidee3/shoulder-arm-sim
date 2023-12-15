@@ -51,7 +51,7 @@ class SimGUI():
         self.delay = 15
 
         # data update interval
-        self.update_interval = 15
+        self.update_interval = 200
 
         # image height/width
         self.height, self.width = self.mediapipe_runtime.get_height_width()
@@ -70,19 +70,68 @@ class SimGUI():
         self.image_label.photo = None
 
 
-        # set up data displays 
+        ### GUI ORGANIZATION 
+
+        # grid section for containing all textual info
         self.data = Frame(self.gui)
         self.data.grid(row = 0, column = 1)
 
-        self.bicep_var = StringVar()
-        self.bicep_var.set("Bicep force: %s" % self.calculated_data["bicep_force"])
-        self.bicep_force = Label(self.data, textvariable = self.bicep_var, height = 1, width = 30)
-        self.bicep_force.grid(row = 0, column = 0)
+        # grid section for settings/calibration
+        self.settings = LabelFrame(self.data, text = "Settings:")
+        self.settings.grid(row = 0, column = 0)
 
+        # grid section for user input
+        self.user_input = LabelFrame(self.data, text = "User input:")
+        self.user_input.grid(row = 1, column = 0)
+
+        # height user input
+        self.height_label = Label(self.user_input, text = "User height: ", height = 1, width = 15)
+        self.height_var = StringVar()
+        self.height_var.set("1.78")                    # set to default value
+        self.height_entry = Entry(self.user_input, textvariable = self.height_var)
+        self.height_label.grid(row = 1, column = 0)
+        self.height_entry.grid(row = 1, column = 1)
+
+        # weight user input
+        self.weight_label = Label(self.user_input, text = "User weight: ", height = 1, width = 15)
+        self.weight_var = StringVar()
+        self.weight_var.set("90")                    # set to default value
+        self.weight_entry = Entry(self.user_input, textvariable = self.weight_var)
+        self.weight_label.grid(row = 2, column = 0)
+        self.weight_entry.grid(row = 2, column = 1)
+
+        # ball mass user input
+        self.bm_label = Label(self.user_input, text = "Ball mass: ", height = 1, width = 15)
+        self.bm_var = StringVar()
+        self.bm_var.set("3")                    # set to default value
+        self.bm_entry = Entry(self.user_input, textvariable = self.bm_var)
+        self.bm_label.grid(row = 3, column = 0)
+        self.bm_entry.grid(row = 3, column = 1)
+
+        # button to submit height and weight
+        self.submit_hw = Button(self.user_input, text = "Submit", command = self.hw_submit)
+        self.submit_hw.grid(row = 4, column = 1)
+
+
+        # grid section for data output
+        self.data_output = LabelFrame(self.data, text = "Data output:")
+        self.data_output.grid(row = 2, column = 0)
+
+        # bicep force output
+        self.bicep_label = Label(self.data_output, text = "Bicep force: ", height = 1, width = 15)
+        self.bicep_var = StringVar()
+        self.bicep_var.set(str(self.calculated_data["bicep_force"]))
+        self.bicep_force = Label(self.data_output, textvariable = self.bicep_var, height = 1, width = 10, relief = GROOVE)
+        self.bicep_label.grid(row = 1, column = 0)
+        self.bicep_force.grid(row = 1, column = 1)
+
+        # elbow angle output
+        self.elbow_label = Label(self.data_output, text = "Elbow angle: ", height = 1, width = 15)
         self.elbow_var = StringVar()
         self.elbow_var.set("Elbow angle: %s" % self.calculated_data["elbow_angle"])
-        self.elbow_angle = Label(self.data, textvariable = self.elbow_var, height = 1, width = 30)
-        self.elbow_angle.grid(row = 1, column = 0)
+        self.elbow_angle = Label(self.data_output, textvariable = self.elbow_var, height = 1, width = 10, relief = GROOVE)
+        self.elbow_label.grid(row = 2, column = 0)
+        self.elbow_angle.grid(row = 2, column = 1)
 
         # set up height and weight inputs
         #self.input_height = Text(self.root, height = 1, width = 8, bg = "gray")
@@ -98,7 +147,7 @@ class SimGUI():
     def start(self):
         # start updater loops
         self.update_display()                               # update display
-        #self.update_data()                                  # update numerical data
+        self.update_data()                                  # update numerical data
         #self.mediapipe_runtime.run()
 
         # handle program close
@@ -106,6 +155,7 @@ class SimGUI():
 
         # start the display
         self.root.mainloop()
+
 
     # update the data being displayed
     def update_display(self):#, new_frame, data_dict):
@@ -122,11 +172,24 @@ class SimGUI():
     # update numerical data in gui
     def update_data(self):
         # update data
-        self.bicep_var.set("Bicep force: %s" % self.calculated_data["bicep_force"])
-        self.elbow_var.set("Elbow angle: %s" % self.calculated_data["elbow_angle"])
+        self.bicep_var.set(str(self.calculated_data["bicep_force"]))
+        self.elbow_var.set(str(self.calculated_data["elbow_angle"]))
 
         # call next update cycle
-        self.root.after(self.update_interval, self.update_data)
+        self.gui.after(self.update_interval, self.update_data)
+
+
+    ### USER INPUT HANDLERS
+
+    # height and weight submission
+    def hw_submit(self):
+        height = self.height_entry.get()
+        weight = self.weight_entry.get()
+        ball = self.bm_entry.get()
+
+        self.mediapipe_runtime.ep.set_hwb(height, weight, ball)
+
+
 
     # handle end of runtime
     def __del__(self):
@@ -142,5 +205,6 @@ class SimGUI():
         # end gui
         #self.root.destroy()
 
+# make SimGUI object and start it (making this file runnable)
 gui = SimGUI()
 gui.start()

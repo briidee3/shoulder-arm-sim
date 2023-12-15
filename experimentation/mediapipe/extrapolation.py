@@ -48,18 +48,21 @@ R_INDEX = 7#20
 class Extrapolate_forces():
         
     # initialization
-    def __init__(self) -> None:
+    def __init__(self, right = False, one_arm = False) -> None:
         ### USER INPUT DATA
 
-        self.user_height = 1.78      # user height (meters)
-        self.user_weight = 90        # user weight (kilograms)
+        self.user_height = 1.78     # user height (meters)
+        self.user_weight = 90       # user weight (kilograms)
+        self.ball_mass = 3          # mass of ball (kilograms)
         
-        # toggle for whether or not to calculate forces for each arm
-        #self.toggle_left = True
-        #self.toggle_right = True
+        # toggle for calculating left arm or right arm
+        self.is_right = right
+        self.is_one_arm = one_arm
 
-
-        ### IMPORTANT OBJECTS/VARIABLES
+        # calibration settings
+        self.manual_calibration = False
+        self.sim_to_real_conversion_factor = 1   # convert mediapipe units to real world units (meters)
+        self.use_full_wingspan = False
 
         # ndarray to store mediapipe data output, even if from other process(es)
         self.mediapipe_data_output = np.ndarray((8, 3), dtype = "float64")
@@ -68,34 +71,51 @@ class Extrapolate_forces():
         self.dist_array = np.zeros((8, 8), dtype = "float64")         # indexed by two body part names/indices
         self.max_array = np.zeros((8, 8), dtype = "float64")          # used for storing max distance data
 
-        # spherical coordinates initialization
-        #self.rho = np.zeros((8))
-        #self.theta = np.zeros((8))
-        #self.phi = np.zeros((8))
-
         self.cur_frame = 0   # used to keep track of current frame
-
-        # convert mediapipe units to real world units (meters)
-        self.sim_to_real_conversion_factor = 1   # declared here for later use in functions
 
         # put together pairs for each of the vertices
         # ordered in a particular manner which uses the shoulders as anchors for the elbows, and elbows as anchors for the wrists
-        self.vertex_order = [
-            [
-                L_SHOULDER,
-                R_SHOULDER
-            ],
-            [
-                L_SHOULDER,
-                L_ELBOW,
-                L_WRIST,
-            ],
-            [
-                R_SHOULDER,
-                R_ELBOW,
-                R_WRIST
+        if not self.is_one_arm:                 # only track what needs to be tracked
+            self.vertex_order = [
+                [
+                    L_SHOULDER,
+                    R_SHOULDER
+                ],
+                [
+                    L_SHOULDER,
+                    L_ELBOW,
+                    L_WRIST,
+                ],
+                [
+                    R_SHOULDER,
+                    R_ELBOW,
+                    R_WRIST
+                ]
             ]
-        ]
+        elif self.is_right:                     # set vertex order for only right arm
+            self.vertex_order = [
+                [
+                    L_SHOULDER,
+                    R_SHOULDER
+                ],
+                [
+                    R_SHOULDER,
+                    R_ELBOW,
+                    R_WRIST,
+                ]
+            ]
+        else:                                   # set vertex order for only left arm
+            self.vertex_order = [
+                [
+                    L_SHOULDER,
+                    R_SHOULDER
+                ],
+                [
+                    L_SHOULDER,
+                    L_ELBOW,
+                    L_WRIST,
+                ]
+            ]
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
@@ -110,15 +130,34 @@ class Extrapolate_forces():
         self.cur_frame = current_frame
 
         # update calibration settings
-        self.calc_wingspan()
+        if self.use_full_wingspan and not self.is_one_arm:
+            self.calc_wingspan()                            # keep track of max distance between index fingers
+        else:
+            self.calc_half_wingspan()                       # keep track of max length of given arm
 
     # IMPORTANT: temporary bandaid fix for calibration
     def calc_wingspan(self):
         self.calc_dist_between_vertices(L_INDEX, R_INDEX)
 
+    # track max dist between half wingspan for calibration (automatically done via calc_dist_between_vertices, updating max_dist)
+    def calc_half_wingspan(self):
+        # keep track of arm length
+        self.calc_dist_between_vertices((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right)))
+        # keep track of shoulder width
+        self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
 
 
     ### HELPER FUNCTIONS:
+
+    # set height and weight and ball mass externally
+    def set_hwb(self, height, weight, ball):
+        self.user_height = float(height)
+        self.user_weight = float(weight)
+        self.ball_mass = float(ball)
+
+
+
+    ### DISTANCE FUNCTIONS:
 
     # get distance between vertices for current frame
     def calc_dist_between_vertices(self, first_part, second_part):
@@ -136,7 +175,11 @@ class Extrapolate_forces():
 
     # retrieve the max distance between body parts found thus far
     def get_max_dist(self, first_part, second_part):
-        return self.max_array[first_part][second_part]
+        return float(self.max_array[first_part][second_part])
+    
+    # set calibration to manual
+    def set_calibration_manual(self, is_manual = True):
+        self.manual_calibration = is_manual
     
     # reset max_array data to essentially reset the application
     def reset_calibration(self):
@@ -145,19 +188,28 @@ class Extrapolate_forces():
 
 
 
-    ### CONVERSION FACTOR:
+    ### CALIBRATION CONVERSION FACTOR:
 
     # calculate ratio for conversion of simulated units to metric units (meters) using wingspan and input real height
     def calc_conversion_ratio(self, real_height_metric = 1.78):
         # get ratio to real distance in meters using max distance between wrists via mediapipe output data
-        sim_wingspan = self.get_max_dist(
-                                L_INDEX, 
-                                R_INDEX
-                            )
+        if self.use_full_wingspan:
+            sim_wingspan = self.get_max_dist(L_INDEX, R_INDEX)
+
+        # new calibration method
+        # uses half wingspan, for ease of use
 
         # set global conversion factor
         #global sim_to_real_conversion_factor
-        self.sim_to_real_conversion_factor = real_height_metric / sim_wingspan
+        if not self.manual_calibration:
+            # calculate for full wingspan
+            if self.use_full_wingspan: 
+                sim_wingspan = self.get_max_dist(L_INDEX, R_INDEX)
+                self.sim_to_real_conversion_factor = real_height_metric / sim_wingspan
+            # calculate for half wingspan
+            else:
+                half_wingspan = self.get_max_dist((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right))) + (self.get_max_dist(L_SHOULDER, R_SHOULDER) / 2)
+                self.sim_to_real_conversion_factor = real_height_metric / (half_wingspan * 2)
 
         return self.sim_to_real_conversion_factor
 
@@ -166,6 +218,10 @@ class Extrapolate_forces():
     # get conversion ratio (so it doesn't need to be calculated for each of these calls)
     def get_conversion_ratio(self):
         return self.sim_to_real_conversion_factor
+    
+    # set the conversion factor/ratio manually
+    def set_conversion_ratio(self, conv_ratio):
+        self.sim_to_real_conversion_factor = conv_ratio
         
 
 
@@ -250,7 +306,7 @@ class Extrapolate_forces():
         THETA = 1
         PHI = 2
         
-        w_bal = 3           # kilograms   # weight of ball
+        w_bal = self.ball_mass           # kilograms   # weight of ball
 
         # only calculate the following if the elbow angle exists
         elbow_angle = self.calc_elbow_angle(is_right)

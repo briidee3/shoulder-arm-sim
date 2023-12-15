@@ -107,14 +107,18 @@ class Pose_detection(threading.Thread):
 
         # set up dictionary to read from for gui display of data
         self.calculated_data = {
-            "bicep_force": "NaN",
-            "elbow_angle": "NaN",
+            "right_bicep_force": "NaN",
+            "right_elbow_angle": "NaN",
+            "left_bicep_force": "NaN",
+            "left_elbow_angle": "NaN",
             "uarm_spher_coords": "NaN",#["NaN", "NaN", "NaN"],
             "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
         }
 
         # initialize extrapolation and body force calculation object
-        self.ep = extrapolation.Extrapolate_forces()
+        #self.right_arm = extrapolation.Extrapolate_forces(is_right = True)  # right arm
+        #self.left_arm = extrapolation.Extrapolate_forces()             # left arm
+        self.ep = extrapolation.Extrapolate_forces()                    # both arms
         print("Initialized Pose_detection()")
 
     # run the program
