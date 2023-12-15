@@ -29,6 +29,10 @@ import math
 from matplotlib import pyplot as plt
 
 
+
+# set to not display in scientific notation
+np.set_printoptions(suppress = True, precision = 3)
+
 #### CONSTANTS (for use with indexing)
 L_SHOULDER = 0#11
 R_SHOULDER = 1#12
@@ -155,6 +159,8 @@ class Extrapolate_forces():
         #global sim_to_real_conversion_factor
         self.sim_to_real_conversion_factor = real_height_metric / sim_wingspan
 
+        return self.sim_to_real_conversion_factor
+
     #calc_conversion_ratio()     # unit conversion ratio for use converting sim units to metric
 
     # get conversion ratio (so it doesn't need to be calculated for each of these calls)
@@ -252,15 +258,16 @@ class Extrapolate_forces():
             return math.nan                                         # if elbow_angle == nan, exit function by returning nan
 
         # convert sim units to metric units
-        conv_factor = self.get_conversion_ratio()
+        conv_factor = self.sim_to_real_conversion_factor
 
         # get spherical coordinate data for arm segments
-        uarm_spher_coords = self.calc_spher_coords((L_SHOULDER + (int)(is_right)), L_ELBOW + (int)(is_right))
+        uarm_spher_coords = self.calc_spher_coords((L_SHOULDER + (int)(is_right)), (L_ELBOW + (int)(is_right)))
         farm_spher_coords = self.calc_spher_coords((L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
 
         # instead of using averages for segment length, use calculated instead
         f = farm_spher_coords[RHO] * conv_factor
         u = uarm_spher_coords[RHO] * conv_factor
+        #print("%0.2f" % f)
         b = u * 0.11 #0.636                                         # calculated via algebra using pre-existing average proportions data
         w_fa = self.user_weight * (f * 0.1065)                      # use ratio of f to weight proportion to get weight with calculated f 
         cgf = 2 * (f ** 2)                                          # calculated via algebra using pre-existing average proportions data
@@ -270,7 +277,7 @@ class Extrapolate_forces():
         theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]         # angle of upper arm
         theta_u = elbow_angle#theta_arm + theta_uarm                # angle at elbow
         theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
-        theta_la = np.cos(theta_uarm)   #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
+        theta_la = np.cos(theta_uarm) #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
 
         # lever arms
         la_fa = cgf * theta_la                                      # forearm lever arm
@@ -283,11 +290,12 @@ class Extrapolate_forces():
 
         # set/return data in dictionary format
         calculated_data = {
-            "bicep_force": force_bicep,
-            "elbow_angle": theta_u,
-            "uarm_spher_coords": uarm_spher_coords,
-            "farm_spher_coords": farm_spher_coords
+            "bicep_force": str("%0.2f" % force_bicep),
+            "elbow_angle": str("%0.2f" % np.rad2deg(theta_u)),
+            "uarm_spher_coords": str(uarm_spher_coords),
+            "farm_spher_coords": str(farm_spher_coords)
         }
+        #print("%0.2f" % force_bicep)
 
         return calculated_data
 

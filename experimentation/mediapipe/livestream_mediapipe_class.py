@@ -105,6 +105,14 @@ class Pose_detection(threading.Thread):
         self.user_height = 1.78                                         # in meters
         self.user_weight = 90                                           # in kilograms
 
+        # set up dictionary to read from for gui display of data
+        self.calculated_data = {
+            "bicep_force": "NaN",
+            "elbow_angle": "NaN",
+            "uarm_spher_coords": "NaN",#["NaN", "NaN", "NaN"],
+            "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
+        }
+
         # initialize extrapolation and body force calculation object
         self.ep = extrapolation.Extrapolate_forces()
         print("Initialized Pose_detection()")
@@ -138,6 +146,10 @@ class Pose_detection(threading.Thread):
     def get_cur_frame(self):
         return self.ret, self.annotated_image
     
+    # return current calculated data
+    def get_calculated_data(self):
+        return dict(self.calculated_data)
+    
     # allow setting of height via external package/program
     def set_height(self, height):
         self.user_height = height
@@ -162,7 +174,7 @@ class Pose_detection(threading.Thread):
     # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
     def extrapolate_depth(self, mediapipe_output):
         # set the data for the current frame
-        self.ep.update_current_frame(mediapipe_output, self.frame_counter)                       # update mediapipe data
+        self.ep.update_current_frame(mediapipe_output, self.frame_counter)    # update mediapipe data
         # calculations that don't need to run each frame (hence run every "tick")
         if (self.frame_counter % self.tick_length == 0):
             self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
@@ -173,7 +185,7 @@ class Pose_detection(threading.Thread):
     # calculate forces involved with muscles in the body
     def calc_body_forces(self):
         # force calculations
-        self.ep.calc_bicep_force()                                            # calculate forces
+        self.calculated_data = self.ep.calc_bicep_force()                     # calculate forces
 
         # display forces graph
         #self.ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
@@ -192,34 +204,10 @@ class Pose_detection(threading.Thread):
 
             # draw the pose landmarks
             pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-            # note: the following may seem sub-optimal, however it prevents many unnecessary if statements in run time
-            # check if arms, shoulders, or wrists. if so, save and send that data to further process
-            if (idx >= 11) and (idx <= 16):                         # 11 = left shoulder, 17 = right wrist. 
-                for landmark in pose_landmarks:
-                    pose_landmarks_proto.landmark.extend([
-                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
-                    ])
-                    index_offset = idx - 11
-                    mediapipe_out[index_offset, 0] = landmark.x     # get landmark data (x)
-                    mediapipe_out[index_offset, 1] = 0              # set y (depth) data
-                    mediapipe_out[index_offset, 2] = landmark.y     # get landmark data (z) (using landmark.y due to different coordinate system)
-            # check for index fingers (wingspan)
-            elif (idx == 19 or idx == 20):                          # 19 = left index, 20 = right index (wingspan)
-                for landmark in pose_landmarks:
-                    pose_landmarks_proto.landmark.extend([
-                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
-                    ])
-                    index_offset = idx - 13
-                    mediapipe_out[index_offset, 0] = landmark.x     # get landmark data (x)
-                    mediapipe_out[index_offset, 1] = 0              # set y (depth) data
-                    mediapipe_out[index_offset, 2] = landmark.y     # get landmark data (z) (using landmark.y due to different coordinate system
-             # don't save data in mediapipe_out if not arms, shoulders, or wrists
-            else:
-                for landmark in pose_landmarks:
-                    pose_landmarks_proto.landmark.extend([
-                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
-                    ])
-
+            for landmark in pose_landmarks:
+                pose_landmarks_proto.landmark.extend([
+                    landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
+                ])
             solutions.drawing_utils.draw_landmarks(
                 annotated_image,
                 pose_landmarks_proto,
@@ -230,13 +218,28 @@ class Pose_detection(threading.Thread):
         # set current frame to annotated image
         self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
         
+        # add shoulders, elbows, and wrists to current dataframe
+        it = 0                                                      # temp iterator
+        for i in range(11, 17):
+            #print(pose_landmarks_list[0][i].x)
+            mediapipe_out[it, 0] = pose_landmarks_list[0][i].x     # get landmark data (x)
+            mediapipe_out[it, 1] = 0              # set y (depth) data
+            mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
+            it += 1
+        # also add index fingers
+        for i in range (19, 21):
+            mediapipe_out[it, 0] = pose_landmarks_list[0][i].x     # get landmark data (x)
+            mediapipe_out[it, 1] = 0              # set y (depth) data
+            mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
+            it += 1
+
         
         ### DEPTH AND FORCES CALCULATIONS
         if (pose_landmarks_list) and not self.stop:   # check if results exist (and that program isn't stopping) before attempting calculations
-            print("Extrapolating depth...")
-            print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
+            #print("Extrapolating depth...")
+            #print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
             self.extrapolate_depth(mediapipe_out)
-            print("Calculating body forces...")
+            #print("Calculating body forces...")
             self.calc_body_forces()
         
         self.frame_counter += 1
@@ -244,3 +247,6 @@ class Pose_detection(threading.Thread):
         
         return #?
 
+
+#testing = Pose_detection(pose_landmarker)
+#testing.run()
