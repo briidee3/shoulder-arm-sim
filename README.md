@@ -1,6 +1,6 @@
 BD 2023
 
-## Biomechanics simulation program
+## Biomechanics arm/body forces simulation program
 
 The following packages are needed in order to run this in python:
 - numpy
