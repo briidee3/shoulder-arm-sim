@@ -43,6 +43,9 @@ from PIL import ImageTk
 
 ### MEDIAPIPE OPTIONS
 
+# video source (default: 0) default typically denotes built in webcam
+video_source = 0
+
 # model to be used as "Pose Landmarker"
 pose_landmarker = './landmarkers/pose_landmarker_full.task'
 WIDTH = 640
@@ -71,10 +74,14 @@ class Pose_detection(threading.Thread):
         threading.Thread.__init__(self)
 
         # make video capture object via webcam
-        self.webcam_stream = cv2.VideoCapture(0)
+        self.webcam_stream = cv2.VideoCapture(video_source)
         # set height and width accordingly
         #HEIGHT = self.webcam_stream.get(cv2.CAP_PROP_FRAME_HEIGHT)
         #WIDTH = self.webcam_stream.get(cv2.CAP_PROP_FRAME_WIDTH)
+
+        # test webcam
+        if self.webcam_stream is None or not self.webcam_stream.isOpened():
+            print("Warning: unable to open camera (camera source: %s)" % video_source)
         
         # initialization of image (updated asynchronously)
         self.annotated_image = np.zeros(((int)(HEIGHT), (int)(WIDTH), 3), np.uint8)
