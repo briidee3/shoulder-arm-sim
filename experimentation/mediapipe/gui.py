@@ -51,7 +51,7 @@ class SimGUI():
         self.history_elbow_angle = np.ndarray((1), dtype = "float32")
         self.hbf_max_len = 1000             # max length for history of bicep force
 
-        # initialize mediapipe
+        # initialize mediapipe thread
         self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker)
         self.mediapipe_runtime.start()
 
@@ -60,6 +60,9 @@ class SimGUI():
 
         # allow auto update of graph (WARNING: lags current setup)
         self.auto_update_graph = False
+
+        # toggle manual conversion/calibration ratio/factor
+        self.manual_calibration = True
 
 
         ### GUI SETUP
@@ -112,7 +115,7 @@ class SimGUI():
         self.ucf_toggle.grid(row = 2, column = 0)
         self.ucf_submit.grid(row = 2, column = 1)
 
-        # allow entry in imperial (as opposed to metric)
+        # allow entry in imperial unit system (as opposed to metric)
         self.ms_label = Label(self.settings, text = "Use imperial system? (Default: metric)")
         self.ms_var = IntVar()
         self.ms_toggle = Checkbutton(self.settings, variable = self.ms_var, onvalue = 1, offvalue = 0, command = self.toggle_imperial)
@@ -253,8 +256,9 @@ class SimGUI():
         self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
         self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
         self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
-        #if not self.toggle_manual_conversion:
-        self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
+        # check if using manual calibration
+        if not self.manual_calibration:
+            self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
 
         # update elbow angle and bicep force data
         self.update_bicep_array()
@@ -264,6 +268,23 @@ class SimGUI():
 
         # call next update cycle
         self.gui.after(self.update_interval, self.update_data)
+
+    # handle keeping track of the past n timesteps of (left arm) body force calculations
+    def update_bicep_array(self):
+        # if above certain n value, remove the oldest data before adding the newest
+        if (np.shape(self.history_bicep_force)[0] >= self.hbf_max_len):
+            np.delete(self.history_bicep_force, 0)
+            np.delete(self.history_elbow_angle, 0)  # assume same is true for elbow data
+        
+        # append newest data to array for use by matplotlib to display graph
+        self.history_bicep_force = np.append(self.history_bicep_force, float(self.calculated_data["left_bicep_force"]))
+        self.history_elbow_angle = np.append(self.history_elbow_angle, float(self.calculated_data["left_elbow_angle"]))
+
+    # update scatterplot of bicep forces vs elbow angle
+    def update_scatterplot(self):
+        # update plot
+        self.ax.scatter(self.history_elbow_angle, self.history_bicep_force)
+        self.fig.canvas.draw()
 
 
     ### USER INPUT HANDLERS
@@ -309,6 +330,7 @@ class SimGUI():
     def toggle_manual_conversion(self):
         toggle = bool(self.ucf_toggle_var.get())
 
+        self.toggle_manual_conversion = toggle
         self.mediapipe_runtime.toggle_auto_conversion(toggle)
 
     # set manual conversion factor/ratio
@@ -318,22 +340,6 @@ class SimGUI():
         self.mediapipe_runtime.ep.set_conversion_ratio(ratio)
 
 
-    # handle keeping track of the past n timesteps of (left arm) body force calculations
-    def update_bicep_array(self):
-        # if above certain n value, remove the oldest data before adding the newest
-        if (np.shape(self.history_bicep_force)[0] >= self.hbf_max_len):
-            np.delete(self.history_bicep_force, 0)
-            np.delete(self.history_elbow_angle, 0)  # assume same is true for elbow data
-        
-        # append newest data to array for use by matplotlib to display graph
-        self.history_bicep_force = np.append(self.history_bicep_force, float(self.calculated_data["left_bicep_force"]))
-        self.history_elbow_angle = np.append(self.history_elbow_angle, float(self.calculated_data["left_elbow_angle"]))
-
-    # update scatterplot of bicep forces vs elbow angle
-    def update_scatterplot(self):
-        # update plot
-        self.ax.scatter(self.history_elbow_angle, self.history_bicep_force)
-        self.fig.canvas.draw()
 
     # handle end of runtime
     def __del__(self):

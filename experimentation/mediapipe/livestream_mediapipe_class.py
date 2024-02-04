@@ -34,13 +34,8 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-# functions for data calculations and manipulations
+# functions for data/physics calculations and manipulations
 import extrapolation
-
-# functions for GUI setup/management
-from tkinter import *
-from PIL import Image
-from PIL import ImageTk
 
 
 
@@ -274,8 +269,9 @@ class Pose_detection(threading.Thread):
     ### HELPER FUNCTIONS
 
     # handle toggleable auto calibration/conversion ratio calculation
-    def toggle_auto_conversion(self, toggle):
+    def toggle_auto_conversion(self, toggle = True):
         self.toggle_auto_calibrate = toggle
+        self.ep.set_calibration_manual(toggle)
 
 
 #testing = Pose_detection(pose_landmarker)

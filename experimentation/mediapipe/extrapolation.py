@@ -138,6 +138,7 @@ class Extrapolate_forces():
         self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
 
 
+
     ### HELPER FUNCTIONS:
 
     # set height and weight and ball mass externally
@@ -167,15 +168,6 @@ class Extrapolate_forces():
     # retrieve the max distance between body parts found thus far
     def get_max_dist(self, first_part, second_part):
         return float(self.max_array[first_part][second_part])
-    
-    # set calibration to manual
-    def set_calibration_manual(self, is_manual = True):
-        self.manual_calibration = is_manual
-    
-    # reset max_array data to essentially reset the application
-    def reset_calibration(self):
-        self.max_array = np.zeros((8,8), dtype = "float64") # reset max distances
-        self.sim_to_real_conversion_factor = 1
 
 
 
@@ -203,9 +195,7 @@ class Extrapolate_forces():
                 self.sim_to_real_conversion_factor = real_height_metric / (half_wingspan * 2)
 
         return self.sim_to_real_conversion_factor
-
-    #calc_conversion_ratio()     # unit conversion ratio for use converting sim units to metric
-
+    
     # get conversion ratio (so it doesn't need to be calculated for each of these calls)
     def get_conversion_ratio(self):
         return self.sim_to_real_conversion_factor
@@ -213,6 +203,15 @@ class Extrapolate_forces():
     # set the conversion factor/ratio manually
     def set_conversion_ratio(self, conv_ratio):
         self.sim_to_real_conversion_factor = conv_ratio
+    
+    # set calibration to manual
+    def set_calibration_manual(self, is_manual = True):
+        self.manual_calibration = is_manual
+    
+    # reset max_array data to essentially reset the application
+    def reset_calibration(self):
+        self.max_array = np.zeros((8,8), dtype = "float64") # reset max distances
+        self.sim_to_real_conversion_factor = 1
         
 
 
@@ -290,6 +289,7 @@ class Extrapolate_forces():
 
 
     ### FORMULA CALCULATIONS
+
     # calculate forces of muscle exertions of the arm
     def calc_bicep_force(self):#, is_right = False):   # allow choosing which arm to use
         # constants, used for organization and readability
