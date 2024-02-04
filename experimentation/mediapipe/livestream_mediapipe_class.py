@@ -18,6 +18,7 @@
 #           (e.g. figuring out which data is reliable or not, for example by using the 
 #           "accuracy" data from mediapipe output, and if it is below a certain threshold,
 #           then don't send that frame's data to extrapolation)
+#   - fix crash when mediapipe detects 0 or more than 1 person
 
 
 from mediapipe import solutions
