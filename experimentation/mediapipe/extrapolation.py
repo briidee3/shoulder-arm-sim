@@ -8,11 +8,14 @@
 #   - optimize code
 #       - minimize reads/writes
 #           - try to do in-place manipulations of data
+#   - implement multithreading, like how it was done for `livestream_mediapipe_class.py`
 #   - take picture of user, notifying user, making em click a button, then counting down, snapping pic
 #       - this will be the calibration shot, and function "recalibrate" will do this.
 #       - this removes the need for lots of unnecessary calculations and reads/writes.
 #       - the output of this will be used to calculate depth and 
 #   - figure out if raw mediapipe output is x, y, z, or x, z, y
+#   - fix elbow angle inaccuracies (e.g. how 90 degrees isn't seen as 90 degrees due to the calculations
+#       being used being parallel to the plane of the screen/webcam)
 
 
 import numpy as np
@@ -147,6 +150,10 @@ class Extrapolate_forces():
         self.user_height = float(height)
         self.user_weight = float(weight)
         self.ball_mass = float(ball)
+
+    # set biacromial ratio externally
+    def set_biacromial(self, new_biacromial = 0.23):
+        self.biacromial_scale = new_biacromial
 
 
 
