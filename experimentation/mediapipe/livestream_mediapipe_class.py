@@ -174,8 +174,8 @@ class Pose_detection(threading.Thread):
         return HEIGHT, WIDTH
     
     # set stop variable
-    def set_stop(self, set = True):
-        self.stop = set
+    def set_stop(self, set_ = True):
+        self.stop = set_
     
     # callback function to terminate program
     def stop_program(self):
