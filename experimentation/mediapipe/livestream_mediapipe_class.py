@@ -149,6 +149,7 @@ class Pose_detection(threading.Thread):
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
         finally:
+            print("Info: Stopping mediapipe...")
             self.stop_program()
 
     # helper function for use by GUI, returns current frame
