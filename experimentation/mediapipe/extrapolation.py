@@ -385,11 +385,3 @@ class Extrapolate_forces():
         # plot bicep forces
         return plt
 
-
-
-    ### USER INTERFACE
-
-    # implement the GUI from gui.py
-    #def display_output(self):
-        #
-
