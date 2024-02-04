@@ -4,6 +4,9 @@
 ## TODO:
 #   - fix sync issues with root.mainloop blocking proper updating of the manual calibration toggle
 #       when calling function from outside the main program loop
+#       - basically, by changing the value of self.manual_calibration from a function call that
+#           didn't originate from the main loop (i.e. from within root.mainloop()), the update
+#           attempt is blocked by root.mainloop()
 
 
 import numpy as np
@@ -66,7 +69,7 @@ class SimGUI():
         self.auto_update_graph = False
 
         # toggle manual conversion/calibration ratio/factor
-        self.manual_calibration = True
+        self.manual_calibration = False
 
 
         ### GUI SETUP
