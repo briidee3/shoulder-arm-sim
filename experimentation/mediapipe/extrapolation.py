@@ -131,15 +131,15 @@ class Extrapolate_forces():
             self.calc_half_wingspan()                       # keep track of max length of given arm
 
     # IMPORTANT: temporary bandaid fix for calibration
-    def calc_wingspan(self):
-        self.calc_dist_between_vertices(L_INDEX, R_INDEX)
+    #def calc_wingspan(self):
+    #    self.calc_dist_between_vertices(L_INDEX, R_INDEX)
 
     # track max dist between half wingspan for calibration (automatically done via calc_dist_between_vertices, updating max_dist)
-    def calc_half_wingspan(self):
+    #def calc_half_wingspan(self):
         # keep track of arm length
-        self.calc_dist_between_vertices((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right)))
+    #    self.calc_dist_between_vertices((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right)))
         # keep track of shoulder width
-        self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
+    #    self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
 
 
 
