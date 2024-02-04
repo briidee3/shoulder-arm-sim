@@ -5,13 +5,6 @@
 
 
 # TODO: 
-#   - refactor code to work with one frame at a time
-#       - basically, just turn mediapipe_data_output from mpdo[1][2][3] to mpdo[2][3]
-#       - (the first one denotes the current frame)
-#       - save frames over time for things like data analysis, BUT 
-#           - only calculate one frame at a time
-#               - otherwise you'd be doing a lot of unnecessary calculations, bogging down compute time massively
-#   - set up for compatibility with mediapipe data
 #   - optimize code
 #       - minimize reads/writes
 #           - try to do in-place manipulations of data
@@ -20,8 +13,6 @@
 #       - this removes the need for lots of unnecessary calculations and reads/writes.
 #       - the output of this will be used to calculate depth and 
 #   - figure out if raw mediapipe output is x, y, z, or x, z, y
-#   - go back to line 198 (y_axes[2] += y_axes[0] shenanigans) and figure out if y_axes[0] or y_axes[1]
-#       - nevermind, i think you implemented it via emergence in the new function for set_depth
 
 
 import numpy as np
