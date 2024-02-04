@@ -122,12 +122,18 @@ class SimGUI():
         self.ucf_toggle.grid(row = 2, column = 0)
         self.ucf_submit.grid(row = 2, column = 1)
 
+        # biacromic scale factor
+        self.bsf_scale = Scale(self.settings, from_ = 0.22, to = 0.24, orient = "horizontal", length = 200, 
+                                label = "Biacromic (shoulder width) Scale Factor", showvalue = True, command = self.set_bsf, resolution = 0.001)
+        self.bsf_scale.grid(row = 3, columnspan = 2)
+
         # allow entry in imperial unit system (as opposed to metric)
         self.ms_label = Label(self.settings, text = "Use imperial system? (Default: metric)")
         self.ms_var = IntVar()
         self.ms_toggle = Checkbutton(self.settings, variable = self.ms_var, onvalue = 1, offvalue = 0, command = self.toggle_imperial)
-        self.ms_label.grid(row = 3, column = 0)
-        self.ms_toggle.grid(row = 3, column = 1)
+        self.ms_label.grid(row = 4, column = 0)
+        self.ms_toggle.grid(row = 4, column = 1)
+
 
 
         # grid section for user input
@@ -238,8 +244,8 @@ class SimGUI():
         self.update_display()                               # update display
         self.update_data()                                  # update numerical data
         #self.mediapipe_runtime.run()
-        self.root.update_idletasks()
-        self.gui.update_idletasks()
+        #self.root.update_idletasks()
+        #self.gui.update_idletasks()
 
         # handle program close
         self.root.protocol("WM_DELETE_WINDOW", self.__del__)
@@ -352,6 +358,12 @@ class SimGUI():
         ratio = float(self.ucf_entry.get())
 
         self.mediapipe_runtime.ep.set_conversion_ratio(ratio)
+
+    # set bsf 
+    def set_bsf(self, bsf_data):
+        bsf = float(bsf_data)
+
+        self.mediapipe_runtime.ep.set_biacromial(bsf)
 
 
 
