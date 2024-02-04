@@ -269,6 +269,7 @@ class SimGUI():
         # call next update cycle
         self.gui.after(self.update_interval, self.update_data)
 
+
     # handle keeping track of the past n timesteps of (left arm) body force calculations
     def update_bicep_array(self):
         # if above certain n value, remove the oldest data before adding the newest
