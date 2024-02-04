@@ -52,8 +52,9 @@ class Extrapolate_forces():
 
         # calibration settings
         self.manual_calibration = False
-        self.sim_to_real_conversion_factor = 1   # convert mediapipe units to real world units (meters)
+        self.sim_to_real_conversion_factor = 1  # convert mediapipe units to real world units (meters)
         self.use_full_wingspan = False
+        self.biacromial_scale = 0.23              # temporarily set to middle of male (0.234) to female (0.227) range for testing
 
         # ndarray to store mediapipe data output, even if from other process(es)
         self.mediapipe_data_output = np.ndarray((8, 3), dtype = "float64")
@@ -174,7 +175,8 @@ class Extrapolate_forces():
     ### CALIBRATION CONVERSION FACTOR:
 
     # calculate ratio for conversion of simulated units to metric units (meters) using wingspan and input real height
-    def calc_conversion_ratio(self, real_height_metric = 1.78):
+    # using the wingspan method
+    def calc_conversion_ratio_wingspan(self, real_height_metric = 1.78):
         # get ratio to real distance in meters using max distance between wrists via mediapipe output data
         if self.use_full_wingspan:
             sim_wingspan = self.get_max_dist(L_INDEX, R_INDEX)
@@ -195,6 +197,12 @@ class Extrapolate_forces():
                 self.sim_to_real_conversion_factor = real_height_metric / (half_wingspan * 2)
 
         return self.sim_to_real_conversion_factor
+
+    # calculate conversion ratio using the shoulder width method
+    def calc_conversion_ratio(self, real_height_metric = 1.78):
+        # get maximum distance between shoulders
+        sim_biacromial = self.get_max_dist(L_SHOULDER, R_SHOULDER)
+        self.sim_to_real_conversion_factor = (real_height_metric * self.biacromial_scale) / sim_biacromial
     
     # get conversion ratio (so it doesn't need to be calculated for each of these calls)
     def get_conversion_ratio(self):
