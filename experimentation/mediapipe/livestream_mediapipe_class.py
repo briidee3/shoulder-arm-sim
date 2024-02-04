@@ -6,15 +6,18 @@
 
 
 # TODO: 
-#   - bring in stuff from previous iteration of the project
 #   - ensure depth calculations are atomically locked per frame
 #       - work on most recent frame
 #       - don't start another until the current one is finished
 #   - set up multithreading
 #       - main process is running, then one thread for handling live stream, and another one for calculating skeleton
-#   - set up TKinter for GUI stuff
-#       - display annotated_image in tkinter window
-#       - set up a class variable for reading and writing calc_bicep_forces output (python dict object)
+#   - figure out how to smooth the data outputs (for example, by using median of past 5 frames)
+#       - if a given vector moves too quickly between two frames, ignore the next frame
+#           so as to help ignore junk data
+#       - figure out proper method of ignoring garbage data efficiently and effectively
+#           (e.g. figuring out which data is reliable or not, for example by using the 
+#           "accuracy" data from mediapipe output, and if it is below a certain threshold,
+#           then don't send that frame's data to extrapolation)
 
 
 from mediapipe import solutions
@@ -47,7 +50,7 @@ from PIL import ImageTk
 video_source = 0
 
 # model to be used as "Pose Landmarker"
-pose_landmarker = './landmarkers/pose_landmarker_full.task'
+pose_landmarker = './landmarkers/pose_landmarker_heavy.task'
 WIDTH = 640
 HEIGHT = 480
 
@@ -82,6 +85,8 @@ class Pose_detection(threading.Thread):
         # test webcam
         if self.webcam_stream is None or not self.webcam_stream.isOpened():
             print("Warning: unable to open camera (camera source: %s)" % video_source)
+        else:
+            print("Info: Initialized webcam (source: %s)" % video_source)
         
         # initialization of image (updated asynchronously)
         self.annotated_image = np.zeros(((int)(HEIGHT), (int)(WIDTH), 3), np.uint8)
@@ -94,6 +99,8 @@ class Pose_detection(threading.Thread):
         )
         self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
         
+        print("Info: Initialized PoseLandmarker")        
+
 
         ### SET UP PIPELINE
 
