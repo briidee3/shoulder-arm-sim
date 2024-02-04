@@ -163,6 +163,7 @@ class SimGUI():
         self.submit_hw.grid(row = 4, column = 1)
 
 
+
         # grid section for data output
         self.data_output = LabelFrame(self.data, text = "Data output:")
         self.data_output.grid(row = 2, column = 0)
@@ -206,6 +207,7 @@ class SimGUI():
         self.left_elbow_angle.grid(row = 2, column = 1)
 
 
+
         # set up bicep force scatter plot
         self.fig, self.ax = plt.subplots()
         #self.hist_bf_plot = self.ax.scatter(self.history_elbow_angle, self.history_bicep_force)
@@ -236,6 +238,8 @@ class SimGUI():
         self.update_display()                               # update display
         self.update_data()                                  # update numerical data
         #self.mediapipe_runtime.run()
+        self.root.update_idletasks()
+        self.gui.update_idletasks()
 
         # handle program close
         self.root.protocol("WM_DELETE_WINDOW", self.__del__)
@@ -263,6 +267,9 @@ class SimGUI():
         self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
         self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
         self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
+
+        # update manual calibration
+        self.manual_calibration = self.mediapipe_runtime.toggle_auto_calibrate
         # check if using manual calibration
         if not self.manual_calibration:
             self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
@@ -338,7 +345,6 @@ class SimGUI():
     def toggle_manual_conversion(self):
         toggle = bool(self.ucf_toggle_var.get())
 
-        self.toggle_manual_conversion = toggle
         self.mediapipe_runtime.toggle_auto_conversion(toggle)
 
     # set manual conversion factor/ratio
