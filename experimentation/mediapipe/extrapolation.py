@@ -112,6 +112,8 @@ class Extrapolate_forces():
                 ]
             ]
 
+        print("extrapolation.py: Info: Initialized extrapolation.py")
+
 
     # IMPORTANT: set mediapipe_data_output for the current frame
     def update_current_frame(self, mp_data_out, current_frame):
