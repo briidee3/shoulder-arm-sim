@@ -1,6 +1,10 @@
 # BD 2023
 # This class is intended to serve as a GUI display manager for the body forces simulation research project.
 
+## TODO:
+#   - fix sync issues with root.mainloop blocking proper updating of the manual calibration toggle
+#       when calling function from outside the main program loop
+
 
 import numpy as np
 import math
