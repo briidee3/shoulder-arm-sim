@@ -16,6 +16,8 @@
 #   - figure out if raw mediapipe output is x, y, z, or x, z, y
 #   - fix elbow angle inaccuracies (e.g. how 90 degrees isn't seen as 90 degrees due to the calculations
 #       being used being parallel to the plane of the screen/webcam)
+#   - orientation from shoulder to hip stuffs
+#       - send over the hips data from the mediapipe stuff
 
 
 import numpy as np
@@ -241,8 +243,15 @@ class Extrapolate_forces():
     # get depth for body part in most recent frame
     def get_depth(self, vertex_one, vertex_two):
         cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two)      # current distance between given parts
+        
+        
+        
+        ### CHANGE THIS TO USE THE RATIOS + STD DEV OR WHATEVER FOR THE ARM THINGY INSTEAD OF USING THE IMPRECISE/INNACURATE MAX LENGTH CALCULATIONS FOR BODY PARTS N STUFF
         max_dist = self.get_max_dist(vertex_one, vertex_two)                    # max distance between given parts
         
+
+
+
         angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
         return np.sin(angle) * max_dist                                         # calculate depth
 

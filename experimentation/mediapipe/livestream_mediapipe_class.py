@@ -187,6 +187,7 @@ class Pose_detection(threading.Thread):
         # get rid of windows still up
         cv2.destroyAllWindows()
         print("Program closed.")
+        #exit()
 
 
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
