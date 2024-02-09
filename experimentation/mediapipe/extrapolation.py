@@ -18,6 +18,8 @@
 #       being used being parallel to the plane of the screen/webcam)
 #   - orientation from shoulder to hip stuffs
 #       - send over the hips data from the mediapipe stuff
+#   - initialize an array at the start containing vector lengths of segment distances
+#   - update the actual lengths of body segments during run time
 
 # IDEAS:
 #   - train a machine learning model to tune the weights for the ratios (after implementing ratio-based depth instead of max_dist-based depth)
@@ -49,6 +51,13 @@ R_HIP = 9#24
 ARM_TO_HEIGHT = 0.39
 FOREARM_TO_HEIGHT = 0.216
 UPPERARM_TO_HEIGHT = ARM_TO_HEIGHT - FOREARM_TO_HEIGHT
+# ndarray for indexing ratios for use below. 
+#RATIOS_NDARRAY = np.zeros((10, 10), dtype = "float32")
+# TODO: find a better way of doing this. this is just a temp fix for testing.
+#RATIOS_NDARRAY[L_SHOULDER][L_ELBOW] = UPPERARM_TO_HEIGHT
+#RATIOS_NDARRAY[L_ELBOW][L_WRIST] = FOREARM_TO_HEIGHT
+#RATIOS_NDARRAY[R_SHOULDER][R_ELBOW] = UPPERARM_TO_HEIGHT
+#RATIOS_NDARRAY[R_ELBOW][R_WRIST] = FOREARM_TO_HEIGHT
 
 
 #### OBJECT FOR EASE OF MANAGEMENT OF EXTRAPOLATION OF DEPTH AND CALCULATION OF BODY FORCES
@@ -77,11 +86,13 @@ class Extrapolate_forces():
         self.biacromial_scale = 0.23            # temporarily set to middle of male (0.234) to female (0.227) range for testing
 
         # ndarray to store mediapipe data output, even if from other process(es)
-        self.mediapipe_data_output = np.ndarray((8, 3), dtype = "float64")
+        self.mediapipe_data_output = np.ndarray((10, 3), dtype = "float64")
 
         # used for storing distance data (to prevent unnecessary recalculations)
-        self.dist_array = np.zeros((8, 8), dtype = "float64")         # indexed by two body part names/indices
-        self.max_array = np.zeros((8, 8), dtype = "float64")          # used for storing max distance data
+        # consider changing to float32 or float16
+        self.dist_array = np.zeros((10, 10), dtype = "float64")         # indexed by two body part names/indices
+        self.max_array = np.zeros((10, 10), dtype = "float64")          # used for storing max distance data
+        #self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
 
         self.cur_frame = 0   # used to keep track of current frame
 
@@ -196,6 +207,23 @@ class Extrapolate_forces():
         if dist > self.max_array[first_part][second_part]:
             self.max_array[first_part][second_part] = dist
 
+        # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
+        #cur_ratio = 0.0                             # used as temp var to hold ratio to use below
+        #first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
+
+        #match first_vertex:                         # check which vertex it is to find the assumed segment
+        #    case 0:
+        #        cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
+        #    case 2:
+        #        cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
+        #    case _:
+        #        cur_ratio = 0.0
+        #if second_part == 1:                        # assume it's shoulder to shoulder
+        #    cur_ratio = self.biacromial_scale
+
+        # get sim units from real units
+        #self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
+
         return dist
 
     # retrieve the max distance between body parts found thus far
@@ -269,7 +297,7 @@ class Extrapolate_forces():
         
         ### CHANGE THIS TO USE THE RATIOS + STD DEV OR WHATEVER FOR THE ARM THINGY INSTEAD OF USING THE IMPRECISE/INNACURATE MAX LENGTH CALCULATIONS FOR BODY PARTS N STUFF
         max_dist = self.get_max_dist(vertex_one, vertex_two)                    # max distance between given parts
-        
+        #max_dist = self.avg_ratio_array(vertex_one, vertex_two)
 
 
 
