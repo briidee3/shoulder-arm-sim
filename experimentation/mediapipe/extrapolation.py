@@ -19,6 +19,9 @@
 #   - orientation from shoulder to hip stuffs
 #       - send over the hips data from the mediapipe stuff
 
+# IDEAS:
+#   - train a machine learning model to tune the weights for the ratios (after implementing ratio-based depth instead of max_dist-based depth)
+
 
 import numpy as np
 import math
@@ -30,6 +33,7 @@ from matplotlib import pyplot as plt
 np.set_printoptions(suppress = True, precision = 3)
 
 #### CONSTANTS (for use with indexing)
+## INDEXING
 L_SHOULDER = 0#11
 R_SHOULDER = 1#12
 L_ELBOW = 2#13
@@ -40,6 +44,11 @@ L_INDEX = 6#19
 R_INDEX = 7#20
 L_HIP = 8#23
 R_HIP = 9#24
+
+## RATIOS
+ARM_TO_HEIGHT = 0.39
+FOREARM_TO_HEIGHT = 0.216
+UPPERARM_TO_HEIGHT = ARM_TO_HEIGHT - FOREARM_TO_HEIGHT
 
 
 #### OBJECT FOR EASE OF MANAGEMENT OF EXTRAPOLATION OF DEPTH AND CALCULATION OF BODY FORCES
@@ -52,6 +61,9 @@ class Extrapolate_forces():
         self.user_height = 1.78     # user height (meters)
         self.user_weight = 90       # user weight (kilograms)
         self.ball_mass = 3          # mass of ball (kilograms)
+
+        self.forearm_length = self.user_height * FOREARM_TO_HEIGHT      # estimated length of user's forearm (based on statistical average measurements)
+        self.upperarm_length = self.user_height * UPPERARM_TO_HEIGHT    # estimated length of user's upperarm (based on statistical average measurements)
         
         # toggle for calculating left arm or right arm
         self.is_right = right
@@ -61,7 +73,8 @@ class Extrapolate_forces():
         self.manual_calibration = False
         self.sim_to_real_conversion_factor = 1  # convert mediapipe units to real world units (meters)
         self.use_full_wingspan = False
-        self.biacromial_scale = 0.23              # temporarily set to middle of male (0.234) to female (0.227) range for testing
+        self.use_biacromial = True              # use new calibration method
+        self.biacromial_scale = 0.23            # temporarily set to middle of male (0.234) to female (0.227) range for testing
 
         # ndarray to store mediapipe data output, even if from other process(es)
         self.mediapipe_data_output = np.ndarray((8, 3), dtype = "float64")
@@ -144,6 +157,7 @@ class Extrapolate_forces():
     def calc_half_wingspan(self):
         # keep track of arm length
         self.calc_dist_between_vertices((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right)))
+
         # keep track of shoulder width
         self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
 
@@ -160,6 +174,11 @@ class Extrapolate_forces():
     # set biacromial ratio externally
     def set_biacromial(self, new_biacromial = 0.23):
         self.biacromial_scale = new_biacromial
+
+    # get sim units from estimated real length of part
+    def real_to_sim_units(self, length):
+        # convert real (length) units to sim (length) units
+        return length / self.sim_to_real_conversion_factor
 
 
 
@@ -189,7 +208,7 @@ class Extrapolate_forces():
 
     # calculate ratio for conversion of simulated units to metric units (meters) using wingspan and input real height
     # using the wingspan method
-    def calc_conversion_ratio_wingspan(self, real_height_metric = 1.78):
+    def calc_conversion_ratio_wingspan(self, real_height_metric = 1.78):        # DEPRECATED
         # get ratio to real distance in meters using max distance between wrists via mediapipe output data
         if self.use_full_wingspan:
             sim_wingspan = self.get_max_dist(L_INDEX, R_INDEX)
@@ -214,7 +233,7 @@ class Extrapolate_forces():
     # calculate conversion ratio using the shoulder width method
     def calc_conversion_ratio(self, real_height_metric = 1.78):
         # get maximum distance between shoulders
-        sim_biacromial = self.get_max_dist(L_SHOULDER, R_SHOULDER)
+        sim_biacromial = self.get_max_dist(L_SHOULDER, R_SHOULDER)      # still using max distance for calibration here
         self.sim_to_real_conversion_factor = (real_height_metric * self.biacromial_scale) / sim_biacromial
     
     # get conversion ratio (so it doesn't need to be calculated for each of these calls)

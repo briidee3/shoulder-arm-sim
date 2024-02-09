@@ -253,6 +253,12 @@ class Pose_detection(threading.Thread):
             mediapipe_out[it, 1] = 0              # set y (depth) data
             mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
             it += 1
+        # and hips too
+        for i in range(23, 25):
+            mediapipe_out[it, 0] = pose_landmarks_list[0][i].x     # get landmark data (x)
+            mediapipe_out[it, 1] = 0              # set y (depth) data
+            mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
+            it += 1
 
         
         ### DEPTH AND FORCES CALCULATIONS
