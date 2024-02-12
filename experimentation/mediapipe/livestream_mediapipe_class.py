@@ -194,14 +194,20 @@ class Pose_detection(threading.Thread):
 
     # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
     def extrapolate_depth(self, mediapipe_output):
-        # set the data for the current frame
-        self.ep.update_current_frame(mediapipe_output, self.frame_counter)    # update mediapipe data
-        # calculations that don't need to run each frame (hence run every "tick")
-        if not self.toggle_auto_calibrate and (self.frame_counter % self.tick_length == 0):
-            self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
+        try:
+            # set the data for the current frame
+            self.ep.update_current_frame(mediapipe_output, self.frame_counter)    # update mediapipe data
+            # calculations that don't need to run each frame (hence run every "tick")
+            if not self.toggle_auto_calibrate and (self.frame_counter % self.tick_length == 0):
+                self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
+        except:
+            print("livestream_mediapipe_class.py: Error in extrapolate_depth()")
 
         # calculate depth for given frame
-        self.ep.set_depth()                      # get depth_dict and calculate y axes values
+        try:
+            self.ep.set_depth()                      # get depth_dict and calculate y axes values
+        except:
+            print("livestream_mediapipe_class.py: Error with ep.set_depth() in extrapolate_depth()")
 
     # calculate forces involved with muscles in the body
     def calc_body_forces(self):
@@ -215,64 +221,69 @@ class Pose_detection(threading.Thread):
     # detector callback function
     # annotate and display frame with skeleton
     def draw_landmarks_on_frame(self, detection_result: PoseLandmarkerResult, rgb_image: mp.Image, _):  #(rgb_image, detection_result):
-        pose_landmarks_list = detection_result.pose_landmarks
-        annotated_image = np.copy(rgb_image.numpy_view())
-        mediapipe_out = np.ndarray((10, 3))
+        try:
+            pose_landmarks_list = detection_result.pose_landmarks
+            annotated_image = np.copy(rgb_image.numpy_view())
+            mediapipe_out = np.ndarray((10, 3))
 
-        # loop thru detected poses to visualize
-        for idx in range(len(pose_landmarks_list)):
-            pose_landmarks = pose_landmarks_list[idx]
+            # loop thru detected poses to visualize
+            for idx in range(len(pose_landmarks_list)):
+                pose_landmarks = pose_landmarks_list[idx]
 
-            # draw the pose landmarks
-            pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-            for landmark in pose_landmarks:
-                pose_landmarks_proto.landmark.extend([
-                    landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
-                ])
-            solutions.drawing_utils.draw_landmarks(
-                annotated_image,
-                pose_landmarks_proto,
-                solutions.pose.POSE_CONNECTIONS,
-                solutions.drawing_styles.get_default_pose_landmarks_style()
-            )
+                # draw the pose landmarks
+                pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+                for landmark in pose_landmarks:
+                    pose_landmarks_proto.landmark.extend([
+                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
+                    ])
+                solutions.drawing_utils.draw_landmarks(
+                    annotated_image,
+                    pose_landmarks_proto,
+                    solutions.pose.POSE_CONNECTIONS,
+                    solutions.drawing_styles.get_default_pose_landmarks_style()
+                )
 
-        # set current frame to annotated image
-        self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
+            # set current frame to annotated image
+            self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
+            
+            # add shoulders, elbows, and wrists to current dataframe
+            it = 0                                                      # temp iterator
+            for i in range(11, 17):
+                #print(pose_landmarks_list[0][i].x)
+                mediapipe_out[it, 0] = pose_landmarks_list[0][i].x     # get landmark data (x)
+                mediapipe_out[it, 1] = 0              # set y (depth) data
+                mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
+                it += 1
+            # also add index fingers
+            for i in range (19, 21):
+                mediapipe_out[it, 0] = pose_landmarks_list[0][i].x     # get landmark data (x)
+                mediapipe_out[it, 1] = 0              # set y (depth) data
+                mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
+                it += 1
+            # and hips too
+            for i in range(23, 25):
+                mediapipe_out[it, 0] = pose_landmarks_list[0][i].x     # get landmark data (x)
+                mediapipe_out[it, 1] = 0              # set y (depth) data
+                mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
+                it += 1
+        except:
+            print("livestream_mediapipe_class.py: Error with mediapipe in draw_landmarks_on_frame()")
+            
+            ### DEPTH AND FORCES CALCULATIONS
+        try:
+            if (pose_landmarks_list) and not self.stop:   # check if results exist (and that program isn't stopping) before attempting calculations
+                #print("Extrapolating depth...")
+                #print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
+                self.extrapolate_depth(mediapipe_out)
+                #print("Calculating body forces...")
+                self.calc_body_forces()
+            
+            self.frame_counter += 1
+        except:
+            print("livestream_mediapipe_class.py: Error with depth/force calculations in draw_landmarks_on_frame()")
         
-        # add shoulders, elbows, and wrists to current dataframe
-        it = 0                                                      # temp iterator
-        for i in range(11, 17):
-            #print(pose_landmarks_list[0][i].x)
-            mediapipe_out[it, 0] = pose_landmarks_list[0][i].x     # get landmark data (x)
-            mediapipe_out[it, 1] = 0              # set y (depth) data
-            mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
-            it += 1
-        # also add index fingers
-        for i in range (19, 21):
-            mediapipe_out[it, 0] = pose_landmarks_list[0][i].x     # get landmark data (x)
-            mediapipe_out[it, 1] = 0              # set y (depth) data
-            mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
-            it += 1
-        # and hips too
-        for i in range(23, 25):
-            mediapipe_out[it, 0] = pose_landmarks_list[0][i].x     # get landmark data (x)
-            mediapipe_out[it, 1] = 0              # set y (depth) data
-            mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
-            it += 1
-
         
-        ### DEPTH AND FORCES CALCULATIONS
-        if (pose_landmarks_list) and not self.stop:   # check if results exist (and that program isn't stopping) before attempting calculations
-            #print("Extrapolating depth...")
-            #print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
-            self.extrapolate_depth(mediapipe_out)
-            #print("Calculating body forces...")
-            self.calc_body_forces()
-        
-        self.frame_counter += 1
-        
-        
-        return #?
+        return 1#?
     
 
     ### HELPER FUNCTIONS

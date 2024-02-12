@@ -333,7 +333,7 @@ class Extrapolate_forces():
         #max_dist = self.get_max_dist(vertex_one, vertex_two)                    # max distance between given parts
         
         if vertex_one < 4:          # check if is arm or shoulder
-            max_dist = self.avg_ratio_array(vertex_one, vertex_two)     # use avg_ratio_array if arm or shoulder
+            max_dist = self.avg_ratio_array[vertex_one][vertex_two]     # use avg_ratio_array if arm or shoulder
         else:
             max_dist = self.get_max_dist(vertex_one, vertex_two)
 
@@ -348,7 +348,11 @@ class Extrapolate_forces():
             for i in enumerate(vertices):
                 #print(i[1])
                 if i[1] != (vertices[-1]):
-                    y_dist_between_vertices = self.get_depth(i[1], i[1] + 1)          # calculate depth
+                    try:
+                        y_dist_between_vertices = self.get_depth(i[1], i[1] + 1)          # calculate depth
+                    except:
+                        print("extrapolation.py: Error with get_depth() in set_depth()")
+                    
                     # check if "nan" value
                     if math.isnan(y_dist_between_vertices):
                         y_dist_between_vertices = 0                             # set all nan values to 0
