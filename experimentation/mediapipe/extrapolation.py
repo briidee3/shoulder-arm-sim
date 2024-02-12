@@ -92,7 +92,7 @@ class Extrapolate_forces():
         # consider changing to float32 or float16
         self.dist_array = np.zeros((10, 10), dtype = "float64")         # indexed by two body part names/indices
         self.max_array = np.zeros((10, 10), dtype = "float64")          # used for storing max distance data
-        #self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
+        self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
 
         self.cur_frame = 0   # used to keep track of current frame
 
@@ -155,10 +155,18 @@ class Extrapolate_forces():
         self.cur_frame = current_frame
 
         # update calibration settings
-        if self.use_full_wingspan and not self.is_one_arm:
-            self.calc_wingspan()                            # keep track of max distance between index fingers
-        else:
-            self.calc_half_wingspan()                       # keep track of max length of given arm
+        try:
+            if self.use_full_wingspan and not self.is_one_arm:
+                self.calc_wingspan()                            # keep track of max distance between index fingers
+            else:
+                self.calc_shoulder_width()
+                #self.calc_half_wingspan()                       # keep track of max length of given arm
+                self.calc_avg_ratio_shoulders()
+        except:
+            print("extrapolation.py: Error updating calibration in update_current_frame()")
+
+        # calculate avg ratio for shoulder to shoulder distance for use in depth approximations
+        self.calc_shoulder_width()
 
     # IMPORTANT: temporary bandaid fix for calibration
     def calc_wingspan(self):
@@ -166,11 +174,19 @@ class Extrapolate_forces():
 
     # track max dist between half wingspan for calibration (automatically done via calc_dist_between_vertices, updating max_dist)
     def calc_half_wingspan(self):
-        # keep track of arm length
-        self.calc_dist_between_vertices((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right)))
+        try:
+            # keep track of arm length
+            self.calc_dist_between_vertices((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right)))
+        except:
+            print("extrapolation.py: Error in calc_half_wingspan")
 
-        # keep track of shoulder width
-        self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
+    # track shoulder width
+    def calc_shoulder_width(self):
+        try:
+            # keep track of shoulder width
+            self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER) # also should take care of avg_ratio_array
+        except:
+            print("extrapolation.py: Error in calc_shoulder_width")
 
 
 
@@ -188,8 +204,10 @@ class Extrapolate_forces():
 
     # get sim units from estimated real length of part
     def real_to_sim_units(self, length):
-        # convert real (length) units to sim (length) units
-        return length / self.sim_to_real_conversion_factor
+        try:# convert real (length) units to sim (length) units
+            return length / self.sim_to_real_conversion_factor
+        except:
+            print("extrapolation.py: Error converting real units to sim units")
 
 
 
@@ -207,24 +225,35 @@ class Extrapolate_forces():
         if dist > self.max_array[first_part][second_part]:
             self.max_array[first_part][second_part] = dist
 
-        # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
-        #cur_ratio = 0.0                             # used as temp var to hold ratio to use below
-        #first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
+        try:
+            # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
+            cur_ratio = 0.0                             # used as temp var to hold ratio to use below
+            first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
 
-        #match first_vertex:                         # check which vertex it is to find the assumed segment
-        #    case 0:
-        #        cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
-        #    case 2:
-        #        cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
-        #    case _:
-        #        cur_ratio = 0.0
-        #if second_part == 1:                        # assume it's shoulder to shoulder
-        #    cur_ratio = self.biacromial_scale
-
-        # get sim units from real units
-        #self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
+            match first_vertex:                         # check which vertex it is to find the assumed segment
+                case 0:
+                    cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
+                case 2:
+                    cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
+                case _:
+                    cur_ratio = 1.0
+            if second_part == 1:                        # assume it's shoulder to shoulder
+                cur_ratio = self.biacromial_scale
+                self.calc_avg_ratio_shoulders()
+            else:
+                # get sim units from real units
+                self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
+        except:
+            print("extrapolation.py: Error handling avg_ratio_array[][]")
 
         return dist
+    # get avg ratio for shoulder distance
+    def calc_avg_ratio_shoulders(self):
+        try:
+            self.avg_ratio_array[0][1] = self.real_to_sim_units(self.user_height * self.biacromial_scale)
+        except:
+            print("extrapolation.py: Error in calc_avg_ratio_shoulders()")
+
 
     # retrieve the max distance between body parts found thus far
     def get_max_dist(self, first_part, second_part):
@@ -260,9 +289,14 @@ class Extrapolate_forces():
 
     # calculate conversion ratio using the shoulder width method
     def calc_conversion_ratio(self, real_height_metric = 1.78):
-        # get maximum distance between shoulders
-        sim_biacromial = self.get_max_dist(L_SHOULDER, R_SHOULDER)      # still using max distance for calibration here
-        self.sim_to_real_conversion_factor = (real_height_metric * self.biacromial_scale) / sim_biacromial
+        try:
+            # get maximum distance between shoulders
+            sim_biacromial = self.get_max_dist(L_SHOULDER, R_SHOULDER)      # still using max distance for calibration here
+            #self.avg_ratio_array[L_SHOULDER][R_SHOULDER] = self.real_to_sim_units(self.user_height * cur_ratio)   # calc avg ratio between shoulders (redundancy)
+            #sim_biacromial = self.avg_ratio_array[L_SHOULDER][R_SHOULDER]   # now using avg ratios instead of max distance
+            self.sim_to_real_conversion_factor = (real_height_metric * self.biacromial_scale) / sim_biacromial
+        except:
+            print("extrapolation.py: Error calculating conversion ratio")
     
     # get conversion ratio (so it doesn't need to be calculated for each of these calls)
     def get_conversion_ratio(self):
@@ -296,9 +330,12 @@ class Extrapolate_forces():
         
         
         ### CHANGE THIS TO USE THE RATIOS + STD DEV OR WHATEVER FOR THE ARM THINGY INSTEAD OF USING THE IMPRECISE/INNACURATE MAX LENGTH CALCULATIONS FOR BODY PARTS N STUFF
-        max_dist = self.get_max_dist(vertex_one, vertex_two)                    # max distance between given parts
-        #max_dist = self.avg_ratio_array(vertex_one, vertex_two)
-
+        #max_dist = self.get_max_dist(vertex_one, vertex_two)                    # max distance between given parts
+        
+        if vertex_one < 4:          # check if is arm or shoulder
+            max_dist = self.avg_ratio_array(vertex_one, vertex_two)     # use avg_ratio_array if arm or shoulder
+        else:
+            max_dist = self.get_max_dist(vertex_one, vertex_two)
 
 
         angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
