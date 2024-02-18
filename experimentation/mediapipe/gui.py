@@ -114,7 +114,7 @@ class SimGUI():
         self.ucf_var = StringVar()
         self.ucf_entry = Entry(self.settings, textvariable = self.ucf_var)
         self.ucf_toggle_var = IntVar()
-        self.ucf_toggle = Checkbutton(self.settings, text = "Manual", variable = self.ucf_toggle_var,
+        self.ucf_toggle = Checkbutton(self.settings, text = "Manual", variable = self.ucf_toggle_var,       # now defunct, does effectively nothing with new calibration system
                                       onvalue = 1, offvalue = 0, height = 1, width = 10, command = self.toggle_manual_conversion)
         self.ucf_submit = Button(self.settings, text = "Submit", command = self.set_conversion_ratio)
         self.ucf_label.grid(row = 1, column = 0)
