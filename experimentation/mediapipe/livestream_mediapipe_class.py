@@ -38,7 +38,8 @@ from mediapipe.tasks.python import vision
 # functions for data/physics calculations and manipulations
 import extrapolation
 
-
+# testing input from keyboard
+key = cv2.waitKey(0)
 
 ### MEDIAPIPE OPTIONS
 
@@ -141,6 +142,9 @@ class Pose_detection(threading.Thread):
             else:
                 # main program loop
                 while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
+                    #if cv2.waitKey(1) == 27:   # trying to get keyboard input to work. doesnt wanna lol
+                    #    print("ESC pressed")
+                    
                     # get current millisecond for use by detector
                     cur_msec = (int)(time.time() * 1000)
 
