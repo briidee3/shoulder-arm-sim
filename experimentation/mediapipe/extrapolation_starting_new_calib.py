@@ -152,9 +152,6 @@ class Extrapolate_forces():
                     L_WRIST,
                 ]
             ]
-        
-        # run initialization functions
-        self.set_all_bodypart_lengths()
 
         print("extrapolation.py: Info: Initialized extrapolation.py")
 
@@ -170,19 +167,19 @@ class Extrapolate_forces():
         # update current frame number
         self.cur_frame = current_frame
 
-        # update calibration settings (old)
-        #try:
-        #    if self.use_full_wingspan and not self.is_one_arm:
-        #        self.calc_wingspan()                            # keep track of max distance between index fingers
-        #    else:
-        #        self.calc_shoulder_width()
-        #        #self.calc_half_wingspan()                       # keep track of max length of given arm
-        #        self.calc_avg_ratio_shoulders()
-        #except:
-        #    print("extrapolation.py: Error updating calibration in update_current_frame()")
+        # update calibration settings
+        try:
+            if self.use_full_wingspan and not self.is_one_arm:
+                self.calc_wingspan()                            # keep track of max distance between index fingers
+            else:
+                self.calc_shoulder_width()
+                #self.calc_half_wingspan()                       # keep track of max length of given arm
+                self.calc_avg_ratio_shoulders()
+        except:
+            print("extrapolation.py: Error updating calibration in update_current_frame()")
 
-        # calculate calibration coefficient/metric to sim units conversion ratio
-        self.calc_conversion_ratio()
+        # calculate avg ratio for shoulder to shoulder distance for use in depth approximations
+        self.calc_shoulder_width()
 
     # IMPORTANT: temporary bandaid fix for calibration
     def calc_wingspan(self):
@@ -200,7 +197,7 @@ class Extrapolate_forces():
     def calc_shoulder_width(self):
         try:
             # keep track of shoulder width
-            self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
+            self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER) # also should take care of avg_ratio_array
         except:
             print("extrapolation.py: Error in calc_shoulder_width")
 
@@ -234,39 +231,42 @@ class Extrapolate_forces():
 
     # get distance between vertices for current frame
     def calc_dist_between_vertices(self, first_part, second_part):
-        # calculate distance for parts in current frame
-        dist = np.linalg.norm(
-                        self.mediapipe_data_output[first_part, :] - 
-                        self.mediapipe_data_output[second_part, :]
-                    )
-        
-        # update max distance between these parts, if necessary
-        if dist > self.max_array[first_part][second_part]:
-            self.max_array[first_part][second_part] = dist
+        try:
+            # calculate distance for parts in current frame
+            dist = np.linalg.norm(
+                            self.mediapipe_data_output[first_part, :] - 
+                            self.mediapipe_data_output[second_part, :]
+                        )
+            
+            # update max distance between these parts, if necessary
+            if dist > self.max_array[first_part][second_part]:
+                self.max_array[first_part][second_part] = dist
 
-        # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
-        #try:
-        #    # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
-        #    cur_ratio = 0.0                             # used as temp var to hold ratio to use below
-        #    first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
-        #
-        #    match first_vertex:                         # check which vertex it is to find the assumed segment
-        #        case 0:
-        #            cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
-        #        case 2:
-        #            cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
-        #        case _:
-        #            cur_ratio = 1.0
-        #    if second_part == 1:                        # assume it's shoulder to shoulder if the second part is right shoulder
-        #        cur_ratio = self.biacromial_scale
-        #        self.calc_avg_ratio_shoulders()
-        #    else:
-                # get sim units from real units
-        #        self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
-        #except:
-        #    print("extrapolation.py: Error handling avg_ratio_array[][]")
+            # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
+            #try:
+            #    # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
+            #    cur_ratio = 0.0                             # used as temp var to hold ratio to use below
+            #    first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
+            #
+            #    match first_vertex:                         # check which vertex it is to find the assumed segment
+            #        case 0:
+            #            cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
+            #        case 2:
+            #            cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
+            #        case _:
+            #            cur_ratio = 1.0
+            #    if second_part == 1:                        # assume it's shoulder to shoulder if the second part is right shoulder
+            #        cur_ratio = self.biacromial_scale
+            #        self.calc_avg_ratio_shoulders()
+            #    else:
+                    # get sim units from real units
+            #        self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
+            #except:
+            #    print("extrapolation.py: Error handling avg_ratio_array[][]")
 
-        return dist
+            return dist
+        except:
+            print("extrapolation.py: ERROR in calc_dist_between_vertices(%s, %s)" % first_part, second_part)
 
         
     # get avg ratio for shoulder distance
@@ -283,7 +283,7 @@ class Extrapolate_forces():
 
 
 
-    ### NEW CALIBRATION: AVG RATIOS AND OFFSETS
+    ### NEW CALIBRATION TECHNIQUE: AVG RATIOS AND OFFSETS
 
     # calculate true length of segments (e.g. upper arm) via use of avg ratios and estimated deviation from avg ratios
     # 
@@ -318,25 +318,6 @@ class Extrapolate_forces():
 
     ### CALIBRATION CONVERSION FACTOR:
 
-    # calculate conversion ratio using the new shoulder width method
-    def calc_conversion_ratio(self, real_height_metric = 1.78):
-        try:
-            # get maximum distance between shoulders
-            #sim_biacromial = self.get_max_dist(L_SHOULDER, R_SHOULDER)      # still using max distance for calibration here
-            #self.avg_ratio_array[L_SHOULDER][R_SHOULDER] = self.real_to_sim_units(self.user_height * cur_ratio)   # calc avg ratio between shoulders (redundancy)
-            #sim_biacromial = self.avg_ratio_array[L_SHOULDER][R_SHOULDER]   # now using avg ratios instead of max distance
-
-            # calculate avg ratio for shoulder to shoulder distance for use in depth approximations
-            self.calc_shoulder_width()
-
-            # getting current simulation distance between shoulders
-            sim_biacromial = self.dist_array[L_SHOULDER][R_SHOULDER]
-
-            # use true shoulder width and current distance between shoulders in sim units to get conversion factor
-            self.sim_to_real_conversion_factor = self.bodypart_lengths[SHOULDER_WIDTH] / sim_biacromial
-        except:
-            print("extrapolation.py: Error calculating conversion ratio")
-
     # calculate ratio for conversion of simulated units to metric units (meters) using wingspan and input real height
     # using the wingspan method
     def calc_conversion_ratio_wingspan(self, real_height_metric = 1.78):        # DEPRECATED
@@ -360,6 +341,17 @@ class Extrapolate_forces():
                 self.sim_to_real_conversion_factor = real_height_metric / (half_wingspan * 2)
 
         return self.sim_to_real_conversion_factor
+
+    # calculate conversion ratio using the shoulder width method
+    def calc_conversion_ratio(self, real_height_metric = 1.78):
+        try:
+            # get maximum distance between shoulders
+            sim_biacromial = self.get_max_dist(L_SHOULDER, R_SHOULDER)      # still using max distance for calibration here
+            #self.avg_ratio_array[L_SHOULDER][R_SHOULDER] = self.real_to_sim_units(self.user_height * cur_ratio)   # calc avg ratio between shoulders (redundancy)
+            #sim_biacromial = self.avg_ratio_array[L_SHOULDER][R_SHOULDER]   # now using avg ratios instead of max distance
+            self.sim_to_real_conversion_factor = (real_height_metric * self.biacromial_scale) / sim_biacromial
+        except:
+            print("extrapolation.py: Error calculating conversion ratio")
     
     # get conversion ratio (so it doesn't need to be calculated for each of these calls)
     def get_conversion_ratio(self):
