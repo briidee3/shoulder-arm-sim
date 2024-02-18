@@ -51,13 +51,16 @@ R_HIP = 9#24
 SHOULDER_WIDTH = 0
 UPPERARM_LENGTH = 1
 FOREARM_LENGTH = 2
-SHOULDER_TO_HIP_LENGTH = 3
+SHOULDER_TO_HIP = 3
 HIP_WIDTH = 4
 
 ## RATIOS
+# these are the average ratios for each body segment/part to height
 ARM_TO_HEIGHT = 0.39
 FOREARM_TO_HEIGHT = 0.216
 UPPERARM_TO_HEIGHT = ARM_TO_HEIGHT - FOREARM_TO_HEIGHT
+SHOULDER_TO_HIP_TO_HEIGHT = 1       # temporarily set to 1, until the actual ratio is added
+HIP_WIDTH_TO_HEIGHT = 1             # temporarily set to 1, until the actual ratio is added
 # ndarray for indexing ratios for use below. 
 #RATIOS_NDARRAY = np.zeros((10, 10), dtype = "float32")
 # TODO: find a better way of doing this. this is just a temp fix for testing.
@@ -102,7 +105,8 @@ class Extrapolate_forces():
         self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
         # bodypart_lengths intended to store baseline lengths of bodyparts
         self.bodypart_lengths = np.ones((6), dtype = "float32")         # stores body part lengths, assuming symmetry between sides (so, only one value for forearm length as opposed to 2, for example. may be changed later)
-
+        # biases for bodypart lengths (calculated in countdown_calibrate), default to 1 for no bias
+        self.bodypart_ratio_bias_array = np.ones((np.shape(self.bodypart_lengths)[0]), dtype = "float32")
         self.cur_frame = 0   # used to keep track of current frame
 
         # put together pairs for each of the vertices
@@ -209,7 +213,10 @@ class Extrapolate_forces():
 
     # set biacromial ratio externally
     def set_biacromial(self, new_biacromial = 0.23):
+        # change local biacromial scale value
         self.biacromial_scale = new_biacromial
+        # set shoulder width true length
+        self.bodypart_lengths[0] = self.user_height * self.biacromial_scale
 
     # get sim units from estimated real length of part
     def real_to_sim_units(self, length):
@@ -275,24 +282,27 @@ class Extrapolate_forces():
 
     ### NEW CALIBRATION TECHNIQUE: AVG RATIOS AND OFFSETS
 
-    # calculate true length of segments (e.g. upper arm) via use of avg ratios
+    # calculate true length of segments (e.g. upper arm) via use of avg ratios and estimated deviation from avg ratios
+    # 
     # this function is not intended to run every frame; this is calculated before any conversions to or from sim units,
     #   thus it doesn't need to be updated when a new calibration coefficient is calculated either.
     # these calculations are intended to represent the true lengths of the user's body parts in metric units.
-    # 
+    # this function should be run whenever user_height is changed or countdown_calibrate() run (as well as at program start)
     def set_all_bodypart_lengths(self):
+        # assuming symmetry between left and right side
         try:
-            # shoulder width:
-            self.bodypart_lengths[0] = self.user_height * self.biacromial_scale
+            # shoulder width
+            self.bodypart_lengths[SHOULDER_WIDTH] = self.user_height * self.biacromial_scale
             # upper arms
-            
+            self.bodypart_lengths[UPPERARM_LENGTH] = self.user_height * UPPERARM_TO_HEIGHT * self.bodypart_ratio_bias_array[UPPERARM_LENGTH]
+            # forearms
+            self.bodypart_lengths[FOREARM_LENGTH] = self.user_height * FOREARM_TO_HEIGHT * self.bodypart_ratio_bias_array[FOREARM_LENGTH]
+            # shoulder to hip
+            self.bodypart_lengths[SHOULDER_TO_HIP] = self.user_height * SHOULDER_TO_HIP_TO_HEIGHT * self.bodypart_ratio_bias_array[SHOULDER_TO_HIP]
+            # hip width
+            self.bodypart_lengths[HIP_WIDTH] = self.user_height * HIP_WIDTH_TO_HEIGHT * self.bodypart_ratio_bias_array[HIP_WIDTH]
         except:
             print("extrapolation.py: ERROR calculating in set_bodypart_lengths()")
-
-    # designed to be run whenever biacromial_scale is edited
-    def set_biacromial_length(self):
-        # set shoulder width true length
-        self.bodypart_lengths[0] = self.user_height * self.biacromial_scale
 
     # run countdown to snapshot to calibration step to determine avg ratio offsets/std dev for current user
     # TODO:
