@@ -138,7 +138,7 @@ class Pose_detection(threading.Thread):
         try:
             # display and update video stream
             if self.webcam_stream.isOpened() == False:
-                print("Error opening webcam")       # make it so it doesnt crash when there's no webcam
+                print("ERROR opening webcam")       # make it so it doesnt crash when there's no webcam
             else:
                 # main program loop
                 while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
@@ -206,13 +206,13 @@ class Pose_detection(threading.Thread):
             #    self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
 
         except:
-            print("livestream_mediapipe_class.py: Error in extrapolate_depth()")
+            print("livestream_mediapipe_class.py: ERROR in extrapolate_depth()")
 
         # calculate depth for given frame
         try:
             self.ep.set_depth()                      # get depth_dict and calculate y axes values
         except:
-            print("livestream_mediapipe_class.py: Error with ep.set_depth() in extrapolate_depth()")
+            print("livestream_mediapipe_class.py: ERROR with ep.set_depth() in extrapolate_depth()")
 
     # calculate forces involved with muscles in the body
     def calc_body_forces(self):
@@ -273,9 +273,9 @@ class Pose_detection(threading.Thread):
                 mediapipe_out[it, 2] = pose_landmarks_list[0][i].y     # get landmark data (z) (using landmark.y due to different coordinate system)
                 it += 1
         except:
-            print("livestream_mediapipe_class.py: Error with mediapipe in draw_landmarks_on_frame()")
-            
-            ### DEPTH AND FORCES CALCULATIONS
+            print("livestream_mediapipe_class.py: ERROR with mediapipe in draw_landmarks_on_frame()")
+        
+        ### DEPTH AND FORCES CALCULATIONS
         try:
             if (pose_landmarks_list) and not self.stop:   # check if results exist (and that program isn't stopping) before attempting calculations
                 #print("Extrapolating depth...")
@@ -286,7 +286,7 @@ class Pose_detection(threading.Thread):
             
             self.frame_counter += 1
         except:
-            print("livestream_mediapipe_class.py: Error with depth/force calculations in draw_landmarks_on_frame()")
+            print("livestream_mediapipe_class.py: ERROR with depth/force calculations in draw_landmarks_on_frame()")
         
         
         return 1#?
