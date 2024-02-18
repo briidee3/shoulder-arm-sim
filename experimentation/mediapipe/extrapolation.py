@@ -458,29 +458,30 @@ class Extrapolate_forces():
     # get y axes/depths by order of body parts
     def set_depth(self):
         try:
-            # go thru dictionary of vertex order
-            for vertices in self.vertex_order:  # for each set of vertices denoting body segments
-                #print("vertices: " + str(vertices))
-                for i, vertex in enumerate(vertices):   # for each vertex in set of vertices
-                    #print("vertices: " + str(vertex_order[vertices][vertex]) + ", " + str(vertex_order[vertices][vertex + 1]))
-                    if vertex != (vertices[-1]):  # if current vertex isn't the last in the set
+            # go thru 2d array of vertex order
+            for i in range(0, len(self.vertex_order)):  # for each set of vertices denoting body segments
+                print("vertices: " + str(i))
+                for j in range(0, (len(self.vertex_order[i]) - 1)):   # for each vertex in set of vertices (except the last one)
+                        print(self.vertex_order[i][j])
+                        print(self.vertex_order[i][j + 1])
+                        #if self.vertex_order[i][j] != self.vertex_order[i][-1]:  # if current vertex isn't the last in the set
                         # calculate depth for vertex pair
-                        y_dist_between_vertices = self.get_depth(vertex_order[vertices][vertex], vertex_order[vertices][vertex + 1])          # calculate depth
+                        y_dist_between_vertices = self.get_depth(self.vertex_order[i][j], self.vertex_order[i][j + 1])          # calculate depth
                         
                         # check if "nan" value
                         if math.isnan(y_dist_between_vertices):
                             y_dist_between_vertices = 0                             # set all nan values to 0
 
-                        # add previous anchor vertex
-                        if vertex > 0:       # if i is not left shoulder
-                            vertex_y = self.mediapipe_data_output[vertex - 1][1] +  y_dist_between_vertices      # add y depth of anchor (previous node) to current
+                        # add previous anchor vertex (if not first in set)
+                        if self.vertex_order[i][j] > 0:   # if not L_SHOULDER
+                            vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices      # add y depth of anchor (previous node) to current
                         else:
                             vertex_y = y_dist_between_vertices
 
                         # set depth in current frame of mediapipe data
-                        self.mediapipe_data_output[vertex, 1] = vertex_y
+                        self.mediapipe_data_output[self.vertex_order[i][j + 1], 1] = vertex_y
         except:
-            print("extrapolation.py: ERROR in `set_depth()`")
+            print("extrapolation.py: ERROR in set_depth()")
 
 
 
