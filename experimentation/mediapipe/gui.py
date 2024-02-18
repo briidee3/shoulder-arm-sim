@@ -78,7 +78,7 @@ class SimGUI():
         self.delay = 15
 
         # data update interval
-        self.update_interval = 200
+        self.update_interval = 200      # update every 200 milliseconds
 
         # image height/width
         self.height, self.width = self.mediapipe_runtime.get_height_width()
