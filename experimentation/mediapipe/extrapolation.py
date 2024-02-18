@@ -231,39 +231,42 @@ class Extrapolate_forces():
 
     # get distance between vertices for current frame
     def calc_dist_between_vertices(self, first_part, second_part):
-        # calculate distance for parts in current frame
-        dist = np.linalg.norm(
-                        self.mediapipe_data_output[first_part, :] - 
-                        self.mediapipe_data_output[second_part, :]
-                    )
-        
-        # update max distance between these parts, if necessary
-        if dist > self.max_array[first_part][second_part]:
-            self.max_array[first_part][second_part] = dist
+        try:
+            # calculate distance for parts in current frame
+            dist = np.linalg.norm(
+                            self.mediapipe_data_output[first_part, :] - 
+                            self.mediapipe_data_output[second_part, :]
+                        )
+            
+            # update max distance between these parts, if necessary
+            if dist > self.max_array[first_part][second_part]:
+                self.max_array[first_part][second_part] = dist
 
-        # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
-        #try:
-        #    # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
-        #    cur_ratio = 0.0                             # used as temp var to hold ratio to use below
-        #    first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
-        #
-        #    match first_vertex:                         # check which vertex it is to find the assumed segment
-        #        case 0:
-        #            cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
-        #        case 2:
-        #            cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
-        #        case _:
-        #            cur_ratio = 1.0
-        #    if second_part == 1:                        # assume it's shoulder to shoulder if the second part is right shoulder
-        #        cur_ratio = self.biacromial_scale
-        #        self.calc_avg_ratio_shoulders()
-        #    else:
-                # get sim units from real units
-        #        self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
-        #except:
-        #    print("extrapolation.py: Error handling avg_ratio_array[][]")
+            # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
+            #try:
+            #    # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
+            #    cur_ratio = 0.0                             # used as temp var to hold ratio to use below
+            #    first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
+            #
+            #    match first_vertex:                         # check which vertex it is to find the assumed segment
+            #        case 0:
+            #            cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
+            #        case 2:
+            #            cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
+            #        case _:
+            #            cur_ratio = 1.0
+            #    if second_part == 1:                        # assume it's shoulder to shoulder if the second part is right shoulder
+            #        cur_ratio = self.biacromial_scale
+            #        self.calc_avg_ratio_shoulders()
+            #    else:
+                    # get sim units from real units
+            #        self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
+            #except:
+            #    print("extrapolation.py: Error handling avg_ratio_array[][]")
 
-        return dist
+            return dist
+        except:
+            print("extrapolation.py: ERROR in calc_dist_between_vertices(%s, %s)" % first_part, second_part)
 
         
     # get avg ratio for shoulder distance
