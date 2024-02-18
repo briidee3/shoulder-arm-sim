@@ -78,6 +78,7 @@ VERTEX_TO_SEGMENT = {
         L_HIP : SHOULDER_TO_HIP
     },
     R_SHOULDER : {
+        L_SHOULDER : SHOULDER_WIDTH,
         R_ELBOW : UPPERARM_LENGTH,
         R_HIP : SHOULDER_TO_HIP
     },
@@ -140,10 +141,12 @@ class Extrapolate_forces():
         self.dist_array = np.zeros((10, 10), dtype = "float64")         # indexed by two body part names/indices
         self.max_array = np.zeros((10, 10), dtype = "float64")          # used for storing max distance data
         self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
+
         # bodypart_lengths intended to store baseline lengths of bodyparts
         self.bodypart_lengths = np.ones((6), dtype = "float32")         # stores body part lengths, assuming symmetry between sides (so, only one value for forearm length as opposed to 2, for example. may be changed later)
         # biases for bodypart lengths (calculated in countdown_calibrate), default to 1 for no bias
         self.bodypart_ratio_bias_array = np.ones((np.shape(self.bodypart_lengths)[0]), dtype = "float32")
+
         self.cur_frame = 0   # used to keep track of current frame
 
         # put together pairs for each of the vertices
@@ -191,7 +194,10 @@ class Extrapolate_forces():
             ]
         
         # run initialization functions
-        self.set_all_bodypart_lengths()
+        try:
+            self.set_all_bodypart_lengths()
+        except:
+            print("extrapolation.py: ERROR initializing bodypart lengths")
 
         print("extrapolation.py: Info: Initialized extrapolation.py")
 
@@ -436,12 +442,12 @@ class Extrapolate_forces():
             
             segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length
             max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
-
+            print("v1 %s, v2 %s, si %s" % (vertex_one, vertex_two, segment_index))
             angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
 
             return np.sin(angle) * max_dist                                         # calculate depth
         except:
-            print("extrapolation.py: ERROR in `get_depth(%s, %s)`, segment index %s" % vertex_one, veretx_two, segment_index)
+            print("extrapolation.py: ERROR in `get_depth(%s, %s)`, segment index %s" % (vertex_one, vertex_two, segment_index))
 
     # get y axes/depths by order of body parts
     def set_depth(self):
@@ -455,7 +461,7 @@ class Extrapolate_forces():
                         # calculate depth for vertex pair
                         y_dist_between_vertices = self.get_depth(i[1], i[1] + 1)          # calculate depth
                     except:
-                        print("extrapolation.py: ERROR with `get_depth(%s, %s)` in `set_depth()`" % i[1], i[1] + 1)
+                        print("extrapolation.py: ERROR with `get_depth()` in `set_depth()`")
                     
                     # check if "nan" value
                     if math.isnan(y_dist_between_vertices):
@@ -465,6 +471,7 @@ class Extrapolate_forces():
                         vertex_y = self.mediapipe_data_output[i[1] - 1][1] +  y_dist_between_vertices      # add y depth of anchor (previous node) to current
                     else:
                         vertex_y = y_dist_between_vertices
+
                     # set depth in current frame of mediapipe data
                     self.mediapipe_data_output[i[1], 1] = vertex_y
 

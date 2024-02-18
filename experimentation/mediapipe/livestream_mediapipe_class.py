@@ -131,6 +131,7 @@ class Pose_detection(threading.Thread):
         #self.right_arm = extrapolation.Extrapolate_forces(is_right = True)  # right arm
         #self.left_arm = extrapolation.Extrapolate_forces()             # left arm
         self.ep = extrapolation.Extrapolate_forces()                    # both arms
+        
         print("Initialized Pose_detection()")
 
     # run the program
