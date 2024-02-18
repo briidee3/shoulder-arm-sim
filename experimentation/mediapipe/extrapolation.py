@@ -428,24 +428,17 @@ class Extrapolate_forces():
 
     # get depth for body part in most recent frame
     def get_depth(self, vertex_one, vertex_two):
-        cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two)      # current distance between given parts
-        
-        
-        
-        ### CHANGE THIS TO USE THE RATIOS + STD DEV OR WHATEVER FOR THE ARM THINGY INSTEAD OF USING THE IMPRECISE/INNACURATE MAX LENGTH CALCULATIONS FOR BODY PARTS N STUFF
-        #max_dist = self.get_max_dist(vertex_one, vertex_two)                    # max distance between given parts
-        
-        #if vertex_one < 4:          # check if is arm or shoulder
-        #    max_dist = self.avg_ratio_array[vertex_one][vertex_two]     # use avg_ratio_array if arm or shoulder
-        #else:
-        #    max_dist = self.get_max_dist(vertex_one, vertex_two)
+        try:
+            cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two)      # current distance between given parts
+            
+            segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length
+            max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
 
-        # get true length of segment defined by these vertices
-        segment_index = self.vertex_to_segment_index(vertex_one, vertex_two)
-        max_dist = self.bodypart_lengths[segment_index]
+            angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
 
-        angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
-        return np.sin(angle) * max_dist                                         # calculate depth
+            return np.sin(angle) * max_dist                                         # calculate depth
+        except:
+            print("extrapolation.py: ERROR in get_depth(%s, %s), segment index %s" % vertex_one, veretx_two, segment_index)
 
     # get y axes/depths by order of body parts
     def set_depth(self):
