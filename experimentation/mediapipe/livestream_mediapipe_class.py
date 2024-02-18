@@ -39,7 +39,7 @@ from mediapipe.tasks.python import vision
 import extrapolation
 
 # testing input from keyboard
-key = cv2.waitKey(0)
+#key = cv2.waitKey(0)
 
 ### MEDIAPIPE OPTIONS
 
