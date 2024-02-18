@@ -225,6 +225,7 @@ class Extrapolate_forces():
         if dist > self.max_array[first_part][second_part]:
             self.max_array[first_part][second_part] = dist
 
+        # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
         try:
             # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
             cur_ratio = 0.0                             # used as temp var to hold ratio to use below
@@ -237,7 +238,7 @@ class Extrapolate_forces():
                     cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
                 case _:
                     cur_ratio = 1.0
-            if second_part == 1:                        # assume it's shoulder to shoulder
+            if second_part == 1:                        # assume it's shoulder to shoulder if the second part is right shoulder
                 cur_ratio = self.biacromial_scale
                 self.calc_avg_ratio_shoulders()
             else:
@@ -247,6 +248,18 @@ class Extrapolate_forces():
             print("extrapolation.py: Error handling avg_ratio_array[][]")
 
         return dist
+
+
+    # calculate true length of segments (e.g. upper arm) via use of avg ratios
+
+    # run countdown to snapshot to calibration step to determine avg ratio offsets/std dev for current user
+    # TODO:
+    #   - whenever the user's height is adjusted, recalculate avg ratios based on the calibration step data
+    #   - draw countdown numbers on screen until snapshot taken
+    #   - once button is clicked, instruct user to get to a position where they can show their full wingspan, upper body, and hips, then click button to confirm to start countdown
+    #def countdown_calibrate(self):
+
+        
     # get avg ratio for shoulder distance
     def calc_avg_ratio_shoulders(self):
         try:
