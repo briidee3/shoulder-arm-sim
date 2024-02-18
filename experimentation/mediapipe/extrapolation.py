@@ -118,8 +118,8 @@ class Extrapolate_forces():
         self.user_weight = 90       # user weight (kilograms)
         self.ball_mass = 3          # mass of ball (kilograms)
 
-        self.forearm_length = self.user_height * FOREARM_TO_HEIGHT      # estimated length of user's forearm (based on statistical average measurements)
-        self.upperarm_length = self.user_height * UPPERARM_TO_HEIGHT    # estimated length of user's upperarm (based on statistical average measurements)
+        #self.forearm_length = self.user_height * FOREARM_TO_HEIGHT      # estimated length of user's forearm (based on statistical average measurements)
+        #self.upperarm_length = self.user_height * UPPERARM_TO_HEIGHT    # estimated length of user's upperarm (based on statistical average measurements)
         
         # toggle for calculating left arm or right arm
         self.is_right = right
@@ -198,28 +198,31 @@ class Extrapolate_forces():
 
     # IMPORTANT: set mediapipe_data_output for the current frame
     def update_current_frame(self, mp_data_out, current_frame):
-        # set data of current frame dataset
-        self.mediapipe_data_output = mp_data_out
-        
-        # reset dist_array
-        self.dist_array = np.zeros(np.shape(self.dist_array))
+        try:
+            # set data of current frame dataset
+            self.mediapipe_data_output = mp_data_out
+            
+            # reset dist_array
+            self.dist_array = np.zeros(np.shape(self.dist_array))
 
-        # update current frame number
-        self.cur_frame = current_frame
+            # update current frame number
+            self.cur_frame = current_frame
 
-        # update calibration settings (old)
-        #try:
-        #    if self.use_full_wingspan and not self.is_one_arm:
-        #        self.calc_wingspan()                            # keep track of max distance between index fingers
-        #    else:
-        #        self.calc_shoulder_width()
-        #        #self.calc_half_wingspan()                       # keep track of max length of given arm
-        #        self.calc_avg_ratio_shoulders()
-        #except:
-        #    print("extrapolation.py: Error updating calibration in update_current_frame()")
+            # update calibration settings (old)
+            #try:
+            #    if self.use_full_wingspan and not self.is_one_arm:
+            #        self.calc_wingspan()                            # keep track of max distance between index fingers
+            #    else:
+            #        self.calc_shoulder_width()
+            #        #self.calc_half_wingspan()                       # keep track of max length of given arm
+            #        self.calc_avg_ratio_shoulders()
+            #except:
+            #    print("extrapolation.py: Error updating calibration in update_current_frame()")
 
-        # calculate calibration coefficient/metric to sim units conversion ratio
-        self.calc_conversion_ratio()
+            # calculate calibration coefficient/metric to sim units conversion ratio
+            self.calc_conversion_ratio()
+        except:
+            print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
 
     # IMPORTANT: temporary bandaid fix for calibration
     def calc_wingspan(self):
