@@ -35,7 +35,7 @@ from matplotlib import pyplot as plt
 np.set_printoptions(suppress = True, precision = 3)
 
 #### CONSTANTS (for use with indexing)
-## INDEXING
+## INDEXING FOR VERTEX ARRAYS
 L_SHOULDER = 0#11
 R_SHOULDER = 1#12
 L_ELBOW = 2#13
@@ -46,6 +46,13 @@ L_INDEX = 6#19
 R_INDEX = 7#20
 L_HIP = 8#23
 R_HIP = 9#24
+
+## INDEXING FOR SEGMENT ARRAYS
+SHOULDER_WIDTH = 0
+UPPERARM_LENGTH = 1
+FOREARM_LENGTH = 2
+SHOULDER_TO_HIP_LENGTH = 3
+HIP_WIDTH = 4
 
 ## RATIOS
 ARM_TO_HEIGHT = 0.39
@@ -93,6 +100,8 @@ class Extrapolate_forces():
         self.dist_array = np.zeros((10, 10), dtype = "float64")         # indexed by two body part names/indices
         self.max_array = np.zeros((10, 10), dtype = "float64")          # used for storing max distance data
         self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
+        # bodypart_lengths intended to store baseline lengths of bodyparts
+        self.bodypart_lengths = np.ones((6), dtype = "float32")         # stores body part lengths, assuming symmetry between sides (so, only one value for forearm length as opposed to 2, for example. may be changed later)
 
         self.cur_frame = 0   # used to keep track of current frame
 
@@ -226,38 +235,28 @@ class Extrapolate_forces():
             self.max_array[first_part][second_part] = dist
 
         # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
-        try:
-            # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
-            cur_ratio = 0.0                             # used as temp var to hold ratio to use below
-            first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
-
-            match first_vertex:                         # check which vertex it is to find the assumed segment
-                case 0:
-                    cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
-                case 2:
-                    cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
-                case _:
-                    cur_ratio = 1.0
-            if second_part == 1:                        # assume it's shoulder to shoulder if the second part is right shoulder
-                cur_ratio = self.biacromial_scale
-                self.calc_avg_ratio_shoulders()
-            else:
+        #try:
+        #    # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
+        #    cur_ratio = 0.0                             # used as temp var to hold ratio to use below
+        #    first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
+        #
+        #    match first_vertex:                         # check which vertex it is to find the assumed segment
+        #        case 0:
+        #            cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
+        #        case 2:
+        #            cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
+        #        case _:
+        #            cur_ratio = 1.0
+        #    if second_part == 1:                        # assume it's shoulder to shoulder if the second part is right shoulder
+        #        cur_ratio = self.biacromial_scale
+        #        self.calc_avg_ratio_shoulders()
+        #    else:
                 # get sim units from real units
-                self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
-        except:
-            print("extrapolation.py: Error handling avg_ratio_array[][]")
+        #        self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
+        #except:
+        #    print("extrapolation.py: Error handling avg_ratio_array[][]")
 
         return dist
-
-
-    # calculate true length of segments (e.g. upper arm) via use of avg ratios
-
-    # run countdown to snapshot to calibration step to determine avg ratio offsets/std dev for current user
-    # TODO:
-    #   - whenever the user's height is adjusted, recalculate avg ratios based on the calibration step data
-    #   - draw countdown numbers on screen until snapshot taken
-    #   - once button is clicked, instruct user to get to a position where they can show their full wingspan, upper body, and hips, then click button to confirm to start countdown
-    #def countdown_calibrate(self):
 
         
     # get avg ratio for shoulder distance
@@ -271,6 +270,36 @@ class Extrapolate_forces():
     # retrieve the max distance between body parts found thus far
     def get_max_dist(self, first_part, second_part):
         return float(self.max_array[first_part][second_part])
+
+
+
+    ### NEW CALIBRATION TECHNIQUE: AVG RATIOS AND OFFSETS
+
+    # calculate true length of segments (e.g. upper arm) via use of avg ratios
+    # this function is not intended to run every frame; this is calculated before any conversions to or from sim units,
+    #   thus it doesn't need to be updated when a new calibration coefficient is calculated either.
+    # these calculations are intended to represent the true lengths of the user's body parts in metric units.
+    # 
+    def set_all_bodypart_lengths(self):
+        try:
+            # shoulder width:
+            self.bodypart_lengths[0] = self.user_height * self.biacromial_scale
+            # upper arms
+            
+        except:
+            print("extrapolation.py: ERROR calculating in set_bodypart_lengths()")
+
+    # designed to be run whenever biacromial_scale is edited
+    def set_biacromial_length(self):
+        # set shoulder width true length
+        self.bodypart_lengths[0] = self.user_height * self.biacromial_scale
+
+    # run countdown to snapshot to calibration step to determine avg ratio offsets/std dev for current user
+    # TODO:
+    #   - whenever the user's height is adjusted, recalculate avg ratios based on the calibration step data
+    #   - draw countdown numbers on screen until snapshot taken
+    #   - once button is clicked, instruct user to get to a position where they can show their full wingspan, upper body, and hips, then click button to confirm to start countdown
+    #def countdown_calibrate(self):
 
 
 
