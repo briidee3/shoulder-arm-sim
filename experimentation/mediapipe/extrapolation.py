@@ -69,6 +69,43 @@ HIP_WIDTH_TO_HEIGHT = 1             # temporarily set to 1, until the actual rat
 #RATIOS_NDARRAY[R_SHOULDER][R_ELBOW] = UPPERARM_TO_HEIGHT
 #RATIOS_NDARRAY[R_ELBOW][R_WRIST] = FOREARM_TO_HEIGHT
 
+## INDEX DICTIONARIES
+# for use converting vertex indices to segment index
+VERTEX_TO_SEGMENT = {
+    L_SHOULDER : {
+        R_SHOULDER : SHOULDER_WIDTH,
+        L_ELBOW : UPPERARM_LENGTH,
+        L_HIP : SHOULDER_TO_HIP
+    },
+    R_SHOULDER : {
+        R_ELBOW : UPPERARM_LENGTH,
+        R_HIP : SHOULDER_TO_HIP
+    },
+    L_ELBOW : {
+        L_WRIST : FOREARM_LENGTH
+    },
+    R_ELBOW : {
+        R_WRIST : FOREARM_LENGTH
+    }
+}
+# for use converting segment index to vertex indices
+SEGMENT_TO_VERTEX = {
+    SHOULDER_WIDTH : (L_SHOULDER, R_SHOULDER),
+    UPPERARM_LENGTH : (
+        (L_SHOULDER, L_ELBOW),
+        (R_SHOULDER, R_ELBOW)
+    ),
+    FOREARM_LENGTH : (
+        (L_ELBOW, L_WRIST),
+        (R_ELBOW, R_WRIST)
+    ),
+    SHOULDER_TO_HIP : (
+        (L_SHOULDER, L_HIP),
+        (R_SHOULDER, R_HIP)
+    ),
+    HIP_WIDTH : (L_HIP, R_HIP)
+}
+
 
 #### OBJECT FOR EASE OF MANAGEMENT OF EXTRAPOLATION OF DEPTH AND CALCULATION OF BODY FORCES
 class Extrapolate_forces():
@@ -200,7 +237,7 @@ class Extrapolate_forces():
     def calc_shoulder_width(self):
         try:
             # keep track of shoulder width
-            self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
+            self.dist_array[L_SHOULDER][R_SHOULDER] = self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
         except:
             print("extrapolation.py: Error in calc_shoulder_width")
 
@@ -234,39 +271,42 @@ class Extrapolate_forces():
 
     # get distance between vertices for current frame
     def calc_dist_between_vertices(self, first_part, second_part):
-        # calculate distance for parts in current frame
-        dist = np.linalg.norm(
-                        self.mediapipe_data_output[first_part, :] - 
-                        self.mediapipe_data_output[second_part, :]
-                    )
-        
-        # update max distance between these parts, if necessary
-        if dist > self.max_array[first_part][second_part]:
-            self.max_array[first_part][second_part] = dist
+        try:
+            # calculate distance for parts in current frame
+            dist = np.linalg.norm(
+                            self.mediapipe_data_output[first_part, :] - 
+                            self.mediapipe_data_output[second_part, :]
+                        )
+            
+            # update max distance between these parts, if necessary
+            if dist > self.max_array[first_part][second_part]:
+                self.max_array[first_part][second_part] = dist
 
-        # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
-        #try:
-        #    # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
-        #    cur_ratio = 0.0                             # used as temp var to hold ratio to use below
-        #    first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
-        #
-        #    match first_vertex:                         # check which vertex it is to find the assumed segment
-        #        case 0:
-        #            cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
-        #        case 2:
-        #            cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
-        #        case _:
-        #            cur_ratio = 1.0
-        #    if second_part == 1:                        # assume it's shoulder to shoulder if the second part is right shoulder
-        #        cur_ratio = self.biacromial_scale
-        #        self.calc_avg_ratio_shoulders()
-        #    else:
-                # get sim units from real units
-        #        self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
-        #except:
-        #    print("extrapolation.py: Error handling avg_ratio_array[][]")
+            # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
+            #try:
+            #    # update avg_ratio_array between these parts (this is a TEMP FIX for testing. TODO: make a better thing later)
+            #    cur_ratio = 0.0                             # used as temp var to hold ratio to use below
+            #    first_vertex = int(first_part / 2) * 2         # used to make left and right vertices effectively the same
+            #
+            #    match first_vertex:                         # check which vertex it is to find the assumed segment
+            #        case 0:
+            #            cur_ratio = UPPERARM_TO_HEIGHT      # assume it's the upper arm
+            #        case 2:
+            #            cur_ratio = FOREARM_TO_HEIGHT       # assume it's the forearm
+            #        case _:
+            #            cur_ratio = 1.0
+            #    if second_part == 1:                        # assume it's shoulder to shoulder if the second part is right shoulder
+            #        cur_ratio = self.biacromial_scale
+            #        self.calc_avg_ratio_shoulders()
+            #    else:
+                    # get sim units from real units
+            #        self.avg_ratio_array[first_part][first_part + 2] = self.real_to_sim_units(self.user_height * cur_ratio)
+            #except:
+            #    print("extrapolation.py: Error handling avg_ratio_array[][]")
 
-        return dist
+            return dist
+        except:
+            print("extrapolation.py: ERROR in calc_dist_between_vertices")
 
         
     # get avg ratio for shoulder distance
@@ -395,11 +435,14 @@ class Extrapolate_forces():
         ### CHANGE THIS TO USE THE RATIOS + STD DEV OR WHATEVER FOR THE ARM THINGY INSTEAD OF USING THE IMPRECISE/INNACURATE MAX LENGTH CALCULATIONS FOR BODY PARTS N STUFF
         #max_dist = self.get_max_dist(vertex_one, vertex_two)                    # max distance between given parts
         
-        if vertex_one < 4:          # check if is arm or shoulder
-            max_dist = self.avg_ratio_array[vertex_one][vertex_two]     # use avg_ratio_array if arm or shoulder
-        else:
-            max_dist = self.get_max_dist(vertex_one, vertex_two)
+        #if vertex_one < 4:          # check if is arm or shoulder
+        #    max_dist = self.avg_ratio_array[vertex_one][vertex_two]     # use avg_ratio_array if arm or shoulder
+        #else:
+        #    max_dist = self.get_max_dist(vertex_one, vertex_two)
 
+        # get true length of segment defined by these vertices
+        segment_index = self.vertex_to_segment_index(vertex_one, vertex_two)
+        max_dist = self.bodypart_lengths[segment_index]
 
         angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
         return np.sin(angle) * max_dist                                         # calculate depth
