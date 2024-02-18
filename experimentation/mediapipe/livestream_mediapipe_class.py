@@ -137,7 +137,7 @@ class Pose_detection(threading.Thread):
         try:
             # display and update video stream
             if self.webcam_stream.isOpened() == False:
-                print("Error opening webcam")
+                print("Error opening webcam")       # make it so it doesnt crash when there's no webcam
             else:
                 # main program loop
                 while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
@@ -221,11 +221,12 @@ class Pose_detection(threading.Thread):
     # detector callback function
     # annotate and display frame with skeleton
     def draw_landmarks_on_frame(self, detection_result: PoseLandmarkerResult, rgb_image: mp.Image, _):  #(rgb_image, detection_result):
-        try:
-            pose_landmarks_list = detection_result.pose_landmarks
-            annotated_image = np.copy(rgb_image.numpy_view())
-            mediapipe_out = np.ndarray((10, 3))
 
+        pose_landmarks_list = detection_result.pose_landmarks
+        annotated_image = np.copy(rgb_image.numpy_view())
+        mediapipe_out = np.ndarray((10, 3))
+
+        try:
             # loop thru detected poses to visualize
             for idx in range(len(pose_landmarks_list)):
                 pose_landmarks = pose_landmarks_list[idx]
