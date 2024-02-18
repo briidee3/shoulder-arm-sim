@@ -452,7 +452,7 @@ class Extrapolate_forces():
                         # calculate depth for vertex pair
                         y_dist_between_vertices = self.get_depth(i[1], i[1] + 1)          # calculate depth
                     except:
-                        print("extrapolation.py: Error with get_depth() in set_depth()")
+                        print("extrapolation.py: ERROR with get_depth(%s, %s) in set_depth()" % i[1], i[1] + 1)
                     
                     # check if "nan" value
                     if math.isnan(y_dist_between_vertices):
