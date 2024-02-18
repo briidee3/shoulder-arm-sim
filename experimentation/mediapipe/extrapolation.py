@@ -234,7 +234,7 @@ class Extrapolate_forces():
             # keep track of arm length
             self.calc_dist_between_vertices((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right)))
         except:
-            print("extrapolation.py: Error in calc_half_wingspan")
+            print("extrapolation.py: ERROR in `calc_half_wingspan()`")
 
     # track shoulder width
     def calc_shoulder_width(self):
@@ -242,7 +242,7 @@ class Extrapolate_forces():
             # keep track of shoulder width
             self.dist_array[L_SHOULDER][R_SHOULDER] = self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
         except:
-            print("extrapolation.py: Error in calc_shoulder_width")
+            print("extrapolation.py: ERROR in `calc_shoulder_width()`")
 
 
 
@@ -266,7 +266,7 @@ class Extrapolate_forces():
         try:# convert real (length) units to sim (length) units
             return length / self.sim_to_real_conversion_factor
         except:
-            print("extrapolation.py: Error converting real units to sim units")
+            print("extrapolation.py: ERROR converting real units to sim units")
 
 
 
@@ -309,7 +309,7 @@ class Extrapolate_forces():
 
             return dist
         except:
-            print("extrapolation.py: ERROR in calc_dist_between_vertices")
+            print("extrapolation.py: ERROR in `calc_dist_between_vertices()`")
 
         
     # get avg ratio for shoulder distance
@@ -317,7 +317,7 @@ class Extrapolate_forces():
         try:
             self.avg_ratio_array[0][1] = self.real_to_sim_units(self.user_height * self.biacromial_scale)
         except:
-            print("extrapolation.py: Error in calc_avg_ratio_shoulders()")
+            print("extrapolation.py: ERROR in `calc_avg_ratio_shoulders()`")
 
 
     # retrieve the max distance between body parts found thus far
@@ -348,7 +348,7 @@ class Extrapolate_forces():
             # hip width
             self.bodypart_lengths[HIP_WIDTH] = self.user_height * HIP_WIDTH_TO_HEIGHT * self.bodypart_ratio_bias_array[HIP_WIDTH]
         except:
-            print("extrapolation.py: ERROR calculating in set_bodypart_lengths()")
+            print("extrapolation.py: ERROR calculating in `set_bodypart_lengths()`")
 
     # run countdown to snapshot to calibration step to determine avg ratio offsets/std dev for current user
     # TODO:
@@ -378,7 +378,7 @@ class Extrapolate_forces():
             # use true shoulder width and current distance between shoulders in sim units to get conversion factor
             self.sim_to_real_conversion_factor = self.bodypart_lengths[SHOULDER_WIDTH] / sim_biacromial
         except:
-            print("extrapolation.py: Error calculating conversion ratio")
+            print("extrapolation.py: ERROR calculating conversion ratio")
 
     # calculate ratio for conversion of simulated units to metric units (meters) using wingspan and input real height
     # using the wingspan method
@@ -441,7 +441,7 @@ class Extrapolate_forces():
 
             return np.sin(angle) * max_dist                                         # calculate depth
         except:
-            print("extrapolation.py: ERROR in get_depth(%s, %s), segment index %s" % vertex_one, veretx_two, segment_index)
+            print("extrapolation.py: ERROR in `get_depth(%s, %s)`, segment index %s" % vertex_one, veretx_two, segment_index)
 
     # get y axes/depths by order of body parts
     def set_depth(self):
@@ -455,7 +455,7 @@ class Extrapolate_forces():
                         # calculate depth for vertex pair
                         y_dist_between_vertices = self.get_depth(i[1], i[1] + 1)          # calculate depth
                     except:
-                        print("extrapolation.py: ERROR with get_depth(%s, %s) in set_depth()" % i[1], i[1] + 1)
+                        print("extrapolation.py: ERROR with `get_depth(%s, %s)` in `set_depth()`" % i[1], i[1] + 1)
                     
                     # check if "nan" value
                     if math.isnan(y_dist_between_vertices):
@@ -616,5 +616,5 @@ class Extrapolate_forces():
             # plot bicep forces
             return plt
         except:
-            print("extrapolation.py: ERROR in plot_bicep_forces()")
+            print("extrapolation.py: ERROR in `plot_bicep_forces()`")
 
