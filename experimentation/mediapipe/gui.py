@@ -258,7 +258,7 @@ class SimGUI():
     def update_display(self):#, new_frame, data_dict):
         # handle frame/image data
         ret, frame = self.mediapipe_runtime.get_cur_frame()
-        #frame = cv2.cvtColor(cv2.flip(frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
+        frame = cv2.cvtColor(cv2.flip(frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
 
         if ret:                                             # only update if frame is presenty
             self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(frame))
