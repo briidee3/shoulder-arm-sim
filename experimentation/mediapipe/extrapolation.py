@@ -522,13 +522,17 @@ class Extrapolate_forces():
             z_diff = self.mediapipe_data_output[vertex_two][2] - self.mediapipe_data_output[vertex_one][2]
 
             #rho = np.sqrt((x_diff ** 2) + (y_diff ** 2) + (z_diff ** 2))
-            rho = self.bodypart_lengths(VERTEX_TO_SEGMENT[vertex_one][vertex_two])  # rho = true segment length
+            print("test")
+            rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
+            print("%s", rho)
             theta = np.arctan(x_diff / y_diff)                                      # swapped due to equations having different Cartesian coordinate system layout
+            print(theta)
             phi = np.arccos(z_diff / rho)
+            print(phi)
 
             return [rho, theta, phi]
         except:
-            print("extrapolation.py: ERROR in `calc_spher_coords(%s, %s)`" % vertex_one, vertex_two)
+            print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
 
 
 
@@ -561,28 +565,40 @@ class Extrapolate_forces():
                 conv_factor = self.sim_to_real_conversion_factor
 
                 # get spherical coordinate data for arm segments
-                uarm_spher_coords = self.calc_spher_coords((L_SHOULDER + (int)(is_right)), (L_ELBOW + (int)(is_right)))
-                farm_spher_coords = self.calc_spher_coords((L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
+                try:
+                    uarm_spher_coords = self.calc_spher_coords((L_SHOULDER + (int)(is_right)), (L_ELBOW + (int)(is_right)))
+                    farm_spher_coords = self.calc_spher_coords((L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
+                except:
+                    print("extrapolation.py: ERROR calculating spherical coords in `calc_bicep_force()`")
 
-                # instead of using averages for segment length, use calculated instead
-                f = farm_spher_coords[RHO] * conv_factor
-                u = uarm_spher_coords[RHO] * conv_factor
-                #print("%0.2f" % f)
-                b = u * 0.11 #0.636                                         # calculated via algebra using pre-existing average proportions data
-                w_fa = self.user_weight * (f * 0.1065)                      # use ratio of f to weight proportion to get weight with calculated f 
-                cgf = 2 * (f ** 2)                                          # calculated via algebra using pre-existing average proportions data
+                # get arm segment lengths in metric units (meters)
+                try:
+                    f = farm_spher_coords[RHO] * conv_factor
+                    u = uarm_spher_coords[RHO] * conv_factor
+                    #print("%0.2f" % f)
+                    b = u * 0.11 #0.636                                         # calculated via algebra using pre-existing average proportions data
+                    w_fa = self.user_weight * (f * 0.1065)                      # use ratio of f to weight proportion to get weight with calculated f 
+                    cgf = 2 * (f ** 2)                                          # calculated via algebra using pre-existing average proportions data
+                except:
+                    print("extrapolation.py: ERROR calculating metrics in `calc_bicep_force()`")
 
                 # angles
-                #theta_arm = (np.pi / 2) - farm_spher_coords[THETA]          # angle at shoulder
-                theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]         # angle of upper arm
-                theta_u = elbow_angle#theta_arm + theta_uarm                # angle at elbow
-                theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
-                theta_la = np.cos(theta_uarm) #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
+                try:
+                    #theta_arm = (np.pi / 2) - farm_spher_coords[THETA]          # angle at shoulder
+                    theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]         # angle of upper arm
+                    theta_u = elbow_angle#theta_arm + theta_uarm                # angle at elbow
+                    theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
+                    theta_la = np.cos(theta_uarm) #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
+                except:
+                    print("extrapolation.py: ERROR calculating angles in `calc_bicep_force()`")
 
                 # lever arms
-                la_fa = cgf * theta_la                                      # forearm lever arm
-                la_bal = f * theta_la                                       # ball lever arm
-                la_bic = b * np.sin(theta_b)                                # bicep lever arm
+                try:
+                    la_fa = cgf * theta_la                                      # forearm lever arm
+                    la_bal = f * theta_la                                       # ball lever arm
+                    la_bic = b * np.sin(theta_b)                                # bicep lever arm
+                except:
+                    print("extrapolation.py: ERROR calculating lever arms in `calc_bicep_force()`")
 
                 # forces
                 force_bicep = (w_fa * la_fa + w_bal * la_bal) / la_bic      # force applied by bicep muscle
