@@ -43,6 +43,9 @@ class SimGUI():
         
         ### DATA AND CONSTANTS
 
+        # variable for dynamic width of settings
+        self.settings_width = 20
+
         # set up dictionary to read from for gui display of data
         self.calculated_data = {
             "right_bicep_force": "NaN",
@@ -108,7 +111,7 @@ class SimGUI():
         self.settings.grid(row = 0, column = 0)
 
         # settings for unit conversion factor (metric <--> sim units)
-        self.ucf_label = Label(self.settings, text = "Unit conversion factor: ", height = 1, width = 20)
+        self.ucf_label = Label(self.settings, text = "Unit conversion factor: ", height = 1, width = self.settings_width)
                                #cursor = "Approximate conversion ratio between metric units and simulation units.\n" + 
                                #         "Only intended for use with \"Manual\" functionality.")
         self.ucf_var = StringVar()
@@ -138,7 +141,7 @@ class SimGUI():
         self.image_adjust = LabelFrame(self.settings, text = "Image adjustment:")   # set up lavel frame to section off this part of the settings
         self.image_adjust.grid(row = 5, column = 0)
         # height
-        self.image_height_label = Label(self.image_adjust, text = "Image height: ", height = 1, width = 20)
+        self.image_height_label = Label(self.image_adjust, text = "Image height: ", height = 1, width = self.settings_width)
 
 
 
@@ -148,7 +151,7 @@ class SimGUI():
         self.user_input.grid(row = 1, column = 0)
 
         # height user input
-        self.height_label = Label(self.user_input, text = "User height (meters): ", height = 1, width = 20)
+        self.height_label = Label(self.user_input, text = "User height (meters): ", height = 1, width = self.settings_width)
         self.height_var = StringVar()
         self.height_var.set("1.78")                    # set to default value
         self.height_entry = Entry(self.user_input, textvariable = self.height_var)
@@ -156,7 +159,7 @@ class SimGUI():
         self.height_entry.grid(row = 1, column = 1)
 
         # weight user input
-        self.weight_label = Label(self.user_input, text = "User weight (kilograms): ", height = 1, width = 20)
+        self.weight_label = Label(self.user_input, text = "User weight (kilograms): ", height = 1, width = self.settings_width)
         self.weight_var = StringVar()
         self.weight_var.set("90")                    # set to default value
         self.weight_entry = Entry(self.user_input, textvariable = self.weight_var)
@@ -164,7 +167,7 @@ class SimGUI():
         self.weight_entry.grid(row = 2, column = 1)
 
         # ball mass user input
-        self.bm_label = Label(self.user_input, text = "Ball mass (kilograms): ", height = 1, width = 20)
+        self.bm_label = Label(self.user_input, text = "Ball mass (kilograms): ", height = 1, width = self.settings_width)
         self.bm_var = StringVar()
         self.bm_var.set("3")                    # set to default value
         self.bm_entry = Entry(self.user_input, textvariable = self.bm_var)
@@ -185,18 +188,18 @@ class SimGUI():
         self.do_right = LabelFrame(self.data_output, text = "Right arm:")
         self.do_right.grid(row = 1, column = 0)
         # bicep force output
-        self.right_bicep_label = Label(self.do_right, text = "Bicep force (Newtons): ", height = 1, width = 20)
+        self.right_bicep_label = Label(self.do_right, text = "Bicep force (Newtons): ", height = 1, width = self.settings_width)
         self.right_bicep_var = StringVar()
         self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
-        self.right_bicep_force = Label(self.do_right, textvariable = self.right_bicep_var, height = 1, width = 10, relief = GROOVE)
+        self.right_bicep_force = Label(self.do_right, textvariable = self.right_bicep_var, height = 1, width = self.settings_width / 2, relief = GROOVE)
         self.right_bicep_label.grid(row = 1, column = 0)
         self.right_bicep_force.grid(row = 1, column = 1)
 
         # elbow angle output
-        self.right_elbow_label = Label(self.do_right, text = "Elbow angle (Degrees): ", height = 1, width = 20)
+        self.right_elbow_label = Label(self.do_right, text = "Elbow angle (Degrees): ", height = 1, width = self.settings_width)
         self.right_elbow_var = StringVar()
         self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
-        self.right_elbow_angle = Label(self.do_right, textvariable = self.right_elbow_var, height = 1, width = 10, relief = GROOVE)
+        self.right_elbow_angle = Label(self.do_right, textvariable = self.right_elbow_var, height = 1, width = self.settings_width / 2, relief = GROOVE)
         self.right_elbow_label.grid(row = 2, column = 0)
         self.right_elbow_angle.grid(row = 2, column = 1)
 
@@ -204,18 +207,18 @@ class SimGUI():
         self.do_left = LabelFrame(self.data_output, text = "Left arm:")
         self.do_left.grid(row = 2, column = 0)
         # bicep force output
-        self.left_bicep_label = Label(self.do_left, text = "Bicep force (Newtons): ", height = 1, width = 20)
+        self.left_bicep_label = Label(self.do_left, text = "Bicep force (Newtons): ", height = 1, width = self.settings_width)
         self.left_bicep_var = StringVar()
         self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
-        self.left_bicep_force = Label(self.do_left, textvariable = self.left_bicep_var, height = 1, width = 10, relief = GROOVE)
+        self.left_bicep_force = Label(self.do_left, textvariable = self.left_bicep_var, height = 1, width = self.settings_width / 2, relief = GROOVE)
         self.left_bicep_label.grid(row = 1, column = 0)
         self.left_bicep_force.grid(row = 1, column = 1)
 
         # elbow angle output
-        self.left_elbow_label = Label(self.do_left, text = "Elbow angle (Degrees): ", height = 1, width = 20)
+        self.left_elbow_label = Label(self.do_left, text = "Elbow angle (Degrees): ", height = 1, width = self.settings_width)
         self.left_elbow_var = StringVar()
         self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
-        self.left_elbow_angle = Label(self.do_left, textvariable = self.left_elbow_var, height = 1, width = 10, relief = GROOVE)
+        self.left_elbow_angle = Label(self.do_left, textvariable = self.left_elbow_var, height = 1, width = self.settings_width / 2, relief = GROOVE)
         self.left_elbow_label.grid(row = 2, column = 0)
         self.left_elbow_angle.grid(row = 2, column = 1)
 
