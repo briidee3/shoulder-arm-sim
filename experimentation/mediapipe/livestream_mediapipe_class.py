@@ -76,6 +76,10 @@ class Pose_detection(threading.Thread):
         # allow model_path to be accessible to functions
         self.model_path = model_path
 
+        # allow setting of frame height and width
+        self.height = HEIGHT
+        self.width = WIDTH
+
         # make video capture object via webcam
         self.webcam_stream = cv2.VideoCapture(video_source)
         # set height and width accordingly
@@ -148,23 +152,44 @@ class Pose_detection(threading.Thread):
 
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
+        except:
+            print("livestream_mediapipe_class.py: ERROR in `run()`")
         finally:
             print("Info: Stopping mediapipe...")
             self.stop_program()
 
     # initialize display/camera input
-    def initialize_display(self, height = HEIGHT, width = WIDTH): 
-        # initialization of image (updated asynchronously)
-        self.annotated_image = np.zeros(((int)(height), (int)(width), 3), np.uint8)
+    def initialize_display(self): 
+        try:
+            # initialization of image (updated asynchronously)
+            self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
 
-        # options for pose landmarker
-        options = PoseLandmarkerOptions(
-            base_options = BaseOptions(model_asset_path = self.model_path),
-            running_mode = VisionRunningMode.LIVE_STREAM,
-            result_callback = self.draw_landmarks_on_frame
-        )
-        self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
+            # options for pose landmarker
+            options = PoseLandmarkerOptions(
+                base_options = BaseOptions(model_asset_path = self.model_path),
+                running_mode = VisionRunningMode.LIVE_STREAM,
+                result_callback = self.draw_landmarks_on_frame
+            )
+            self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
+        except:
+            print("livestream_mediapipe_class.py: ERROR in `initialize_display()`")
         
+    # set height and width of image
+    def set_image_hw(self, height = HEIGHT, width = WIDTH):
+        try:
+            # set local variables
+            self.height = int(height)
+            self.width = int(width)
+
+            # reset annotated_image to new size
+            #self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
+
+            # set height and width of opencv video stream
+            self.webcam_stream.set(3, float(self.width))
+            self.webcam_stream.set(4, float(self.height))
+        except:
+            print("livestream_mediapipe_class.py: ERROR in `set_image_hw()`")
+
 
     # helper function for use by GUI, returns current frame
     def get_cur_frame(self):
@@ -174,19 +199,19 @@ class Pose_detection(threading.Thread):
     def get_calculated_data(self):
         return dict(self.calculated_data)
     
-    # allow setting of height via external package/program
+    # allow setting of user height via external package/program
     def set_height(self, height):
         self.user_height = height
         return self.user_height
     
-    # allow setting of weight via external package/program
+    # allow setting of user weight via external package/program
     def set_weight(self, weight):
         self.user_weight = weight
         return self.user_weight
     
     # get function for video height and width
     def get_height_width(self):
-        return HEIGHT, WIDTH
+        return self.height, self.width
     
     # set stop variable
     def set_stop(self, set_ = True):
@@ -235,12 +260,11 @@ class Pose_detection(threading.Thread):
     # detector callback function
     # annotate and display frame with skeleton
     def draw_landmarks_on_frame(self, detection_result: PoseLandmarkerResult, rgb_image: mp.Image, _):  #(rgb_image, detection_result):
-
-        pose_landmarks_list = detection_result.pose_landmarks
-        annotated_image = np.copy(rgb_image.numpy_view())
-        mediapipe_out = np.ndarray((10, 3))
-
         try:
+            pose_landmarks_list = detection_result.pose_landmarks
+            annotated_image = np.copy(rgb_image.numpy_view())
+            mediapipe_out = np.ndarray((10, 3))
+
             # loop thru detected poses to visualize
             for idx in range(len(pose_landmarks_list)):
                 pose_landmarks = pose_landmarks_list[idx]

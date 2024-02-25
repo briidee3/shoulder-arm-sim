@@ -138,15 +138,25 @@ class SimGUI():
         self.ms_toggle.grid(row = 4, column = 1)
 
         # allow adjustment of image height and width
-        self.image_adjust = LabelFrame(self.settings, text = "Image adjustment:")   # set up lavel frame to section off this part of the settings
-        self.image_adjust.grid(row = 5, column = 0)
+        #self.image_adjust = LabelFrame(self.settings, text = "Image adjustment:")   # set up lavel frame to section off this part of the settings
+        #self.image_adjust.grid(row = 5, column = 0)
         # height
-        self.image_height_label = Label(self.image_adjust, text = "Image height: ", height = 1, width = self.settings_width)
-        self.image_height_var = StringVar()
-        self.image_height_var.set("640")
-        self.image_height_entry = Entry(self.image_adjust, textvariable = self.image_height_var)
-        self.image_height_label.grid(row = 1, column = 0)
-        self.image_height_entry.grid(row = 1, column = 2) 
+        #self.image_height_label = Label(self.image_adjust, text = "Image height: ", height = 1, width = self.settings_width)
+        #self.image_height_var = StringVar()
+        #self.image_height_var.set("640")
+        #self.image_height_entry = Entry(self.image_adjust, textvariable = self.image_height_var)
+        #self.image_height_label.grid(row = 1, column = 0)
+        #self.image_height_entry.grid(row = 1, column = 1) 
+        # width
+        #self.image_width_label = Label(self.image_adjust, text = "Image width: ", height = 1, width = self.settings_width)
+        #self.image_width_var = StringVar()
+        #self.image_width_var.set("480")
+        #self.image_width_entry = Entry(self.image_adjust, textvariable = self.image_width_var)
+        #self.image_width_label.grid(row = 2, column = 0)
+        #self.image_width_entry.grid(row = 2, column = 1) 
+        #submit button
+        #self.submit_image_hw = Button(self.image_adjust, text = "Submit", command = self.set_livestream_hw)
+        #self.submit_image_hw.grid(row = 3, column = 1)
 
 
 
@@ -380,6 +390,15 @@ class SimGUI():
         bsf = float(bsf_data)
 
         self.mediapipe_runtime.ep.set_biacromial(bsf)
+
+    # set height and width of display/camera picture view
+    def set_livestream_hw(self):
+        # set local variables
+        self.height = int(self.image_height_var.get())
+        self.width = int(self.image_width_var.get())
+
+        # set opencv video stream/source height and width
+        self.mediapipe_runtime.set_image_hw(self.height, self.width)
 
 
 
