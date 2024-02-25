@@ -142,7 +142,11 @@ class SimGUI():
         self.image_adjust.grid(row = 5, column = 0)
         # height
         self.image_height_label = Label(self.image_adjust, text = "Image height: ", height = 1, width = self.settings_width)
-
+        self.image_height_var = StringVar()
+        self.image_height_var.set("640")
+        self.image_height_entry = Entry(self.image_adjust, textvariable = self.image_height_var)
+        self.image_height_label.grid(row = 1, column = 0)
+        self.image_height_entry.grid(row = 1, column = 2) 
 
 
 
@@ -191,7 +195,7 @@ class SimGUI():
         self.right_bicep_label = Label(self.do_right, text = "Bicep force (Newtons): ", height = 1, width = self.settings_width)
         self.right_bicep_var = StringVar()
         self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
-        self.right_bicep_force = Label(self.do_right, textvariable = self.right_bicep_var, height = 1, width = self.settings_width / 2, relief = GROOVE)
+        self.right_bicep_force = Label(self.do_right, textvariable = self.right_bicep_var, height = 1, width = int(self.settings_width / 2), relief = GROOVE)
         self.right_bicep_label.grid(row = 1, column = 0)
         self.right_bicep_force.grid(row = 1, column = 1)
 
@@ -199,7 +203,7 @@ class SimGUI():
         self.right_elbow_label = Label(self.do_right, text = "Elbow angle (Degrees): ", height = 1, width = self.settings_width)
         self.right_elbow_var = StringVar()
         self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
-        self.right_elbow_angle = Label(self.do_right, textvariable = self.right_elbow_var, height = 1, width = self.settings_width / 2, relief = GROOVE)
+        self.right_elbow_angle = Label(self.do_right, textvariable = self.right_elbow_var, height = 1, width = int(self.settings_width / 2), relief = GROOVE)
         self.right_elbow_label.grid(row = 2, column = 0)
         self.right_elbow_angle.grid(row = 2, column = 1)
 
@@ -210,7 +214,7 @@ class SimGUI():
         self.left_bicep_label = Label(self.do_left, text = "Bicep force (Newtons): ", height = 1, width = self.settings_width)
         self.left_bicep_var = StringVar()
         self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
-        self.left_bicep_force = Label(self.do_left, textvariable = self.left_bicep_var, height = 1, width = self.settings_width / 2, relief = GROOVE)
+        self.left_bicep_force = Label(self.do_left, textvariable = self.left_bicep_var, height = 1, width = int(self.settings_width / 2), relief = GROOVE)
         self.left_bicep_label.grid(row = 1, column = 0)
         self.left_bicep_force.grid(row = 1, column = 1)
 
@@ -218,7 +222,7 @@ class SimGUI():
         self.left_elbow_label = Label(self.do_left, text = "Elbow angle (Degrees): ", height = 1, width = self.settings_width)
         self.left_elbow_var = StringVar()
         self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
-        self.left_elbow_angle = Label(self.do_left, textvariable = self.left_elbow_var, height = 1, width = self.settings_width / 2, relief = GROOVE)
+        self.left_elbow_angle = Label(self.do_left, textvariable = self.left_elbow_var, height = 1, width = int(self.settings_width / 2), relief = GROOVE)
         self.left_elbow_label.grid(row = 2, column = 0)
         self.left_elbow_angle.grid(row = 2, column = 1)
 
