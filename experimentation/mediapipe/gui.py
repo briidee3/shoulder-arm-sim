@@ -124,7 +124,7 @@ class SimGUI():
 
         # biacromic scale factor
         self.bsf_scale = Scale(self.settings, from_ = 0.22, to = 0.24, orient = "horizontal", length = 200, 
-                                label = "Biacromic (shoulder width) Scale Factor", showvalue = True, command = self.set_bsf, resolution = 0.001)
+                                label = "Biacromic (shoulder width) Scale", showvalue = True, command = self.set_bsf, resolution = 0.001)
         self.bsf_scale.grid(row = 3, columnspan = 2)
 
         # allow entry in imperial unit system (as opposed to metric)
@@ -133,6 +133,13 @@ class SimGUI():
         self.ms_toggle = Checkbutton(self.settings, variable = self.ms_var, onvalue = 1, offvalue = 0, command = self.toggle_imperial)
         self.ms_label.grid(row = 4, column = 0)
         self.ms_toggle.grid(row = 4, column = 1)
+
+        # allow adjustment of image height and width
+        self.image_adjust = LabelFrame(self.settings, text = "Image adjustment:")   # set up lavel frame to section off this part of the settings
+        self.image_adjust.grid(row = 5, column = 0)
+        # height
+        self.image_height_label = Label(self.image_adjust, text = "Image height: ", height = 1, width = 20)
+
 
 
 
