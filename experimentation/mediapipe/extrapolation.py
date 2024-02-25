@@ -522,13 +522,13 @@ class Extrapolate_forces():
             z_diff = self.mediapipe_data_output[vertex_two][2] - self.mediapipe_data_output[vertex_one][2]
 
             #rho = np.sqrt((x_diff ** 2) + (y_diff ** 2) + (z_diff ** 2))
-            print("test")
+            #print("test")
             rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
-            print("%s", rho)
+            #print("%s", rho)
             theta = np.arctan(x_diff / y_diff)                                      # swapped due to equations having different Cartesian coordinate system layout
-            print(theta)
+            #print(theta)
             phi = np.arccos(z_diff / rho)
-            print(phi)
+            #print(phi)
 
             return [rho, theta, phi]
         except:
