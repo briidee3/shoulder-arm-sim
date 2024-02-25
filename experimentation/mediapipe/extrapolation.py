@@ -529,7 +529,7 @@ class Extrapolate_forces():
             theta = np.arctan(x_diff / y_diff)                   # swapped x and y due to equations having different Cartesian coordinate system layout
             #print(theta)
             # NOTE: find better way to do this (preferably without "if" statements)
-            # ensure no division by zero
+            # ensure the argument for np.arccos() is always less than or equal to 1
             if z_diff < 0:
                 phi = np.arccos(max(z_diff, -rho) / rho)
             else:
