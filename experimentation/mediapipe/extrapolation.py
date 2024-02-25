@@ -525,9 +525,15 @@ class Extrapolate_forces():
             #print("test")
             rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
             #print("%s", rho)
-            theta = np.arctan(x_diff / max(0.000001, y_diff))                       # swapped due to equations having different Cartesian coordinate system layout
+            # division by zero is fine here for now, since it returns infinity, and np.arctan(infinity) = 90 degrees
+            theta = np.arctan(x_diff / y_diff)                   # swapped x and y due to equations having different Cartesian coordinate system layout
             #print(theta)
-            phi = np.arccos(min(z_diff, rho) / max(0.000001, rho))                  # the "max(0.000001, var)" is to avoid divide by zero, "max(z_diff, rho)" is to prevent "z_diff / rho" being > 1
+            # NOTE: find better way to do this (preferably without "if" statements)
+            # ensure no division by zero
+            if z_diff < 0:
+                phi = np.arccos(max(z_diff, -rho) / rho)
+            else:
+                phi = np.arccos(min(z_diff, rho) / rho)                  # the "max(0.000001, var)" is to avoid divide by zero, "max(z_diff, rho)" is to prevent "z_diff / rho" being > 1
             #print(phi)
 
             return [rho, theta, phi]
