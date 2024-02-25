@@ -527,7 +527,7 @@ class Extrapolate_forces():
             #print("%s", rho)
             theta = np.arctan(x_diff / max(0.000001, y_diff))                       # swapped due to equations having different Cartesian coordinate system layout
             #print(theta)
-            phi = np.arccos(max(z_diff, rho) / max(0.000001, rho))                  # the "max(0.000001, var)" is to avoid divide by zero, "max(z_diff, rho)" is to prevent "z_diff / rho" being > 1
+            phi = np.arccos(min(z_diff, rho) / max(0.000001, rho))                  # the "max(0.000001, var)" is to avoid divide by zero, "max(z_diff, rho)" is to prevent "z_diff / rho" being > 1
             #print(phi)
 
             return [rho, theta, phi]
