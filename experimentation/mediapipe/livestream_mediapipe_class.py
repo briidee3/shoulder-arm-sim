@@ -72,6 +72,9 @@ class Pose_detection(threading.Thread):
     def __init__(self, model_path) -> None:
         # initialize thread
         threading.Thread.__init__(self)
+        
+        # allow model_path to be accessible to functions
+        self.model_path = model_path
 
         # make video capture object via webcam
         self.webcam_stream = cv2.VideoCapture(video_source)
@@ -84,17 +87,6 @@ class Pose_detection(threading.Thread):
             print("Warning: unable to open camera (camera source: %s)" % video_source)
         else:
             print("Info: Initialized webcam (source: %s)" % video_source)
-        
-        # initialization of image (updated asynchronously)
-        self.annotated_image = np.zeros(((int)(HEIGHT), (int)(WIDTH), 3), np.uint8)
-
-        # options for pose landmarker
-        options = PoseLandmarkerOptions(
-            base_options = BaseOptions(model_asset_path = model_path),
-            running_mode = VisionRunningMode.LIVE_STREAM,
-            result_callback = self.draw_landmarks_on_frame
-        )
-        self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
         
         print("Info: Initialized PoseLandmarker")        
 
@@ -132,6 +124,8 @@ class Pose_detection(threading.Thread):
         #self.left_arm = extrapolation.Extrapolate_forces()             # left arm
         self.ep = extrapolation.Extrapolate_forces()                    # both arms
         
+        self.initialize_display()                                       # initialize display input
+
         print("Initialized Pose_detection()")
 
     # run the program
@@ -157,6 +151,20 @@ class Pose_detection(threading.Thread):
         finally:
             print("Info: Stopping mediapipe...")
             self.stop_program()
+
+    # initialize display/camera input
+    def initialize_display(self, height = HEIGHT, width = WIDTH): 
+        # initialization of image (updated asynchronously)
+        self.annotated_image = np.zeros(((int)(height), (int)(width), 3), np.uint8)
+
+        # options for pose landmarker
+        options = PoseLandmarkerOptions(
+            base_options = BaseOptions(model_asset_path = self.model_path),
+            running_mode = VisionRunningMode.LIVE_STREAM,
+            result_callback = self.draw_landmarks_on_frame
+        )
+        self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
+        
 
     # helper function for use by GUI, returns current frame
     def get_cur_frame(self):
