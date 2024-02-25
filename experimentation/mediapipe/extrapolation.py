@@ -450,7 +450,7 @@ class Extrapolate_forces():
             angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
 
             r = np.sin(angle) * max_dist                                         # calculate depth
-            print(r)
+            #print(r)
 
             return r
         except:
@@ -461,10 +461,10 @@ class Extrapolate_forces():
         try:
             # go thru 2d array of vertex order
             for i in range(0, len(self.vertex_order)):  # for each set of vertices denoting body segments
-                print("vertices: " + str(i))
+                #print("vertices: " + str(i))
                 for j in range(0, (len(self.vertex_order[i]) - 1)):   # for each vertex in set of vertices (except the last one)
-                        print(self.vertex_order[i][j])
-                        print(self.vertex_order[i][j + 1])
+                        #print(self.vertex_order[i][j])
+                        #print(self.vertex_order[i][j + 1])
                         #if self.vertex_order[i][j] != self.vertex_order[i][-1]:  # if current vertex isn't the last in the set
                         # calculate depth for vertex pair
                         y_dist_between_vertices = self.get_depth(self.vertex_order[i][j], self.vertex_order[i][j + 1])          # calculate depth
