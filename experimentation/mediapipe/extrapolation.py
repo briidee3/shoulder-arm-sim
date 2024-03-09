@@ -1,4 +1,4 @@
-# BD 2023
+# BD 2023-24
 # This program is designed to reimplement code from a previous program for use in a new environment
 # in order to extrapolate 3D motion tracking data from 2D motion tracking data and user input.
 # This version has been edited for use directly with MediaPipe, as opposed to with FreeMoCap data output.
@@ -501,11 +501,15 @@ class Extrapolate_forces():
             vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]
 
             # calculate length of arm segments via vector math
-            forearm_length = np.sqrt( (vector_b[0] ** 2) + (vector_b[1] ** 2) + (vector_b[2] ** 2) )
-            upperarm_length = np.sqrt( (vector_a[0] ** 2) + (vector_a[1] ** 2) + (vector_a[2] ** 2) )
+            #forearm_length = np.sqrt( (vector_b[0] ** 2) + (vector_b[1] ** 2) + (vector_b[2] ** 2) )
+            #upperarm_length = np.sqrt( (vector_a[0] ** 2) + (vector_a[1] ** 2) + (vector_a[2] ** 2) )
 
             # calculate angle at elbow
-            elbow_angle = np.arccos( ( (vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2]) ) / (forearm_length * upperarm_length) )
+            #elbow_angle = np.arccos( np.clip(( (vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2]) ) / (forearm_length * upperarm_length), -1, 1))
+
+            # rotate the plane on which vector_a and vector_b lie via the normal of the two vectors and 
+
+            elbow_angle = np.arctan2((vector_b[2] - vector_a[2]), (vector_b[0] - vector_a[0]))
 
             #print(elbow_angle)
             return elbow_angle
@@ -514,6 +518,7 @@ class Extrapolate_forces():
 
     # get spherical coordinates for each of the 3 vertices (bodyparts) of interest
     # vertex_one is the anchor point, and vertex_two is calculated based on its anchor
+    # NOTE: x is horizontal, z is up and down, y is forward and backwards (in the coordinate system we're using; comes from past version of program)
     def calc_spher_coords(self, vertex_one, vertex_two):    
         try:
             # effectively sets origin to cur_anchor
@@ -530,10 +535,7 @@ class Extrapolate_forces():
             #print(theta)
             # NOTE: find better way to do this (preferably without "if" statements)
             # ensure the argument for np.arccos() is always less than or equal to 1
-            if z_diff < 0:
-                phi = np.arccos(max(z_diff, -rho) / rho)
-            else:
-                phi = np.arccos(min(z_diff, rho) / rho)                  # the "max(0.000001, var)" is to avoid divide by zero, "max(z_diff, rho)" is to prevent "z_diff / rho" being > 1
+            phi = np.clip(np.arccos(z_diff / rho), -1, 1)
             #print(phi)
 
             return [rho, theta, phi]
