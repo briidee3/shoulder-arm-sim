@@ -227,6 +227,10 @@ class Extrapolate_forces():
 
             # calculate calibration coefficient/metric to sim units conversion ratio
             self.calc_conversion_ratio()
+            
+            # set depth
+            self.set_depth()
+
         except:
             print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
 

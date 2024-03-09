@@ -1,4 +1,4 @@
-# BD 2023
+# BD 2023-24
 # This file used for testing mediapipe functionality for use in simulating forces pertaining to the human arm system
 # as well as implementing and integrating a custom algorithm for discerning depth from 2D skeleton data
 
@@ -242,11 +242,11 @@ class Pose_detection(threading.Thread):
         except:
             print("livestream_mediapipe_class.py: ERROR in extrapolate_depth()")
 
-        # calculate depth for given frame
-        try:
-            self.ep.set_depth()                      # get depth_dict and calculate y axes values
-        except:
-            print("livestream_mediapipe_class.py: ERROR with ep.set_depth() in extrapolate_depth()")
+        # calculate depth for given frame (now done in `extrapolation.py`)
+        #try:
+        #    self.ep.set_depth()                      # get depth_dict and calculate y axes values
+        #except:
+        #    print("livestream_mediapipe_class.py: ERROR with ep.set_depth() in extrapolate_depth()")
 
     # calculate forces involved with muscles in the body
     def calc_body_forces(self):
