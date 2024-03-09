@@ -523,7 +523,11 @@ class Extrapolate_forces():
             #vector_b = vector_b / vector_b_mag
 
             # calculate angle at elbow
-            elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
+            #elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
+            # try a quaternion based method
+            elbow_angle = np.arctan2(vector_a, vector_b)
+
+            #DEBUGGING
             print(np.rad2deg(elbow_angle - np.pi))
             print("vector A: %s", vector_a)
             print("vector B: %s", vector_b)
