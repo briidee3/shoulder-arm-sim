@@ -315,7 +315,7 @@ class Pose_detection(threading.Thread):
                 #print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
                 self.extrapolate_depth(mediapipe_out)
                 #print("Calculating body forces...")
-                self.calc_body_forces()
+                #self.calc_body_forces()
             
             self.frame_counter += 1
         except:

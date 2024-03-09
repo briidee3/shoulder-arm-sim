@@ -1,4 +1,4 @@
-# BD 2023
+# BD 2023-24
 # This class is intended to serve as a GUI display manager for the body forces simulation research project.
 
 ## TODO:

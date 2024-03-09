@@ -231,6 +231,9 @@ class Extrapolate_forces():
             # set depth
             self.set_depth()
 
+            # calculate bicep forces
+            self.calc_bicep_force()
+
         except:
             print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
 
@@ -435,7 +438,7 @@ class Extrapolate_forces():
 
     ### DEPTH:
 
-    # calculate the angle of the segment (body part) from the normal (where it is longest)
+    # calculate the angle of the segment (body part) from the normal (of the screen/camera) (where it is longest)
     def angle_from_normal(self, cur_dist, max_dist):
         try:
             # angle always between 0 and 90 degrees
@@ -500,22 +503,31 @@ class Extrapolate_forces():
             y = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 1]
             z = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 2]
 
-            # calculate vectors for getting angle at elbow
-            vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]
-            vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]
+            #shoulder = self.mediapipe_data_output[(0 + (int)(right_side))]
+            #elbow = self.mediapipe_data_output[(2 + (int)(right_side))]
+            #wrist = self.mediapipe_data_output[(4 + (int)(right_side))]
 
-            # calculate length of arm segments via vector math
-            #forearm_length = np.sqrt( (vector_b[0] ** 2) + (vector_b[1] ** 2) + (vector_b[2] ** 2) )
-            #upperarm_length = np.sqrt( (vector_a[0] ** 2) + (vector_a[1] ** 2) + (vector_a[2] ** 2) )
+            # calculate vectors for getting angle at elbow
+            vector_a = np.array([(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])])
+            vector_b = np.array([(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])])
+
+            #pritn(vector_a)
+            #pritn(vector_b)
+
+            # get magnitude of vectors
+            vector_a_mag = np.sqrt( (vector_a[0] ** 2) + (vector_a[1] ** 2) + (vector_a[2] ** 2) )
+            vector_b_mag = np.sqrt( (vector_b[0] ** 2) + (vector_b[1] ** 2) + (vector_b[2] ** 2) )
+
+            # convert vectors to unit vectors
+            #vector_a = vector_a / vector_a_mag
+            #vector_b = vector_b / vector_b_mag
 
             # calculate angle at elbow
-            #elbow_angle = np.arccos( np.clip(( (vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2]) ) / (forearm_length * upperarm_length), -1, 1))
+            elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
+            print(np.rad2deg(elbow_angle - np.pi))
+            print("vector A: %s", vector_a)
+            print("vector B: %s", vector_b)
 
-            # rotate the plane on which vector_a and vector_b lie via the normal of the two vectors and 
-
-            elbow_angle = np.arctan2((vector_b[2] - vector_a[2]), (vector_b[0] - vector_a[0]))
-
-            #print(elbow_angle)
             return elbow_angle
         except:
             print("extrapolation.py: ERROR in `calc_elbow_angle()`")
@@ -539,7 +551,7 @@ class Extrapolate_forces():
             #print(theta)
             # NOTE: find better way to do this (preferably without "if" statements)
             # ensure the argument for np.arccos() is always less than or equal to 1
-            phi = np.clip(np.arccos(z_diff / rho), -1, 1)
+            phi = np.arccos(np.clip((z_diff / rho), -1, 1))
             #print(phi)
 
             return [rho, theta, phi]
