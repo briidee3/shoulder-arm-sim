@@ -514,25 +514,60 @@ class Extrapolate_forces():
             #pritn(vector_a)
             #pritn(vector_b)
 
-            # get magnitude of vectors
-            vector_a_mag = np.sqrt( (vector_a[0] ** 2) + (vector_a[1] ** 2) + (vector_a[2] ** 2) )
-            vector_b_mag = np.sqrt( (vector_b[0] ** 2) + (vector_b[1] ** 2) + (vector_b[2] ** 2) )
+            # get magnitude of vectors squared (i.e. not using sqrt yet, for use in quaternion solution of elbow angle)
+            vector_a_mag = (vector_a[0] ** 2) + (vector_a[1] ** 2) + (vector_a[2] ** 2)
+            vector_b_mag = (vector_b[0] ** 2) + (vector_b[1] ** 2) + (vector_b[2] ** 2)
 
             # convert vectors to unit vectors
-            #vector_a = vector_a / vector_a_mag
-            #vector_b = vector_b / vector_b_mag
+            vector_a = vector_a / np.sqrt(vector_a_mag)
+            vector_b = vector_b / np.sqrt(vector_b_mag)
+
+            dot_ab = np.dot(vector_a, vector_b)
+
+            # get the norm of the cross product of the two vectors
+            cross_ab = np.cross(vector_a, vector_b)
+            # using atan2
+            norm_cross = np.sqrt(cross_ab[0]**2 + cross_ab[1]**2 + cross_ab[2]**2)
 
             # calculate angle at elbow
             #elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
-            # try a quaternion based method
-            elbow_angle = np.arctan2(vector_a, vector_b)
+            # using arctan2
+            #elbow_angle = np.arctan2(norm_cross, dot_ab)
+
+
+            # trying with quaternion stuff instead
+            # the following should give us the "shortest arc", which is basically what we're looking for, and is one of a couple of options using quaternion math for this application
+            # helped by the following two sources:
+            # https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another#1171995
+            # https://github.com/toji/gl-matrix/blob/f0583ef53e94bc7e78b78c8a24f09ed5e2f7a20c/src/gl-matrix/quat.js#L54 
+            
+            # quaternion to hold the 
+            #quaternion = np.array((4))
+            # check dot product to account for potential errors from edge cases:
+            # if dot is less than -0.999999 (i.e. opposite parallel), return 180 degrees (pi)
+            if (dot_ab < -0.999999):
+                elbow_angle = np.pi
+            # if dot greater than 0.999999 (i.e. parallel), return 0 degrees (0)
+            elif (dot_ab > 0.999999):
+                elbow_angle = 0
+            else:
+                elbow_angle = 2 * np.acos(np.clip((np.sqrt(1 + dot_ab)), -1, 1))  # doing this so we don't waste memory on the quat_w variable if not necessary
+                
+                #quaternion[0:3] = cross_ab  # set first 3 elements of quaternion (x y and z) to the cross product of the two vectors (which represent the upper arm and forearm with the elbow as the origin)
+                # set w value of quaternion (np.clip is used to account for if the vectors are parallel, issues w the cross product may occur)
+                # assuming the square root of the product of the square of the two vectors = 1, since they're unit vectors
+                #quaternion[3] = np.sqrt(1 + dot_ab)
+                #quat_w = np.sqrt(1 + dot_ab) # w is all that's needed, since we can extract the angle from it directly
+                #elbow_angle = 2 * np.acos(quat_w)  
 
             #DEBUGGING
-            print(np.rad2deg(elbow_angle - np.pi))
-            print("vector A: %s", vector_a)
-            print("vector B: %s", vector_b)
+            if not right_side:
+                print(np.rad2deg(elbow_angle))
+            print("vector A: ", vector_a)
+            print("vector B: ", vector_b)
 
             return elbow_angle
+
         except:
             print("extrapolation.py: ERROR in `calc_elbow_angle()`")
 
