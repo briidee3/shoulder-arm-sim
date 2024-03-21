@@ -32,7 +32,7 @@ from matplotlib import pyplot as plt
 
 
 # set to not display in scientific notation
-np.set_printoptions(suppress = True, precision = 3)
+np.set_printoptions(suppress = True, precision = 5)
 
 #### CONSTANTS (for use with indexing)
 ## INDEXING FOR VERTEX ARRAYS
@@ -443,8 +443,8 @@ class Extrapolate_forces():
     # calculate the angle of the segment (body part) from the normal (of the screen/camera) (where it is longest)
     def angle_from_normal(self, cur_dist, max_dist):
         try:
-            # angle always between 0 and 90 degrees
-            return np.arccos(min(cur_dist / max_dist, 1))
+            # angle should be always between 0 and 90 degrees (sorta like phi in spherical coordinates)
+            return np.arccos(np.clip(cur_dist / max_dist, -1, 1))
         except:
             print("extrapolation.py: ERROR in `angle_from_normal()")
 
@@ -513,7 +513,7 @@ class Extrapolate_forces():
             #elbow = self.mediapipe_data_output[(2 + (int)(right_side))]
             #wrist = self.mediapipe_data_output[(4 + (int)(right_side))]
 
-            # get normalized versions of vectors representing upper and lower arm
+            # get unit vectors representing upper and lower arm
             vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]
             vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]
             vector_a = vector_a / np.linalg.norm(vector_a)  # turn into unit vector
@@ -540,7 +540,7 @@ class Extrapolate_forces():
             # calculate angle at elbow
             #elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
             # using arctan2
-            self.elbow_angles[int(right_side)] = np.arctan2(np.linalg.norm(np.cross(vector_a, vector_b)), np.dot(vector_a, vector_b))
+            self.elbow_angles[(int)(right_side)] = np.arctan2(np.linalg.norm(np.cross(vector_a, vector_b)), np.dot(vector_a, vector_b))
 
 
             # trying with quaternion stuff instead
