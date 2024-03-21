@@ -507,32 +507,34 @@ class Extrapolate_forces():
             #elbow = self.mediapipe_data_output[(2 + (int)(right_side))]
             #wrist = self.mediapipe_data_output[(4 + (int)(right_side))]
 
-            # calculate vectors for getting angle at elbow
-            vector_a = np.array([(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])])
-            vector_b = np.array([(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])])
+            # get normalized versions of vectors representing upper and lower arm
+            vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]
+            vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]
+            vector_a = vector_a / np.linalg.norm(vector_a)
+            vector_b = vector_b / np.linalg.norm(vector_b)
 
-            #pritn(vector_a)
-            #pritn(vector_b)
+            #print(vector_a)
+            #print(vector_b)
 
             # get magnitude of vectors squared (i.e. not using sqrt yet, for use in quaternion solution of elbow angle)
-            vector_a_mag = (vector_a[0] ** 2) + (vector_a[1] ** 2) + (vector_a[2] ** 2)
-            vector_b_mag = (vector_b[0] ** 2) + (vector_b[1] ** 2) + (vector_b[2] ** 2)
+            #vector_a_mag = (vector_a[0] ** 2) + (vector_a[1] ** 2) + (vector_a[2] ** 2)
+            #vector_b_mag = (vector_b[0] ** 2) + (vector_b[1] ** 2) + (vector_b[2] ** 2)
 
             # convert vectors to unit vectors
-            vector_a = vector_a / np.sqrt(vector_a_mag)
-            vector_b = vector_b / np.sqrt(vector_b_mag)
+            #vector_a = vector_a / np.sqrt(vector_a_mag)
+            #vector_b = vector_b / np.sqrt(vector_b_mag)
 
-            dot_ab = np.dot(vector_a, vector_b)
+            #dot_ab = np.dot(vector_a, vector_b)
 
             # get the norm of the cross product of the two vectors
-            cross_ab = np.cross(vector_a, vector_b)
+            #cross_ab = np.cross(vector_a, vector_b)
             # using atan2
-            norm_cross = np.sqrt(cross_ab[0]**2 + cross_ab[1]**2 + cross_ab[2]**2)
+            #norm_cross = np.sqrt(cross_ab[0]**2 + cross_ab[1]**2 + cross_ab[2]**2)
 
             # calculate angle at elbow
             #elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
             # using arctan2
-            #elbow_angle = np.arctan2(norm_cross, dot_ab)
+            elbow_angle = np.arctan2(np.linalg.norm(np.cross(vector_a, vector_b)), np.dot(vector_a, vector_b))
 
 
             # trying with quaternion stuff instead
@@ -545,13 +547,14 @@ class Extrapolate_forces():
             #quaternion = np.array((4))
             # check dot product to account for potential errors from edge cases:
             # if dot is less than -0.999999 (i.e. opposite parallel), return 180 degrees (pi)
-            if (dot_ab < -0.999999):
-                elbow_angle = np.pi
+            #elbow_angle = 0
+            #if (dot_ab < -0.999999):
+            #    elbow_angle = np.pi
             # if dot greater than 0.999999 (i.e. parallel), return 0 degrees (0)
-            elif (dot_ab > 0.999999):
-                elbow_angle = 0
-            else:
-                elbow_angle = 2 * np.acos(np.clip((np.sqrt(1 + dot_ab)), -1, 1))  # doing this so we don't waste memory on the quat_w variable if not necessary
+            #elif (dot_ab > 0.999999):
+            #    elbow_angle = 0
+            #else:
+            #    elbow_angle = 2 * np.acos(np.clip((np.sqrt(1 + dot_ab)), -1, 1))  # doing this so we don't waste memory on the quat_w variable if not necessary. the 1 accounts for the i+j+k part, as it always adds up to 1 at the end of it
                 
                 #quaternion[0:3] = cross_ab  # set first 3 elements of quaternion (x y and z) to the cross product of the two vectors (which represent the upper arm and forearm with the elbow as the origin)
                 # set w value of quaternion (np.clip is used to account for if the vectors are parallel, issues w the cross product may occur)
