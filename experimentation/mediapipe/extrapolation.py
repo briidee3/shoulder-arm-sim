@@ -141,6 +141,8 @@ class Extrapolate_forces():
         self.dist_array = np.zeros((10, 10), dtype = "float64")         # indexed by two body part names/indices
         self.max_array = np.zeros((10, 10), dtype = "float64")          # used for storing max distance data
         self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
+        # store elbow angle in memory so it can be calculated right after depth for the given frame is calculated (to prevent syncing issues)
+        self.elbow_angles = np.zeros((2), dtype = "float32")
 
         # bodypart_lengths intended to store baseline lengths of bodyparts
         self.bodypart_lengths = np.ones((6), dtype = "float32")         # stores body part lengths, assuming symmetry between sides (so, only one value for forearm length as opposed to 2, for example. may be changed later)
@@ -463,7 +465,7 @@ class Extrapolate_forces():
         except:
             print("extrapolation.py: ERROR in `get_depth()`")
 
-    # get y axes/depths by order of body parts
+    # get y axes/depths by order of body parts for the current frame
     def set_depth(self):
         try:
             # go thru 2d array of vertex order
@@ -488,6 +490,10 @@ class Extrapolate_forces():
 
                         # set depth in current frame of mediapipe data
                         self.mediapipe_data_output[self.vertex_order[i][j + 1], 1] = vertex_y
+            
+            # calculate elbow angle for both arms
+            self.calc_elbow_angle(False)    # left
+            self.calc_elbow_angle(True)     # right
         except:
             print("extrapolation.py: ERROR in set_depth()")
 
@@ -510,8 +516,8 @@ class Extrapolate_forces():
             # get normalized versions of vectors representing upper and lower arm
             vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]
             vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]
-            vector_a = vector_a / np.linalg.norm(vector_a)
-            vector_b = vector_b / np.linalg.norm(vector_b)
+            vector_a = vector_a / np.linalg.norm(vector_a)  # turn into unit vector
+            vector_b = vector_b / np.linalg.norm(vector_b)  # turn into unit vector
 
             #print(vector_a)
             #print(vector_b)
@@ -534,7 +540,7 @@ class Extrapolate_forces():
             # calculate angle at elbow
             #elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
             # using arctan2
-            elbow_angle = np.arctan2(np.linalg.norm(np.cross(vector_a, vector_b)), np.dot(vector_a, vector_b))
+            self.elbow_angles[int(right_side)] = np.arctan2(np.linalg.norm(np.cross(vector_a, vector_b)), np.dot(vector_a, vector_b))
 
 
             # trying with quaternion stuff instead
@@ -569,7 +575,7 @@ class Extrapolate_forces():
             print("vector A: ", vector_a)
             print("vector B: ", vector_b)
 
-            return elbow_angle
+            #return elbow_angle
 
         except:
             print("extrapolation.py: ERROR in `calc_elbow_angle()`")
@@ -623,7 +629,7 @@ class Extrapolate_forces():
             # run through once for left, once for right
             for is_right in [0, 1]:
                 # only calculate the following if the elbow angle exists
-                elbow_angle = self.calc_elbow_angle(is_right)
+                elbow_angle = self.elbow_angles[int(is_right)]
                 if math.isnan(elbow_angle):
                     return math.nan                                         # if elbow_angle == nan, exit function by returning nan
 
