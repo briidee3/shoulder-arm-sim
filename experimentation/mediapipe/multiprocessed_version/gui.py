@@ -14,6 +14,7 @@ import math
 from matplotlib import pyplot as plt
 
 import threading
+import multiprocessing
 
 import cv2
 
@@ -416,6 +417,11 @@ class SimGUI():
         # end gui
         #self.root.destroy()
 
-# make SimGUI object and start it (making this file runnable)
-gui = SimGUI()
-gui.start()
+
+# entry point for processes
+if __name__ == '__main__': 
+    # set multiprocessing start method to 'spawn' to prevent any issues running on windows (where only 'spawn' is available) and linux (where default is 'fork')
+    multiprocessing.set_start_method('spawn')
+    # make SimGUI object and start it (making this file runnable)
+    gui = SimGUI()
+    gui.start()
