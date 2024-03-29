@@ -99,7 +99,7 @@ class Pose_detection(threading.Thread):
 
         # boolean handlers
         self.stop = False
-        self.toggle_auto_calibrate = False
+        #self.toggle_auto_calibrate = False
 
         # allow use of current frame from external program (GUI)
         self.ret = None
