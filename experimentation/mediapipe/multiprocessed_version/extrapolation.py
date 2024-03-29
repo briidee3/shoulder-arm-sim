@@ -109,13 +109,16 @@ SEGMENT_TO_VERTEX = {
 }
 
 
-#### EXTRAPOLATION CLASS (extends multiprocessing) 
+#### EXTRAPOLATION CLASS (extends multiprocessing process) 
 class Extrapolate_forces(multiprocessing.Process):
         
     # initialization
     def __init__(self, right = False, one_arm = False, 
                 pipe_to_stream = multiprocessing.Pipe(), pipe_to_extrap = multiprocessing.Pipe(),
                 mp_data_lock = multiprocessing.Lock()) -> None:
+        
+        # base constructor
+        multiprocessing.Process.__init__(self)
         
         ### USER INPUT DATA
         self.user_height = 1.78     # user height (meters)
