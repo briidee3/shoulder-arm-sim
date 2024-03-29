@@ -297,7 +297,7 @@ class Sim_GUI(multiprocessing.Process):
         #ret, frame = self.mediapipe_runtime.get_cur_frame()
 
         # get frame data from livestream
-        ret, frame = self.stream_to_gui.recv()
+        (ret, frame) = self.stream_to_gui.recv()
 
         frame = cv2.cvtColor(cv2.flip(frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
 
