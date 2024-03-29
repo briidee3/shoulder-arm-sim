@@ -29,7 +29,7 @@ import math
 
 import cv2
 import time
-import threading
+#import threading
 import multiprocessing
 
 import mediapipe as mp
@@ -47,8 +47,6 @@ import extrapolation
 # video source (default: 0) default typically denotes built in webcam
 video_source = 0
 
-# model to be used as "Pose Landmarker"
-pose_landmarker = '../landmarkers/pose_landmarker_full.task'
 WIDTH = 640
 HEIGHT = 480
 
@@ -64,18 +62,18 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 
 
 
-### CLASS
+### LIVESTREAM CLASS (extends multiprocessing process)
 
 # set up a class to be used for running the pose detection program
-class Pose_detection(threading.Thread):
+class Pose_detection(multiprocessing.Process):
 
     # initialization
     def __init__(self, model_path) -> None:
         # initialize thread
-        threading.Thread.__init__(self)
+        multiprocessing.Process.__init__(self)
         
         # allow model_path to be accessible to functions
-        self.model_path = pose_landmarker#model_path
+        self.model_path = model_path
 
         # allow setting of frame height and width
         self.height = HEIGHT
