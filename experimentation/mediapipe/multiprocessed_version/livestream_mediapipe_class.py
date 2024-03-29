@@ -47,7 +47,7 @@ import extrapolation
 video_source = 0
 
 # model to be used as "Pose Landmarker"
-pose_landmarker = './landmarkers/pose_landmarker_heavy.task'
+pose_landmarker = '../landmarkers/pose_landmarker_full.task'
 WIDTH = 640
 HEIGHT = 480
 
@@ -74,7 +74,7 @@ class Pose_detection(threading.Thread):
         threading.Thread.__init__(self)
         
         # allow model_path to be accessible to functions
-        self.model_path = model_path
+        self.model_path = pose_landmarker#model_path
 
         # allow setting of frame height and width
         self.height = HEIGHT
@@ -160,19 +160,19 @@ class Pose_detection(threading.Thread):
 
     # initialize display/camera input
     def initialize_display(self): 
-        try:
-            # initialization of image (updated asynchronously)
-            self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
+        #try:
+        # initialization of image (updated asynchronously)
+        self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
 
-            # options for pose landmarker
-            options = PoseLandmarkerOptions(
-                base_options = BaseOptions(model_asset_path = self.model_path),
-                running_mode = VisionRunningMode.LIVE_STREAM,
-                result_callback = self.draw_landmarks_on_frame
-            )
-            self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
-        except:
-            print("livestream_mediapipe_class.py: ERROR in `initialize_display()`")
+        # options for pose landmarker
+        options = PoseLandmarkerOptions(
+            base_options = BaseOptions(model_asset_path = self.model_path),
+            running_mode = VisionRunningMode.LIVE_STREAM,
+            result_callback = self.draw_landmarks_on_frame
+        )
+        self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
+        #except:
+        #    print("livestream_mediapipe_class.py: ERROR in `initialize_display()`")
         
     # set height and width of image
     def set_image_hw(self, height = HEIGHT, width = WIDTH):
