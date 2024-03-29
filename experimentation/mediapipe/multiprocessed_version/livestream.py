@@ -68,12 +68,17 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 class Pose_detection(multiprocessing.Process):
 
     # initialization
-    def __init__(self, model_path) -> None:
+    def __init__(self, model_path = '../landmarkers/pose_landmarker_full.task', 
+                stream_to_extrap = extrapolation.Pipe(), extrap_to_stream = extrapolation.Pipe(),
+                stream_to_gui = extrapolation.Pipe()) -> None:
         # initialize thread
         multiprocessing.Process.__init__(self)
         
-        # allow model_path to be accessible to functions
+        # handle args
         self.model_path = model_path
+        self.stream_to_extrap = stream_to_extrap
+        self.extrap_to_stream = extrap_to_stream
+        self.stream_to_gui = stream_to_gui
 
         # allow setting of frame height and width
         self.height = HEIGHT
@@ -239,10 +244,10 @@ class Pose_detection(multiprocessing.Process):
     # handle piping data to and from extrapolation process
     def extrapolate_and_receive(self, mp_out):
         try:
-            if pipe_to_livestream.poll():                               # check if data coming from extrapolation process (denoting it's ready to receive)
+            if extrap_to_stream.poll():                               # check if data coming from extrapolation process (denoting it's ready to receive)
                 with mp_data_lock:                                      # acquire lock
                     pipe_to_extrap_w.send(mp_out)                       # send mp_out to extrapolation process
-                    self.calculated_data = pipe_to_livestream_r.recv()  # receive results
+                    self.calculated_data = extrap_to_stream_r.recv()  # receive results
         except:
             print("livestream.py: ERROR in `extrapolate_and_receive()`")
 
