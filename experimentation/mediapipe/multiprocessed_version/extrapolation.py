@@ -28,6 +28,7 @@
 import numpy as np
 import math
 from matplotlib import pyplot as plt
+import multiprocessing
 
 
 
@@ -109,10 +110,12 @@ SEGMENT_TO_VERTEX = {
 
 
 #### OBJECT FOR EASE OF MANAGEMENT OF EXTRAPOLATION OF DEPTH AND CALCULATION OF BODY FORCES
-class Extrapolate_forces():
+class Extrapolate_forces(multiprocessing.Process):
         
     # initialization
-    def __init__(self, right = False, one_arm = False) -> None:
+    def __init__(self, right = False, one_arm = False, 
+                pipe_to_stream = multiprocessing.Pipe(), pipe_to_extrap = multiprocessing.Pipe(),
+                mp_data_lock = multiprocessing.Lock()) -> None:
         ### USER INPUT DATA
 
         self.user_height = 1.78     # user height (meters)
@@ -221,10 +224,10 @@ class Extrapolate_forces():
             
             # reset dist_array
             self.dist_array = np.zeros(np.shape(self.dist_array))
-
+    
             # update current frame number
             self.cur_frame = current_frame
-
+    
             # update calibration settings (old)
             #try:
             #    if self.use_full_wingspan and not self.is_one_arm:
@@ -241,12 +244,17 @@ class Extrapolate_forces():
             
             # set depth
             self.set_depth()
-
+    
             # calculate bicep forces
             self.calc_bicep_force()
-
+    
         except:
             print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
+
+    # IMPORTANT: run process 
+    #def run(self):
+
+
 
     # IMPORTANT: temporary bandaid fix for calibration
     def calc_wingspan(self):

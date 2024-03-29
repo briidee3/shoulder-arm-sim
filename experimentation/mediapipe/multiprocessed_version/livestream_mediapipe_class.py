@@ -28,8 +28,9 @@ import numpy as np
 import math
 
 import cv2
-import threading
 import time
+import threading
+import multiprocessing
 
 import mediapipe as mp
 from mediapipe.tasks import python
@@ -126,8 +127,15 @@ class Pose_detection(threading.Thread):
         # initialize extrapolation and body force calculation object
         #self.right_arm = extrapolation.Extrapolate_forces(is_right = True)  # right arm
         #self.left_arm = extrapolation.Extrapolate_forces()             # left arm
-        self.ep = extrapolation.Extrapolate_forces()                    # both arms
+        #self.ep = extrapolation.Extrapolate_forces()                    # both arms
+
+        ## Initialize extrapolation.py
+        # initialize pipes
+        self.pipe_to_stream_r, self.pipe_to_stream_w = multiprocessing.Pipe()   # pipe to (live)stream
+        self.pipe_to_extrap_r, self.pipe_to_extrap_w = multiprocessing.Pipe()   # pipe to extrap(olation)
         
+        
+
         self.initialize_display()                                       # initialize display input
 
         print("Initialized Pose_detection()")
