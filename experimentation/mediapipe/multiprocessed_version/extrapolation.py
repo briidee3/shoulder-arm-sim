@@ -247,7 +247,8 @@ class Extrapolate_forces(multiprocessing.Process):
             # handle mediapipe data piping
             with self.mp_data_lock: # acquire lock
                 # receive data from livestream, run calculations on it
-                self.update_current_frame(mp_data_out = self.stream_to_extrap.recv())
+                mp_data_out = self.stream_to_extrap.recv()
+                self.update_current_frame(mp_data_out)
                 # once calculations are done, let livestream know it's ready for the next one
                 self.extrap_to_stream.send(None)
             
