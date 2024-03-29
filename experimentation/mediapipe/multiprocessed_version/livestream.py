@@ -72,7 +72,7 @@ class Pose_detection(multiprocessing.Process):
                 stream_to_extrap = multiprocessing.Pipe(), extrap_to_stream = multiprocessing.Pipe(),
                 stream_to_gui = multiprocessing.Pipe(), gui_to_stream = multiprocessing.Pipe()) -> None:
         
-        # initialize thread
+        # initialize process
         multiprocessing.Process.__init__(self)
         
         # handle args
