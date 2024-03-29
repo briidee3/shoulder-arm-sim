@@ -54,7 +54,8 @@ class Sim_GUI(multiprocessing.Process):
         self.stream_to_gui = stream_to_gui
         self.gui_to_stream = gui_to_stream
 
-        self.send_extrap = None     # used to send user input to extrapolation process
+        # initialize send_extrap
+        self.send_extrap = [0, 0, 0, 0]     # used to send user input to extrapolation process
 
 
         ### DATA AND CONSTANTS
@@ -143,7 +144,7 @@ class Sim_GUI(multiprocessing.Process):
 
         # biacromic scale factor
         self.bsf_scale = Scale(self.settings, from_ = 0.22, to = 0.24, orient = "horizontal", length = 200, 
-                                label = "Biacromic (shoulder width) Scale", showvalue = True, resolution = 0.001)#, command = self.set_bsf)
+                                label = "Biacromic (shoulder width) Scale", showvalue = True, resolution = 0.001, command = self.set_bsf)
         self.bsf_scale.grid(row = 3, columnspan = 2)
 
         # allow entry in imperial unit system (as opposed to metric)
@@ -301,10 +302,9 @@ class Sim_GUI(multiprocessing.Process):
         #ret, frame = self.mediapipe_runtime.get_cur_frame()
 
         # get frame data from livestream
-        (ret, frame) = self.stream_to_gui.recv()
+        ret, frame = self.stream_to_gui.recv()
         #stream_data = self.stream_to_gui.recv()
         #print(stream_data)
-
 
         if ret:                                             # only update if frame is present
             frame = cv2.cvtColor(cv2.flip(frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
@@ -318,10 +318,8 @@ class Sim_GUI(multiprocessing.Process):
         self.gui_to_stream.send(None)                       # let livestream know gui is ready for new frame
         self.gui_to_extrap.send(self.send_extrap)           # let extrap know gui is ready for next frame
                                                             # and send user input data if it exists
-        # reset send_extrap if not None
-        if self.send_extrap:
-            self.send_extrap = None
-        
+        # reset send_extrap
+        self.send_extrap = [0, 0, 0, 0]
 
         # call next update cycle
         self.root.after(self.delay, self.update_display)    # update approximately 60 times per second
@@ -370,6 +368,15 @@ class Sim_GUI(multiprocessing.Process):
 
     ### USER INPUT HANDLERS
 
+    # set bsf 
+    def set_bsf(self, bsf_data):
+        bsf = float(bsf_data)
+    
+        #self.mediapipe_runtime.ep.set_biacromial(bsf)
+
+        # send to extrapolation
+        self.send_extrap[3] = bsf
+
     # height and weight submission
     def hw_submit(self):
         height = float(self.height_entry.get())
@@ -382,8 +389,10 @@ class Sim_GUI(multiprocessing.Process):
             weight = weight / 2.2046    # pounds to kilograms
             ball = ball / 2.2046        # pounds to kilograms
 
-        #self.mediapipe_runtime.ep.set_hwb(height, weight, ball)     # send height weight ball to extrapolation.py instance
-        self.send_extrap = height, weight, ball
+        #self.mediapipe_runtime.ep.set_hwb(height, weight, ball)     
+        
+        # send height weight ball to extrapolation.py instance
+        self.send_extrap = [height, weight, ball, send_extrap[3]]
 
     # handle toggleable measurement system
     def toggle_imperial(self):
@@ -419,12 +428,6 @@ class Sim_GUI(multiprocessing.Process):
     #    ratio = float(self.ucf_entry.get())
     #
     #    self.mediapipe_runtime.ep.set_conversion_ratio(ratio)
-
-    # set bsf 
-    #def set_bsf(self, bsf_data):
-    #    bsf = float(bsf_data)
-    #
-    #    self.mediapipe_runtime.ep.set_biacromial(bsf)
 
     # set height and width of display/camera picture view
     #def set_livestream_hw(self):
