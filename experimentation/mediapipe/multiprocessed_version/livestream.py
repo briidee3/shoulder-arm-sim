@@ -29,7 +29,7 @@ import math
 
 import cv2
 import time
-#import threading
+import threading
 import multiprocessing
 
 import mediapipe as mp
@@ -104,9 +104,6 @@ class Pose_detection(multiprocessing.Process):
         
         print("Info: Initialized PoseLandmarker")        
 
-
-        ### SET UP PIPELINE
-
         # boolean handlers
         self.stop = False
         #self.toggle_auto_calibrate = False
@@ -140,6 +137,10 @@ class Pose_detection(multiprocessing.Process):
 
         # initialize display input
         self.initialize_display()
+
+        # initialize display output
+        self.sending_frames = threading.Thread(target = self.frames_to_gui)
+        self.sending_frames.start()
 
         print("Initialized Pose_detection()")
 
@@ -183,6 +184,7 @@ class Pose_detection(multiprocessing.Process):
                 result_callback = self.draw_landmarks_on_frame
             )
             self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
+
         except:
             print("livestream.py: ERROR in `initialize_display()`")
         
@@ -232,9 +234,14 @@ class Pose_detection(multiprocessing.Process):
     # callback function to terminate program
     def stop_program(self):
         self.stop = True    # redundancy
+
+        # stop sending frames
+        self.sending_frames.join()
+
         # release capture object from memory if open
         if self.webcam_stream.isOpened():
             self.webcam_stream.release()
+        
         # get rid of opencv windows still up
         cv2.destroyAllWindows()
 
@@ -255,11 +262,12 @@ class Pose_detection(multiprocessing.Process):
             print("livestream.py: ERROR in `extrapolate_and_receive()`")
 
     # handle piping frame data to gui
-    def frame_to_gui(self):
+    def frames_to_gui(self):
         try:
-            if self.gui_to_stream.poll():                               # make sure gui is ready for next frame
-                self.stream_to_gui.send((self.ret, self.frame))         # send current image frame to gui
-                self.gui_to_stream.recv()                               # clear pipe
+            while not self.stop:
+                if self.gui_to_stream.poll():                               # make sure gui is ready for next frame
+                    self.stream_to_gui.send((self.ret, self.frame))         # send current image frame to gui
+                    self.gui_to_stream.recv()                               # clear pipe
         except:
             print("livestream.py: ERROR in `frame_to_gui()`")
 
@@ -358,7 +366,7 @@ class Pose_detection(multiprocessing.Process):
                 self.extrapolate_depth(mediapipe_out)
                 #print("Calculating body forces...")
                 #self.calc_body_forces()
-                self.frame_to_gui()
+                #self.frame_to_gui()
             
             self.frame_counter += 1
         except:
