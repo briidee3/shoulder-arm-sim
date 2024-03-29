@@ -116,8 +116,8 @@ class Extrapolate_forces(multiprocessing.Process):
     def __init__(self, right = False, one_arm = False, 
                 pipe_to_stream = multiprocessing.Pipe(), pipe_to_extrap = multiprocessing.Pipe(),
                 mp_data_lock = multiprocessing.Lock()) -> None:
+        
         ### USER INPUT DATA
-
         self.user_height = 1.78     # user height (meters)
         self.user_weight = 90       # user weight (kilograms)
         self.ball_mass = 3          # mass of ball (kilograms)
@@ -125,6 +125,13 @@ class Extrapolate_forces(multiprocessing.Process):
         #self.forearm_length = self.user_height * FOREARM_TO_HEIGHT      # estimated length of user's forearm (based on statistical average measurements)
         #self.upperarm_length = self.user_height * UPPERARM_TO_HEIGHT    # estimated length of user's upperarm (based on statistical average measurements)
         
+        ### SETTINGS
+        # pipes to and from livestream process
+        self.pipe_to_stream = pipe_to_stream
+        self.pipe_to_extrap = pipe_to_extrap
+        # lock for mediapipe output data
+        self.mp_data_lock = mp_data_lock
+
         # toggle for calculating left arm or right arm
         self.is_right = right
         self.is_one_arm = one_arm
@@ -136,6 +143,7 @@ class Extrapolate_forces(multiprocessing.Process):
         self.use_biacromial = True              # use new calibration method
         self.biacromial_scale = 0.23            # temporarily set to middle of male (0.234) to female (0.227) range for testing
 
+        ###DATA
         # ndarray to store mediapipe data output, even if from other process(es)
         self.mediapipe_data_output = np.ndarray((10, 3), dtype = "float64")
 
@@ -217,10 +225,19 @@ class Extrapolate_forces(multiprocessing.Process):
 
     # IMPORTANT: run process 
     def run(self):
+        # receive data from livestream
+        #self.mediapipe_data_output = self.pipe_to_extrap.recv()
+
+        # acquire lock
+        with self.mp_data_lock:
+            # receive data from livestream, run calculations on it
+            self.update_current_frame(self.pipe_to_extrap.recv())
+            # once calculations are done, send results back to livestream
+            self.pipe_to_livestream.send(self.calculated_data)
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
-    def update_current_frame(self, mp_data_out, current_frame):
+    def update_current_frame(self, mp_data_out, current_frame = 0):
         try:
             # set data of current frame dataset
             self.mediapipe_data_output = mp_data_out
@@ -243,7 +260,7 @@ class Extrapolate_forces(multiprocessing.Process):
             #    print("extrapolation.py: Error updating calibration in update_current_frame()")
 
             # calculate calibration coefficient/metric to sim units conversion ratio
-            self.calc_conversion_ratio()
+            self.calc_conversion_ratio()    # assumes user is facing the camera
             
             # set depth
             self.set_depth()
