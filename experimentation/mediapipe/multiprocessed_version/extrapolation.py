@@ -241,6 +241,15 @@ class Extrapolate_forces(multiprocessing.Process):
             self.update_current_frame(self.stream_to_extrap.recv())
             # once calculations are done, let livestream know it's ready for the next one
             self.extrap_to_stream.send(None)
+        
+        # send data to gui
+        if self.gui_to_extrap.poll():           # make sure gui is ready for data
+            # send data to gui for displaying
+            self.extrap_to_gui.send((self.calculated_data, (self.user_height, self.user_weight, self.ball_mass)))
+            gui_data = gui_to_extrap.recv()     # clear pipe, check if data sent from gui to extrap
+            # if received data from gui, handle it
+            if gui_data != None:
+                self.handle_gui_data(gui_data)
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
@@ -278,6 +287,11 @@ class Extrapolate_forces(multiprocessing.Process):
         except:
             print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
 
+    
+    # handle gui data when received
+    def handle_gui_data(self, gui_data):
+        # set user input values using data from gui pipe
+        self.user_height, self.user_weight, self.ball_mass = gui_data
 
 
     # IMPORTANT: temporary bandaid fix for calibration
