@@ -592,10 +592,10 @@ class Extrapolate_forces():
                 #elbow_angle = 2 * np.acos(quat_w)  
 
             #DEBUGGING
-            if right_side:
-                print(np.rad2deg(self.elbow_angles[(int)(right_side)]))
-            print("vector A: ", vector_a)
-            print("vector B: ", vector_b)
+            #if right_side:
+            #    print(np.rad2deg(self.elbow_angles[(int)(right_side)]))
+            #print("vector A: ", vector_a)
+            #print("vector B: ", vector_b)
 
             #return elbow_angle
 
