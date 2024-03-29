@@ -138,6 +138,9 @@ class Extrapolate_forces(multiprocessing.Process):
         # lock for mediapipe output data
         self.mp_data_lock = mp_data_lock
 
+        # process stop condition
+        self.stop = False
+
         # toggle for calculating left arm or right arm
         self.is_right = right
         self.is_one_arm = one_arm
@@ -232,24 +235,26 @@ class Extrapolate_forces(multiprocessing.Process):
 
     # IMPORTANT: run process 
     def run(self):
-        # receive data from livestream
-        #self.mediapipe_data_output = self.stream_to_extrap.recv()
+        # run until told to stop
+        while not self.stop:
+            # receive data from livestream
+            #self.mediapipe_data_output = self.stream_to_extrap.recv()
 
-        # handle mediapipe data piping
-        with self.mp_data_lock: # acquire lock
-            # receive data from livestream, run calculations on it
-            self.update_current_frame(self.stream_to_extrap.recv())
-            # once calculations are done, let livestream know it's ready for the next one
-            self.extrap_to_stream.send(None)
-        
-        # send data to gui
-        if self.gui_to_extrap.poll():           # make sure gui is ready for data
-            # send data to gui for displaying
-            self.extrap_to_gui.send((self.calculated_data, (self.user_height, self.user_weight, self.ball_mass)))
-            gui_data = gui_to_extrap.recv()     # clear pipe, check if data sent from gui to extrap
-            # if received data from gui, handle it
-            if gui_data != None:
-                self.handle_gui_data(gui_data)
+            # handle mediapipe data piping
+            with self.mp_data_lock: # acquire lock
+                # receive data from livestream, run calculations on it
+                self.update_current_frame(self.stream_to_extrap.recv())
+                # once calculations are done, let livestream know it's ready for the next one
+                self.extrap_to_stream.send(None)
+            
+            # send data to gui
+            if self.gui_to_extrap.poll():           # make sure gui is ready for data
+                # send data to gui for displaying
+                self.extrap_to_gui.send(self.calculated_data)
+                gui_data = gui_to_extrap.recv()     # clear pipe, check if data sent from gui to extrap
+                # if received data from gui, handle it
+                if gui_data != None:
+                    self.handle_gui_data(gui_data)
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
