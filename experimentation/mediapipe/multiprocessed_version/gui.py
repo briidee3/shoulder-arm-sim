@@ -23,7 +23,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image
 from PIL import ImageTk
 
-import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
+import livestream as lsmp   # custom class, handles mediapipe
 
 
 ### OPTIONS

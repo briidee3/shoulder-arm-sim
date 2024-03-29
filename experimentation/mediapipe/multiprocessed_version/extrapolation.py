@@ -8,7 +8,7 @@
 #   - optimize code
 #       - minimize reads/writes
 #           - try to do in-place manipulations of data
-#   - implement multithreading, like how it was done for `livestream_mediapipe_class.py`
+#   - implement multithreading, like how it was done for `livestream.py`
 #   - take picture of user, notifying user, making em click a button, then counting down, snapping pic
 #       - this will be the calibration shot, and function "recalibrate" will do this.
 #       - this removes the need for lots of unnecessary calculations and reads/writes.
