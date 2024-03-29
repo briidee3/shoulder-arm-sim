@@ -277,6 +277,10 @@ class Sim_GUI(multiprocessing.Process):
     
     # start/run the gui display
     def start(self):
+        
+        # start piping back and forth with livestream
+        self.gui_to_stream.send(None)
+
         # start updater loops
         self.update_display()                               # update display
         self.update_data()                                  # update numerical data
@@ -298,6 +302,8 @@ class Sim_GUI(multiprocessing.Process):
 
         # get frame data from livestream
         (ret, frame) = self.stream_to_gui.recv()
+        #stream_data = self.stream_to_gui.recv()
+        #print(stream_data)
 
         frame = cv2.cvtColor(cv2.flip(frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
 
