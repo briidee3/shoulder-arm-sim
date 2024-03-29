@@ -233,23 +233,42 @@ class Pose_detection(threading.Thread):
         self.webcam_stream.release()
         # get rid of windows still up
         cv2.destroyAllWindows()
+        
+        # stop extrapolation process
+        self.ep.close()
+        self.ep.join()
+
         print("Program closed.")
         #exit()
 
 
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
 
-    # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
-    def extrapolate_depth(self, mediapipe_output):
+    # handle piping data to and from extrapolation process
+    def extrapolate_and_receive(self, mp_out):
         try:
+            with mp_data_lock:                                          # acquire lock
+                if pipe_to_livestream.poll():                           # check if data coming from extrapolation process (denoting it's ready to receive)
+                    pipe_to_extrap_w.send(mp_out)                       # send mp_out to extrapolation process
+                    self.calculated_data = pipe_to_livestream_r.recv()  # receive results
+        except:
+            print("livestream_mediapipe_class.py: ERROR in `extrapolate_and_receive()`")
+
+
+    # given 2D motion tracking data for a single frame, send 3D motion tracking data for a single frame to extrapolation process
+    #def extrapolate_depth(self, mediapipe_output):
+    #    try:
             # set the data for the current frame
-            self.ep.update_current_frame(mediapipe_output, self.frame_counter)    # update mediapipe data
+            #self.ep.update_current_frame(mediapipe_output, self.frame_counter)    # update mediapipe data
             # calculations that don't need to run each frame (hence run every "tick")
             #if not self.toggle_auto_calibrate and (self.frame_counter % self.tick_length == 0):    # now done in extrapolation.py each frame update
             #    self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
-
-        except:
-            print("livestream_mediapipe_class.py: ERROR in extrapolate_depth()")
+            
+            # send mediapipe output to extrapolation process
+    #        self.pipe_to_extrap_w.send(mediapipe_output)
+    #
+    #    except:
+    #        print("livestream_mediapipe_class.py: ERROR in extrapolate_depth()")
 
         # calculate depth for given frame (now done in `extrapolation.py`)
         #try:
@@ -258,12 +277,16 @@ class Pose_detection(threading.Thread):
         #    print("livestream_mediapipe_class.py: ERROR with ep.set_depth() in extrapolate_depth()")
 
     # calculate forces involved with muscles in the body
-    def calc_body_forces(self):
+    #def calc_body_forces(self):
         # force calculations
-        self.calculated_data = self.ep.get_calculated_data()                     # calculate forces
+        #self.calculated_data = self.ep.get_calculated_data()                     # calculate forces
 
         # display forces graph
         #self.ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
+
+        # get most recent calculations via pipe from extrapolation process
+        #with self.mp_data_lock:     # acquire lock
+        #    self.calculated_data = self.pipe_to_stream_r.recv()
 
 
     # detector callback function
