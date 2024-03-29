@@ -148,6 +148,15 @@ class Extrapolate_forces():
         self.bodypart_lengths = np.ones((6), dtype = "float32")         # stores body part lengths, assuming symmetry between sides (so, only one value for forearm length as opposed to 2, for example. may be changed later)
         # biases for bodypart lengths (calculated in countdown_calibrate), default to 1 for no bias
         self.bodypart_ratio_bias_array = np.ones((np.shape(self.bodypart_lengths)[0]), dtype = "float32")
+        # stores calculated data by frame
+        self.calculated_data = {
+                "right_bicep_force": "NaN",
+                "right_elbow_angle": "NaN",
+                "left_bicep_force": "NaN",
+                "left_elbow_angle": "NaN",
+                "uarm_spher_coords": "NaN",
+                "farm_spher_coords": "NaN"
+            }
 
         self.cur_frame = 0   # used to keep track of current frame
 
@@ -282,6 +291,11 @@ class Extrapolate_forces():
             return length / self.sim_to_real_conversion_factor
         except:
             print("extrapolation.py: ERROR converting real units to sim units")
+
+    # return calculated data (for use by other classes)
+    def get_calculated_data(self):
+        # returns the currently stored calculated data
+        return self.calculated_data
 
 
 
@@ -450,6 +464,13 @@ class Extrapolate_forces():
 
     # get depth for body part in most recent frame
     def get_depth(self, vertex_one, vertex_two):
+
+
+
+        # TODO: MAKE SURE THIS IS WORKING AS INTENDED
+
+
+
         try:
             cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two)      # current distance between given parts
             
@@ -570,8 +591,8 @@ class Extrapolate_forces():
                 #elbow_angle = 2 * np.acos(quat_w)  
 
             #DEBUGGING
-            if not right_side:
-                print(np.rad2deg(elbow_angle))
+            if right_side:
+                print(np.rad2deg(self.elbow_angles[(int)(right_side)]))
             print("vector A: ", vector_a)
             print("vector B: ", vector_b)
 
@@ -687,7 +708,7 @@ class Extrapolate_forces():
 
 
             # set/return data in dictionary format
-            calculated_data = {
+            self.calculated_data = {
                 "right_bicep_force": str("%0.2f" % right_bicep_force),
                 "right_elbow_angle": str("%0.2f" % np.rad2deg(right_elbow_angle)),
                 "left_bicep_force": str("%0.2f" % left_bicep_force),
@@ -697,7 +718,7 @@ class Extrapolate_forces():
             }
             #print("%0.2f" % force_bicep)
 
-            return calculated_data
+            return self.calculated_data
         except:
             print("extrapolation.py: ERROR in `calc_bicep_force()`")
 

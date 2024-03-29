@@ -251,7 +251,7 @@ class Pose_detection(threading.Thread):
     # calculate forces involved with muscles in the body
     def calc_body_forces(self):
         # force calculations
-        self.calculated_data = self.ep.calc_bicep_force()                     # calculate forces
+        self.calculated_data = self.ep.get_calculated_data()                     # calculate forces
 
         # display forces graph
         #self.ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces

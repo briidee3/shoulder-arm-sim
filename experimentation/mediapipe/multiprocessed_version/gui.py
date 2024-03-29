@@ -111,23 +111,23 @@ class SimGUI():
         self.settings.grid(row = 0, column = 0)
 
         # settings for unit conversion factor (metric <--> sim units)
-        self.ucf_label = Label(self.settings, text = "Unit conversion factor: ", height = 1, width = self.settings_width)
+        #self.ucf_label = Label(self.settings, text = "Unit conversion factor: ", height = 1, width = self.settings_width)
                                #cursor = "Approximate conversion ratio between metric units and simulation units.\n" + 
                                #         "Only intended for use with \"Manual\" functionality.")
-        self.ucf_var = StringVar()
-        self.ucf_entry = Entry(self.settings, textvariable = self.ucf_var)
-        self.ucf_toggle_var = IntVar()
-        self.ucf_toggle = Checkbutton(self.settings, text = "Manual", variable = self.ucf_toggle_var,       # now defunct, does effectively nothing with new calibration system
-                                      onvalue = 1, offvalue = 0, height = 1, width = 10, command = self.toggle_manual_conversion)
-        self.ucf_submit = Button(self.settings, text = "Submit", command = self.set_conversion_ratio)
-        self.ucf_label.grid(row = 1, column = 0)
-        self.ucf_entry.grid(row = 1, column = 1)
-        self.ucf_toggle.grid(row = 2, column = 0)
-        self.ucf_submit.grid(row = 2, column = 1)
+        #self.ucf_var = StringVar()
+        #self.ucf_entry = Entry(self.settings, textvariable = self.ucf_var)
+        #self.ucf_toggle_var = IntVar()
+        #self.ucf_toggle = Checkbutton(self.settings, text = "Manual", variable = self.ucf_toggle_var,       # now defunct, does effectively nothing with new calibration system
+        #                              onvalue = 1, offvalue = 0, height = 1, width = 10, command = self.toggle_manual_conversion)
+        #self.ucf_submit = Button(self.settings, text = "Submit", command = self.set_conversion_ratio)
+        #self.ucf_label.grid(row = 1, column = 0)
+        #self.ucf_entry.grid(row = 1, column = 1)
+        #self.ucf_toggle.grid(row = 2, column = 0)
+        #self.ucf_submit.grid(row = 2, column = 1)
 
         # biacromic scale factor
         self.bsf_scale = Scale(self.settings, from_ = 0.22, to = 0.24, orient = "horizontal", length = 200, 
-                                label = "Biacromic (shoulder width) Scale", showvalue = True, command = self.set_bsf, resolution = 0.001)
+                                label = "Biacromic (shoulder width) Scale", showvalue = True, resolution = 0.001)#, command = self.set_bsf)
         self.bsf_scale.grid(row = 3, columnspan = 2)
 
         # allow entry in imperial unit system (as opposed to metric)
@@ -287,7 +287,7 @@ class SimGUI():
         if ret:                                             # only update if frame is presenty
             self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(frame))
             self.image_label.configure(image = self.image_label.photo)
-            self.calculated_data = self.mediapipe_runtime.get_calculated_data()
+            self.calculated_data = self.mediapipe_runtime.ep.get_calculated_data()
 
         # call next update cycle
         self.root.after(self.delay, self.update_display)    # update approximately 60 times per second
@@ -301,7 +301,7 @@ class SimGUI():
         self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
 
         # update manual calibration
-        self.manual_calibration = self.mediapipe_runtime.toggle_auto_calibrate
+        #self.manual_calibration = self.mediapipe_runtime.toggle_auto_calibrate
         # check if using manual calibration
         if not self.manual_calibration:
             self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
@@ -348,7 +348,7 @@ class SimGUI():
             weight = weight / 2.2046    # pounds to kilograms
             ball = ball / 2.2046        # pounds to kilograms
 
-        self.mediapipe_runtime.ep.set_hwb(height, weight, ball)
+        self.mediapipe_runtime.ep.set_hwb(height, weight, ball)     # send height weight ball to extrapolation.py instance
 
     # handle toggleable measurement system
     def toggle_imperial(self):
@@ -374,22 +374,22 @@ class SimGUI():
         self.auto_update_graph = toggle
 
     # handle togglable manual conversion factor/ratio
-    def toggle_manual_conversion(self):
-        toggle = bool(self.ucf_toggle_var.get())
-
-        self.mediapipe_runtime.toggle_auto_conversion(toggle)
+    #def toggle_manual_conversion(self):
+    #    toggle = bool(self.ucf_toggle_var.get())
+    #
+    #    self.mediapipe_runtime.toggle_auto_conversion(toggle)
 
     # set manual conversion factor/ratio
-    def set_conversion_ratio(self):
-        ratio = float(self.ucf_entry.get())
-
-        self.mediapipe_runtime.ep.set_conversion_ratio(ratio)
+    #def set_conversion_ratio(self):
+    #    ratio = float(self.ucf_entry.get())
+    #
+    #    self.mediapipe_runtime.ep.set_conversion_ratio(ratio)
 
     # set bsf 
-    def set_bsf(self, bsf_data):
-        bsf = float(bsf_data)
-
-        self.mediapipe_runtime.ep.set_biacromial(bsf)
+    #def set_bsf(self, bsf_data):
+    #    bsf = float(bsf_data)
+    #
+    #    self.mediapipe_runtime.ep.set_biacromial(bsf)
 
     # set height and width of display/camera picture view
     def set_livestream_hw(self):
