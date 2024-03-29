@@ -23,6 +23,10 @@ no_image_path = './no_image.png'            # placeholder image location
 no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR2RGB))
 
 
+# function used to stop processes
+#def stop_processes():
+
+
 ### ENTRY POINT
 if __name__ == '__main__': 
     # set multiprocessing start method to 'spawn' to prevent any issues running on windows (where only 'spawn' is available) and linux (where default is 'fork')
@@ -49,3 +53,5 @@ if __name__ == '__main__':
     # intitialize extrapolation process
     ep = extrapolation.Extrapolate_forces(pipe_to_stream = pipe_to_stream_w, pipe_to_extrap = pipe_to_extrap_r)
     ep.start()
+
+
