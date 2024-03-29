@@ -140,7 +140,8 @@ class Pose_detection(multiprocessing.Process):
                 print("ERROR opening webcam")       # make it so it doesnt crash when there's no webcam
             else:
                 # main program loop
-                while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
+                while not self.stop:
+                    # old code #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
                     #if cv2.waitKey(1) == 27:   # trying to get keyboard input to work. doesnt wanna lol
                     #    print("ESC pressed")
                     
@@ -148,7 +149,7 @@ class Pose_detection(multiprocessing.Process):
                     cur_msec = (int)(time.time() * 1000)
 
                     # capture video for each frame
-                    self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                    self.ret, self.cur_frame = self.webcam_stream.read()    # ret is true if frame available, false otherwise; cur_frame is current frame (image)
 
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
