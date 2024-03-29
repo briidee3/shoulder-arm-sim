@@ -215,6 +215,9 @@ class Extrapolate_forces(multiprocessing.Process):
 
         print("extrapolation.py: Info: Initialized extrapolation.py")
 
+    # IMPORTANT: run process 
+    def run(self):
+
 
     # IMPORTANT: set mediapipe_data_output for the current frame
     def update_current_frame(self, mp_data_out, current_frame):
@@ -250,9 +253,6 @@ class Extrapolate_forces(multiprocessing.Process):
     
         except:
             print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
-
-    # IMPORTANT: run process 
-    #def run(self):
 
 
 
