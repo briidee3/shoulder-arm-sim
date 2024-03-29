@@ -37,7 +37,7 @@ import livestream# as lsmp   # custom class, handles mediapipe
 
 
 # setup runnable class for management of the GUI
-class SimGUI(multiprocessing.Process):
+class Sim_GUI(multiprocessing.Process):
 
     # initialization
     def __init__(self, 
