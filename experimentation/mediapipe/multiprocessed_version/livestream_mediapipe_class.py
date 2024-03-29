@@ -129,15 +129,17 @@ class Pose_detection(threading.Thread):
         #self.left_arm = extrapolation.Extrapolate_forces()             # left arm
         #self.ep = extrapolation.Extrapolate_forces()                    # both arms
 
-        ## Initialize extrapolation.py
+        ### INITIALIZATION
         # initialize pipes
         self.pipe_to_stream_r, self.pipe_to_stream_w = multiprocessing.Pipe()   # pipe to (live)stream
         self.pipe_to_extrap_r, self.pipe_to_extrap_w = multiprocessing.Pipe()   # pipe to extrap(olation)
+        
         # intitialize extrapolation process
         self.ep = extrapolation.Extrapolate_forces(pipe_to_stream = self.pipe_to_stream_w, pipe_to_extrap = self.pipe_to_extrap_r)
+        self.ep.start()
 
-
-        self.initialize_display()                                       # initialize display input
+        # initialize display input
+        self.initialize_display()
 
         print("Initialized Pose_detection()")
 
