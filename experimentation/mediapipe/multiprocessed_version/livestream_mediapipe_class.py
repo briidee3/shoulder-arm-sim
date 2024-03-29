@@ -247,8 +247,8 @@ class Pose_detection(threading.Thread):
     # handle piping data to and from extrapolation process
     def extrapolate_and_receive(self, mp_out):
         try:
-            with mp_data_lock:                                          # acquire lock
-                if pipe_to_livestream.poll():                           # check if data coming from extrapolation process (denoting it's ready to receive)
+            if pipe_to_livestream.poll():                               # check if data coming from extrapolation process (denoting it's ready to receive)
+                with mp_data_lock:                                      # acquire lock
                     pipe_to_extrap_w.send(mp_out)                       # send mp_out to extrapolation process
                     self.calculated_data = pipe_to_livestream_r.recv()  # receive results
         except:
