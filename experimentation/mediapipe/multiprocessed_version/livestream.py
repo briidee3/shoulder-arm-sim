@@ -228,9 +228,10 @@ class Pose_detection(multiprocessing.Process):
     # callback function to terminate program
     def stop_program(self):
         self.stop = True    # redundancy
-        # release capture object from memory
-        self.webcam_stream.release()
-        # get rid of windows still up
+        # release capture object from memory if open
+        if self.webcam_stream.isOpened():
+            self.webcam_stream.release()
+        # get rid of opencv windows still up
         cv2.destroyAllWindows()
 
         print("Program closed.")
