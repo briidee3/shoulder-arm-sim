@@ -246,10 +246,10 @@ class Pose_detection(multiprocessing.Process):
     # handle piping data to and from extrapolation process
     def extrapolate_and_receive(self, mp_out):
         try:
-            if extrap_to_stream.poll():                                 # check if data coming from extrapolation process (denoting it's ready to receive)
-                with mp_data_lock:                                      # acquire lock
-                    pipe_to_extrap.send(mp_out)                         # send mp_out to extrapolation process
-                    extrap_to_stream.recv()                             # clear pipe
+            if self.extrap_to_stream.poll():                                 # check if data coming from extrapolation process (denoting it's ready to receive)
+                with self.mp_data_lock:                                      # acquire lock
+                    self.pipe_to_extrap.send(mp_out)                         # send mp_out to extrapolation process
+                    self.extrap_to_stream.recv()                             # clear pipe
         except:
             print("livestream.py: ERROR in `extrapolate_and_receive()`")
 
