@@ -34,6 +34,7 @@ if __name__ == '__main__':
     gui_to_stream_r, gui_to_stream_w = multiprocessing.Pipe()           # pipe to (live)stream from gui
     stream_to_gui_r, stream_to_gui_w = multiprocessing.Pipe()           # pipe to gui from (live)stream
     gui_to_extrap_r, gui_to_extrap_w = multiprocessing.Pipe()           # pipe to extrap(olation) from gui
+    extrap_to_gui_r, extrap_to_gui_w = multiprocessing.Pipe()           # pipe to gui from extrap(olation)
 
 
     ### PROCESS INITIALIZATION

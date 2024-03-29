@@ -114,7 +114,8 @@ class Extrapolate_forces(multiprocessing.Process):
         
     # initialization
     def __init__(self, right = False, one_arm = False, 
-                pipe_to_stream = multiprocessing.Pipe(), pipe_to_extrap = multiprocessing.Pipe(),
+                extrap_to_stream = multiprocessing.Pipe(), stream_to_extrap = multiprocessing.Pipe(),
+                extrap_to_gui = multiprocessing.Pipe(), gui_to_extrap = multiprocessing.Pipe(),
                 mp_data_lock = multiprocessing.Lock()) -> None:
         
         # base constructor
@@ -130,8 +131,10 @@ class Extrapolate_forces(multiprocessing.Process):
         
         ### SETTINGS
         # pipes to and from livestream process
-        self.pipe_to_stream = pipe_to_stream
-        self.pipe_to_extrap = pipe_to_extrap
+        self.extrap_to_stream = extrap_to_stream
+        self.stream_to_extrap = stream_to_extrap
+        self.extrap_to_gui = extrap_to_gui
+        self.gui_to_extrap = gui_to_extrap
         # lock for mediapipe output data
         self.mp_data_lock = mp_data_lock
 
@@ -230,14 +233,14 @@ class Extrapolate_forces(multiprocessing.Process):
     # IMPORTANT: run process 
     def run(self):
         # receive data from livestream
-        #self.mediapipe_data_output = self.pipe_to_extrap.recv()
+        #self.mediapipe_data_output = self.stream_to_extrap.recv()
 
-        # acquire lock
-        with self.mp_data_lock:
+        # handle mediapipe data piping
+        with self.mp_data_lock: # acquire lock
             # receive data from livestream, run calculations on it
-            self.update_current_frame(self.pipe_to_extrap.recv())
-            # once calculations are done, send results back to livestream
-            self.pipe_to_livestream.send(self.calculated_data)
+            self.update_current_frame(self.stream_to_extrap.recv())
+            # once calculations are done, let livestream know it's ready for the next one
+            self.extrap_to_stream.send(None)
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
