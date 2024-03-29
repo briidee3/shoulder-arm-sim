@@ -23,25 +23,28 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image
 from PIL import ImageTk
 
-import livestream as lsmp   # custom class, handles mediapipe
+#import livestream as lsmp   # custom class, handles mediapipe
 
 
 ### OPTIONS
 
 # model to use for mediapipe
-pose_landmarker = './landmarkers/pose_landmarker_full.task'
+#pose_landmarker = './landmarkers/pose_landmarker_full.task'
 
 # load and prep placeholder image for program initialization
-no_image_path = './no_image.png'            # placeholder image location
-no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR2RGB))
+#no_image_path = './no_image.png'            # placeholder image location
+#no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR2RGB))
 
 
 # setup runnable class for management of the GUI
-class SimGUI():
+class SimGUI(multiprocessing.Process):
 
     # initialization
     def __init__(self) -> None:
         
+        # base constructor
+        multiprocessing.Process.__init__(self)
+
         ### DATA AND CONSTANTS
 
         # variable for dynamic width of settings
@@ -63,8 +66,8 @@ class SimGUI():
         self.hbf_max_len = 1000             # max length for history of bicep force
 
         # initialize mediapipe thread
-        self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker)
-        self.mediapipe_runtime.start()
+        #self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker)
+        #self.mediapipe_runtime.start()
 
         # allow entry in imperial (instead of metric)
         self.use_imperial = False
@@ -85,7 +88,7 @@ class SimGUI():
         self.update_interval = 200      # update every 200 milliseconds
 
         # image height/width
-        self.height, self.width = self.mediapipe_runtime.get_height_width()
+        self.height, self.width = #self.mediapipe_runtime.get_height_width()
         
         # initialize root of the tkinter gui display
         self.root = Tk()
@@ -160,7 +163,6 @@ class SimGUI():
         #self.submit_image_hw.grid(row = 3, column = 1)
 
 
-
         # grid section for user input
         self.user_input = LabelFrame(self.data, text = "User input:")
         self.user_input.grid(row = 1, column = 0)
@@ -192,7 +194,6 @@ class SimGUI():
         # button to submit height and weight and ball mass
         self.submit_hw = Button(self.user_input, text = "Submit", command = self.hw_submit)
         self.submit_hw.grid(row = 4, column = 1)
-
 
 
         # grid section for data output
@@ -236,7 +237,6 @@ class SimGUI():
         self.left_elbow_angle = Label(self.do_left, textvariable = self.left_elbow_var, height = 1, width = int(self.settings_width / 2), relief = GROOVE)
         self.left_elbow_label.grid(row = 2, column = 0)
         self.left_elbow_angle.grid(row = 2, column = 1)
-
 
 
         # set up bicep force scatter plot

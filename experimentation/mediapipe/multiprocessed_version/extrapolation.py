@@ -116,7 +116,7 @@ class Extrapolate_forces(multiprocessing.Process):
     def __init__(self, right = False, one_arm = False, 
                 extrap_to_stream = multiprocessing.Pipe(), stream_to_extrap = multiprocessing.Pipe(),
                 extrap_to_gui = multiprocessing.Pipe(), gui_to_extrap = multiprocessing.Pipe(),
-                mp_data_lock = multiprocessing.Lock()) -> None:
+                mp_data_lock = multiprocessing.Lock()):# -> None:
         
         # base constructor
         multiprocessing.Process.__init__(self)
