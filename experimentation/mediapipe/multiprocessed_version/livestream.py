@@ -249,7 +249,7 @@ class Pose_detection(multiprocessing.Process):
             if extrap_to_stream.poll():                                 # check if data coming from extrapolation process (denoting it's ready to receive)
                 with mp_data_lock:                                      # acquire lock
                     pipe_to_extrap.send(mp_out)                         # send mp_out to extrapolation process
-                    self.calculated_data = extrap_to_stream.recv()      # receive results
+                    extrap_to_stream.recv()                             # clear pipe
         except:
             print("livestream.py: ERROR in `extrapolate_and_receive()`")
 
@@ -257,8 +257,7 @@ class Pose_detection(multiprocessing.Process):
     def frame_to_gui(self):
         try:
             if self.gui_to_stream.poll():                               # make sure gui is ready for next frame
-                # send current image frame to gui alongside the most recent calculated data from extrapolation.py
-                self.stream_to_gui.send(((self.ret, self.frame), dict(self.calculated_data)))
+                self.stream_to_gui.send((self.ret, self.frame))         # send current image frame to gui
                 self.gui_to_stream.recv()                               # clear pipe
         except:
             print("livestream.py: ERROR in `frame_to_gui()`")
