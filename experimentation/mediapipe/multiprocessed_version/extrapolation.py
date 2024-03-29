@@ -109,7 +109,7 @@ SEGMENT_TO_VERTEX = {
 }
 
 
-#### OBJECT FOR EASE OF MANAGEMENT OF EXTRAPOLATION OF DEPTH AND CALCULATION OF BODY FORCES
+#### EXTRAPOLATION CLASS (extends multiprocessing) 
 class Extrapolate_forces(multiprocessing.Process):
         
     # initialization
@@ -137,7 +137,7 @@ class Extrapolate_forces(multiprocessing.Process):
         self.is_one_arm = one_arm
 
         # calibration settings
-        self.manual_calibration = False
+        #self.manual_calibration = False
         self.sim_to_real_conversion_factor = 1  # convert mediapipe units to real world units (meters)
         self.use_full_wingspan = False
         self.use_biacromial = True              # use new calibration method
@@ -159,6 +159,7 @@ class Extrapolate_forces(multiprocessing.Process):
         self.bodypart_lengths = np.ones((6), dtype = "float32")         # stores body part lengths, assuming symmetry between sides (so, only one value for forearm length as opposed to 2, for example. may be changed later)
         # biases for bodypart lengths (calculated in countdown_calibrate), default to 1 for no bias
         self.bodypart_ratio_bias_array = np.ones((np.shape(self.bodypart_lengths)[0]), dtype = "float32")
+        
         # stores calculated data by frame
         self.calculated_data = {
                 "right_bicep_force": "NaN",
