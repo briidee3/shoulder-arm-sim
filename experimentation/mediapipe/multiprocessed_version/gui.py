@@ -303,8 +303,8 @@ class SimGUI():
         # update manual calibration
         #self.manual_calibration = self.mediapipe_runtime.toggle_auto_calibrate
         # check if using manual calibration
-        if not self.manual_calibration:
-            self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
+        #if not self.manual_calibration:
+        #    self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
 
         # update elbow angle and bicep force data
         self.update_bicep_array()

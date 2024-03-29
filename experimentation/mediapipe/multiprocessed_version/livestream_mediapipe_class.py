@@ -328,9 +328,9 @@ class Pose_detection(threading.Thread):
     ### HELPER FUNCTIONS
 
     # handle toggleable auto calibration/conversion ratio calculation
-    def toggle_auto_conversion(self, toggle = True):
-        self.toggle_auto_calibrate = toggle
-        self.ep.set_calibration_manual(toggle)
+    #def toggle_auto_conversion(self, toggle = True):
+    #    self.toggle_auto_calibrate = toggle
+    #    self.ep.set_calibration_manual(toggle)
 
 
 #testing = Pose_detection(pose_landmarker)

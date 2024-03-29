@@ -438,12 +438,12 @@ class Extrapolate_forces():
         return self.sim_to_real_conversion_factor
     
     # set the conversion factor/ratio manually
-    def set_conversion_ratio(self, conv_ratio):
-        self.sim_to_real_conversion_factor = conv_ratio
+    #def set_conversion_ratio(self, conv_ratio):
+    #    self.sim_to_real_conversion_factor = conv_ratio
     
     # set calibration to manual
-    def set_calibration_manual(self, is_manual = True):
-        self.manual_calibration = is_manual
+    #def set_calibration_manual(self, is_manual = True):
+    #    self.manual_calibration = is_manual
     
     # reset max_array data to essentially reset the application
     def reset_calibration(self):
@@ -517,6 +517,7 @@ class Extrapolate_forces():
             self.calc_elbow_angle(True)     # right
         except:
             print("extrapolation.py: ERROR in set_depth()")
+
 
 
 
@@ -626,6 +627,7 @@ class Extrapolate_forces():
             return [rho, theta, phi]
         except:
             print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
+
 
 
 
