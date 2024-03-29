@@ -40,10 +40,13 @@ if __name__ == '__main__':
     gui_to_extrap_r, gui_to_extrap_w = multiprocessing.Pipe()           # pipe to extrap(olation) from gui
     extrap_to_gui_r, extrap_to_gui_w = multiprocessing.Pipe()           # pipe to gui from extrap(olation)
 
+    # initialize lock(s)
+    mp_data_lock = multiprocessing.Lock()
+
 
     ### PROCESS INITIALIZATION
     # initialize gui
-    gui = SimGUI()
+    gui = gui.Sim_GUI(extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
     gui.start()
 
     # initialize livestream process
@@ -51,7 +54,7 @@ if __name__ == '__main__':
     livestream.start()
     
     # intitialize extrapolation process
-    ep = extrapolation.Extrapolate_forces(pipe_to_stream = pipe_to_stream_w, pipe_to_extrap = pipe_to_extrap_r)
+    ep = extrapolation.Extrapolate_forces(False, False, extrap_to_stream_w, stream_to_extrap_r, extrap_to_gui_w, gui_to_extrap_r, mp_data_lock)
     ep.start()
 
 
