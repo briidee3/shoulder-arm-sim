@@ -116,8 +116,8 @@ class Pose_detection(multiprocessing.Process):
         self.tick_length = 60                                           # num of frames between periodic updater functions (e.g. calibration)
 
         # user input data
-        self.user_height = 1.78                                         # in meters
-        self.user_weight = 90                                           # in kilograms
+        #self.user_height = 1.78                                         # in meters
+        #self.user_weight = 90                                           # in kilograms
 
         # set up dictionary to read from for gui display of data
         #self.calculated_data = {
