@@ -392,7 +392,7 @@ class Sim_GUI(multiprocessing.Process):
         #self.mediapipe_runtime.ep.set_hwb(height, weight, ball)     
         
         # send height weight ball to extrapolation.py instance
-        self.send_extrap = [height, weight, ball, send_extrap[3]]
+        self.send_extrap = [height, weight, ball, self.send_extrap[3]]
 
     # handle toggleable measurement system
     def toggle_imperial(self):
