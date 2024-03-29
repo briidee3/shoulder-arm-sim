@@ -31,14 +31,19 @@ if __name__ == '__main__':
     # initialize pipes
     extrap_to_stream_r, extrap_to_stream_w = multiprocessing.Pipe()     # pipe to (live)stream from extrapolation
     stream_to_extrap_r, stream_to_extrap_w = multiprocessing.Pipe()     # pipe to extrap(olation) from livestream
+    gui_to_stream_r, gui_to_stream_w = multiprocessing.Pipe()           # pipe to (live)stream from gui
     stream_to_gui_r, stream_to_gui_w = multiprocessing.Pipe()           # pipe to gui from (live)stream
     gui_to_extrap_r, gui_to_extrap_w = multiprocessing.Pipe()           # pipe to extrap(olation) from gui
 
 
     ### PROCESS INITIALIZATION
-    # make SimGUI object and start it (making this file runnable)
+    # initialize gui
     gui = SimGUI()
     gui.start()
+
+    # initialize livestream process
+    livestream = livestream.Pose_detection(pose_landmarker, stream_to_extrap_w, extrap_to_stream_r, stream_to_gui_w, gui_to_stream_r)
+    livestream.start()
     
     # intitialize extrapolation process
     ep = extrapolation.Extrapolate_forces(pipe_to_stream = pipe_to_stream_w, pipe_to_extrap = pipe_to_extrap_r)

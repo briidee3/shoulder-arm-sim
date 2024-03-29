@@ -69,8 +69,9 @@ class Pose_detection(multiprocessing.Process):
 
     # initialization
     def __init__(self, model_path = '../landmarkers/pose_landmarker_full.task', 
-                stream_to_extrap = extrapolation.Pipe(), extrap_to_stream = extrapolation.Pipe(),
-                stream_to_gui = extrapolation.Pipe()) -> None:
+                stream_to_extrap = multiprocessing.Pipe(), extrap_to_stream = multiprocessing.Pipe(),
+                stream_to_gui = multiprocessing.Pipe(), gui_to_stream = multiprocessing.Pipe()) -> None:
+        
         # initialize thread
         multiprocessing.Process.__init__(self)
         
@@ -79,6 +80,7 @@ class Pose_detection(multiprocessing.Process):
         self.stream_to_extrap = stream_to_extrap
         self.extrap_to_stream = extrap_to_stream
         self.stream_to_gui = stream_to_gui
+        self.gui_to_stream = gui_to_stream
 
         # allow setting of frame height and width
         self.height = HEIGHT
@@ -244,12 +246,23 @@ class Pose_detection(multiprocessing.Process):
     # handle piping data to and from extrapolation process
     def extrapolate_and_receive(self, mp_out):
         try:
-            if extrap_to_stream.poll():                               # check if data coming from extrapolation process (denoting it's ready to receive)
+            if extrap_to_stream.poll():                                 # check if data coming from extrapolation process (denoting it's ready to receive)
                 with mp_data_lock:                                      # acquire lock
-                    pipe_to_extrap_w.send(mp_out)                       # send mp_out to extrapolation process
-                    self.calculated_data = extrap_to_stream_r.recv()  # receive results
+                    pipe_to_extrap.send(mp_out)                         # send mp_out to extrapolation process
+                    self.calculated_data = extrap_to_stream.recv()      # receive results
         except:
             print("livestream.py: ERROR in `extrapolate_and_receive()`")
+
+    # handle piping frame data to gui
+    def frame_to_gui(self):
+        try:
+            if self.gui_to_stream.poll():                               # make sure gui is ready for next frame
+                # send current image frame to gui alongside the most recent calculated data from extrapolation.py
+                self.stream_to_gui.send(((self.ret, self.frame), dict(self.calculated_data)))
+                self.gui_to_stream.recv()                               # clear pipe
+        except:
+            print("livestream.py: ERROR in `frame_to_gui()`")
+
 
 
     # given 2D motion tracking data for a single frame, send 3D motion tracking data for a single frame to extrapolation process
@@ -345,6 +358,7 @@ class Pose_detection(multiprocessing.Process):
                 self.extrapolate_depth(mediapipe_out)
                 #print("Calculating body forces...")
                 #self.calc_body_forces()
+                self.frame_to_gui()
             
             self.frame_counter += 1
         except:
