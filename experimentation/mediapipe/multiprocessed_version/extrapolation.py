@@ -235,6 +235,10 @@ class Extrapolate_forces(multiprocessing.Process):
 
     # IMPORTANT: run process 
     def run(self):
+
+        # initialize pipe with livestream
+        self.extrap_to_stream.send(None)
+
         # run until told to stop
         while not self.stop:
             # receive data from livestream
@@ -243,7 +247,7 @@ class Extrapolate_forces(multiprocessing.Process):
             # handle mediapipe data piping
             with self.mp_data_lock: # acquire lock
                 # receive data from livestream, run calculations on it
-                self.update_current_frame(self.stream_to_extrap.recv())
+                self.update_current_frame(mp_data_out = self.stream_to_extrap.recv())
                 # once calculations are done, let livestream know it's ready for the next one
                 self.extrap_to_stream.send(None)
             
@@ -253,12 +257,12 @@ class Extrapolate_forces(multiprocessing.Process):
                 self.extrap_to_gui.send(self.calculated_data)
                 gui_data = gui_to_extrap.recv()     # clear pipe, check if data sent from gui to extrap
                 # if received data from gui, handle it
-                if gui_data != None:
+                if (gui_data[0] + gui_data[3]) != 0:     # check if gui_data is all zeroes
                     self.handle_gui_data(gui_data)
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
-    def update_current_frame(self, mp_data_out, current_frame = 0):
+    def update_current_frame(self, mp_data_out):#, current_frame):
         try:
             # set data of current frame dataset
             self.mediapipe_data_output = mp_data_out
@@ -267,7 +271,7 @@ class Extrapolate_forces(multiprocessing.Process):
             self.dist_array = np.zeros(np.shape(self.dist_array))
     
             # update current frame number
-            self.cur_frame = current_frame
+            #self.cur_frame = current_frame
     
             # update calibration settings (old)
             #try:
@@ -296,7 +300,9 @@ class Extrapolate_forces(multiprocessing.Process):
     # handle gui data when received
     def handle_gui_data(self, gui_data):
         # set user input values using data from gui pipe
-        self.user_height, self.user_weight, self.ball_mass = gui_data
+        self.user_height, self.user_weight, self.ball_mass = gui_data[0:3]
+        if gui_data[3]:
+            self.biacromial_scale = gui_data[3]
 
 
     # IMPORTANT: temporary bandaid fix for calibration
