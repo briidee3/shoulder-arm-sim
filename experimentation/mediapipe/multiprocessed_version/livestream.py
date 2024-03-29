@@ -120,14 +120,14 @@ class Pose_detection(multiprocessing.Process):
         self.user_weight = 90                                           # in kilograms
 
         # set up dictionary to read from for gui display of data
-        self.calculated_data = {
-            "right_bicep_force": "NaN",
-            "right_elbow_angle": "NaN",
-            "left_bicep_force": "NaN",
-            "left_elbow_angle": "NaN",
-            "uarm_spher_coords": "NaN",#["NaN", "NaN", "NaN"],
-            "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
-        }
+        #self.calculated_data = {
+        #    "right_bicep_force": "NaN",
+        #    "right_elbow_angle": "NaN",
+        #    "left_bicep_force": "NaN",
+        #    "left_elbow_angle": "NaN",
+        #    "uarm_spher_coords": "NaN",#["NaN", "NaN", "NaN"],
+        #    "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
+        #}
 
         # initialize extrapolation and body force calculation object
         #self.right_arm = extrapolation.Extrapolate_forces(is_right = True)  # right arm
