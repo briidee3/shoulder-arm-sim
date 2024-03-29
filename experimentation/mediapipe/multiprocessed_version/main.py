@@ -5,6 +5,8 @@
 ### TODO:
 #   - make a new class for doing only the physics calculations
 
+import cv2
+from PIL import Image
 
 import multiprocessing
 
@@ -30,7 +32,7 @@ no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR
 ### ENTRY POINT
 if __name__ == '__main__': 
     # set multiprocessing start method to 'spawn' to prevent any issues running on windows (where only 'spawn' is available) and linux (where default is 'fork')
-    multiprocessing.set_start_method('spawn')
+    #multiprocessing.set_start_method('spawn')
 
     # initialize pipes
     extrap_to_stream_r, extrap_to_stream_w = multiprocessing.Pipe()     # pipe to (live)stream from extrapolation
@@ -45,16 +47,23 @@ if __name__ == '__main__':
 
 
     ### PROCESS INITIALIZATION
-    # initialize gui
-    gui = gui.Sim_GUI(extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
-    gui.start()
-
-    # initialize livestream process
-    livestream = livestream.Pose_detection(pose_landmarker, stream_to_extrap_w, extrap_to_stream_r, stream_to_gui_w, gui_to_stream_r)
-    livestream.start()
     
     # intitialize extrapolation process
     ep = extrapolation.Extrapolate_forces(False, False, extrap_to_stream_w, stream_to_extrap_r, extrap_to_gui_w, gui_to_extrap_r, mp_data_lock)
     ep.start()
+
+    # initialize livestream process
+    livestream = livestream.Pose_detection(pose_landmarker, stream_to_extrap_w, extrap_to_stream_r, stream_to_gui_w, gui_to_stream_r)
+    livestream.start()
+
+    # initialize gui
+    gui = gui.Sim_GUI(extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
+    gui.start()
+
+
+    # end processes
+    gui.join()
+    livestream.join()
+    ep.join()
 
 
