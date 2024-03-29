@@ -200,26 +200,26 @@ class Pose_detection(multiprocessing.Process):
 
 
     # helper function for use by GUI, returns current frame
-    def get_cur_frame(self):
-        return self.ret, self.annotated_image
+    #def get_cur_frame(self):
+    #    return self.ret, self.annotated_image
     
     # return current calculated data
-    def get_calculated_data(self):
-        return dict(self.calculated_data)
+    #def get_calculated_data(self):
+    #    return dict(self.calculated_data)
     
     # allow setting of user height via external package/program
-    def set_height(self, height):
-        self.user_height = height
-        return self.user_height
+    #def set_height(self, height):
+    #    self.user_height = height
+    #    return self.user_height
     
     # allow setting of user weight via external package/program
-    def set_weight(self, weight):
-        self.user_weight = weight
-        return self.user_weight
+    #def set_weight(self, weight):
+    #    self.user_weight = weight
+    #    return self.user_weight
     
     # get function for video height and width
-    def get_height_width(self):
-        return self.height, self.width
+    #def get_height_width(self):
+    #    return self.height, self.width
     
     # set stop variable
     def set_stop(self, set_ = True):
@@ -232,10 +232,6 @@ class Pose_detection(multiprocessing.Process):
         self.webcam_stream.release()
         # get rid of windows still up
         cv2.destroyAllWindows()
-        
-        # stop extrapolation process
-        self.ep.close()
-        self.ep.join()
 
         print("Program closed.")
         #exit()
