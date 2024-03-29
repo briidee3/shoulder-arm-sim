@@ -23,7 +23,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image
 from PIL import ImageTk
 
-#import livestream as lsmp   # custom class, handles mediapipe
+import livestream# as lsmp   # custom class, handles mediapipe
 
 
 ### OPTIONS
@@ -40,10 +40,22 @@ from PIL import ImageTk
 class SimGUI(multiprocessing.Process):
 
     # initialization
-    def __init__(self) -> None:
+    def __init__(self, 
+                extrap_to_gui = multiprocessing.Pipe(), gui_to_extrap = multiprocessing.Pipe(),
+                stream_to_gui = multiprocessing.Pipe(), gui_to_stream = multiprocessing.Pipe()):# -> None:
         
         # base constructor
         multiprocessing.Process.__init__(self)
+
+        # handle args
+        # pipes
+        self.extrap_to_gui = extrap_to_gui
+        self.gui_to_extrap = gui_to_extrap
+        self.stream_to_gui = stream_to_gui
+        self.gui_to_stream = gui_to_stream
+
+        self.send_extrap = None     # used to send user input to extrapolation process
+
 
         ### DATA AND CONSTANTS
 
@@ -88,7 +100,7 @@ class SimGUI(multiprocessing.Process):
         self.update_interval = 200      # update every 200 milliseconds
 
         # image height/width
-        self.height, self.width = #self.mediapipe_runtime.get_height_width()
+        self.height, self.width = livestream.HEIGHT, livestream.WIDTH   # initialize to initial height/width from livestream class
         
         # initialize root of the tkinter gui display
         self.root = Tk()
@@ -275,20 +287,35 @@ class SimGUI(multiprocessing.Process):
         # handle program close
         self.root.protocol("WM_DELETE_WINDOW", self.__del__)
 
-        # start the display
+        # start the gui
         self.root.mainloop()
 
 
     # update the data being displayed
     def update_display(self):#, new_frame, data_dict):
         # handle frame/image data
-        ret, frame = self.mediapipe_runtime.get_cur_frame()
+        #ret, frame = self.mediapipe_runtime.get_cur_frame()
+
+        # get frame data from livestream
+        ret, frame = self.stream_to_gui.recv()
+
         frame = cv2.cvtColor(cv2.flip(frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
 
-        if ret:                                             # only update if frame is presenty
+        if ret:                                             # only update if frame is present
             self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(frame))
             self.image_label.configure(image = self.image_label.photo)
-            self.calculated_data = self.mediapipe_runtime.ep.get_calculated_data()
+            #self.calculated_data = self.mediapipe_runtime.ep.get_calculated_data()
+
+            # receive data from extrap from pipe
+            self.calculated_data = self.extrap_to_gui.recv()
+
+        self.gui_to_stream.send(None)                       # let livestream know gui is ready for new frame
+        self.gui_to_extrap.send(self.send_extrap)           # let extrap know gui is ready for next frame
+                                                            # and send user input data if it exists
+        # reset send_extrap if not None
+        if self.send_extrap:
+            self.send_extrap = None
+        
 
         # call next update cycle
         self.root.after(self.delay, self.update_display)    # update approximately 60 times per second
@@ -349,7 +376,8 @@ class SimGUI(multiprocessing.Process):
             weight = weight / 2.2046    # pounds to kilograms
             ball = ball / 2.2046        # pounds to kilograms
 
-        self.mediapipe_runtime.ep.set_hwb(height, weight, ball)     # send height weight ball to extrapolation.py instance
+        #self.mediapipe_runtime.ep.set_hwb(height, weight, ball)     # send height weight ball to extrapolation.py instance
+        self.send_extrap = height, weight, ball
 
     # handle toggleable measurement system
     def toggle_imperial(self):
@@ -393,13 +421,13 @@ class SimGUI(multiprocessing.Process):
     #    self.mediapipe_runtime.ep.set_biacromial(bsf)
 
     # set height and width of display/camera picture view
-    def set_livestream_hw(self):
-        # set local variables
-        self.height = int(self.image_height_var.get())
-        self.width = int(self.image_width_var.get())
-
-        # set opencv video stream/source height and width
-        self.mediapipe_runtime.set_image_hw(self.height, self.width)
+    #def set_livestream_hw(self):
+    #    # set local variables
+    #    self.height = int(self.image_height_var.get())
+    #    self.width = int(self.image_width_var.get())
+    #
+    #    # set opencv video stream/source height and width
+    #    self.mediapipe_runtime.set_image_hw(self.height, self.width)
 
 
 
@@ -409,10 +437,10 @@ class SimGUI(multiprocessing.Process):
         self.root.destroy()
 
         # stop mediapipe
-        if self.mediapipe_runtime.webcam_stream.isOpened():
-            self.mediapipe_runtime.webcam_stream.release()
-        self.mediapipe_runtime.set_stop(True)
-        self.mediapipe_runtime.join()
+        #if self.mediapipe_runtime.webcam_stream.isOpened():
+        #    self.mediapipe_runtime.webcam_stream.release()
+        #self.mediapipe_runtime.set_stop(True)
+        #self.mediapipe_runtime.join()
 
         # end gui
         #self.root.destroy()
