@@ -70,17 +70,21 @@ class Pose_detection(multiprocessing.Process):
     # initialization
     def __init__(self, model_path = '../landmarkers/pose_landmarker_full.task', 
                 stream_to_extrap = multiprocessing.Pipe(), extrap_to_stream = multiprocessing.Pipe(),
-                stream_to_gui = multiprocessing.Pipe(), gui_to_stream = multiprocessing.Pipe()):# -> None:
+                stream_to_gui = multiprocessing.Pipe(), gui_to_stream = multiprocessing.Pipe(),
+                mp_data_lock = multiprocessing.Lock()):# -> None:
         
         # initialize process
         multiprocessing.Process.__init__(self)
         
         # handle args
+        #pipes
         self.model_path = model_path
         self.stream_to_extrap = stream_to_extrap
         self.extrap_to_stream = extrap_to_stream
         self.stream_to_gui = stream_to_gui
         self.gui_to_stream = gui_to_stream
+        # lock
+        self.mp_data_lock = mp_data_lock
 
         # allow setting of frame height and width
         self.height = HEIGHT
