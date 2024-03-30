@@ -63,9 +63,6 @@ class Sim_GUI(multiprocessing.Process):
         # set up thread for separate handling of calculated data handling
         self.data_handler = threading.Thread(target = self.handle_extrap_pipes)
 
-        # handle stopping program
-        self.stop = False
-
 
         ### DATA AND CONSTANTS
 

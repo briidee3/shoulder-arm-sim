@@ -108,7 +108,6 @@ class Pose_detection(multiprocessing.Process):
         print("Info: Initialized PoseLandmarker")        
 
         # boolean handlers
-        self.stop = False
         #self.toggle_auto_calibrate = False
 
         # allow use of current frame from external program (GUI)
