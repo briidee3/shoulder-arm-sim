@@ -297,7 +297,7 @@ class Extrapolate_forces(multiprocessing.Process):
 
 
     # handle gui data when received
-    def handle_gui_data(self, gui_data):
+    def handle_gui_data(self):
         while not self.stop:
             # send data to gui
             if self.gui_to_extrap.poll():                   # make sure gui is ready for data
