@@ -8,8 +8,6 @@
 import cv2
 from PIL import Image
 
-import keyboard
-
 import multiprocessing
 
 import gui              # custom class, handles gui
@@ -82,7 +80,7 @@ if __name__ == '__main__':
     gui = gui.Sim_GUI(stop, extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
     gui.start()
 
-    while not keyboard.is_pressed('esc'):
+    while not cv2.waitkey(0) == 27:
         pass
     stop_processes(stop, ep, livestream, gui)
 
