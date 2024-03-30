@@ -41,6 +41,7 @@ def stop_processes(stop, extrap, stream, gui_):
 
 ### ENTRY POINT
 if __name__ == '__main__': 
+    multiprocessing.freeze_support()    # enable freeze support for multiprocessing
     # set multiprocessing start method to 'spawn' to prevent any issues running on windows (where only 'spawn' is available) and linux (where default is 'fork')
     #multiprocessing.set_start_method('spawn')
 
