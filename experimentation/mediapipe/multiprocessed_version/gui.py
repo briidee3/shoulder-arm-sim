@@ -61,10 +61,15 @@ class Sim_GUI(multiprocessing.Process):
         self.send_extrap = [0, 0, 0, 0]     # used to send user input to extrapolation process
 
         # set up thread for separate handling of calculated data handling
-        self.data_handler = threading.Thread(target = self.handle_extrap_pipes)
+        self.extrap_handler = threading.Thread(target = self.handle_extrap_pipes)
+        self.stream_handler = threading.Thread(target = self.handle_stream_pipes)
 
 
         ### DATA AND CONSTANTS
+        
+        # temp store frame data
+        self.ret = None
+        self.frame = None
 
         # variable for dynamic width of settings
         self.settings_width = 20
@@ -289,8 +294,9 @@ class Sim_GUI(multiprocessing.Process):
         self.gui_to_stream.send(None)
         self.gui_to_extrap.send(None)
 
-        # start thread for handling data
-        self.data_handler.start()
+        # start threads for handling data
+        self.extrap_handler.start()
+        self.stream_handler.start()
 
         # start updater loops
         self.update_display()                               # update display
@@ -311,18 +317,14 @@ class Sim_GUI(multiprocessing.Process):
         # handle frame/image data
         #ret, frame = self.mediapipe_runtime.get_cur_frame()
 
-        # get frame data from livestream
-        ret, frame = self.stream_to_gui.recv()
         #stream_data = self.stream_to_gui.recv()
         #print(stream_data)
 
-        if ret:                                             # only update if frame is present
-            frame = cv2.cvtColor(cv2.flip(frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
-            self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(frame))
+        if self.ret:                                             # only update if frame is present
+            self.frame = cv2.cvtColor(cv2.flip(self.frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
+            self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(self.frame))
             self.image_label.configure(image = self.image_label.photo)
             #self.calculated_data = self.mediapipe_runtime.ep.get_calculated_data()
-
-        self.gui_to_stream.send(None)                       # let livestream know gui is ready for new frame
 
         # call next update cycle
         self.root.after(self.delay, self.update_display)    # update approximately 60 times per second
@@ -383,6 +385,15 @@ class Sim_GUI(multiprocessing.Process):
             self.gui_to_extrap.send(self.send_extrap)
             # reset user input
             self.send_extrap = [0, 0, 0, 0]
+    
+    # handle data pipes to/from livestream
+    def handle_stream_pipes(self):
+        while not self.stop:
+            # get frame data from livestream
+            self.ret, self.frame = self.stream_to_gui.recv()
+            # let livestream know gui is ready for new frame
+            self.gui_to_stream.send(None)
+
 
 
     ### USER INPUT HANDLERS
@@ -463,7 +474,8 @@ class Sim_GUI(multiprocessing.Process):
     def __del__(self):
 
         # stop threads
-        self.data_handler.join()
+        self.extrap_handler.join()
+        self.stream_handler.join()
 
         # stop gui
         self.root.destroy()
