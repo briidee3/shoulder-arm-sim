@@ -115,7 +115,7 @@ SEGMENT_TO_VERTEX = {
 class Extrapolate_forces(multiprocessing.Process):
         
     # initialization
-    def __init__(self, right = False, one_arm = False, 
+    def __init__(self, stop = multiprocessing.Event(), right = False, one_arm = False, 
                 extrap_to_stream = multiprocessing.Pipe(), stream_to_extrap = multiprocessing.Pipe(),
                 extrap_to_gui = multiprocessing.Pipe(), gui_to_extrap = multiprocessing.Pipe(),
                 mp_data_lock = multiprocessing.Lock()):# -> None:
@@ -139,12 +139,12 @@ class Extrapolate_forces(multiprocessing.Process):
         self.gui_to_extrap = gui_to_extrap
         # lock for mediapipe output data
         self.mp_data_lock = mp_data_lock
+        
+        # process stop condition
+        self.stop = stop
 
         # handle sending and receiving data from gui in a thread
         self.gui_handler = threading.Thread(target = self.handle_gui_data)
-
-        # process stop condition
-        self.stop = False
 
         # toggle for calculating left arm or right arm
         self.is_right = right

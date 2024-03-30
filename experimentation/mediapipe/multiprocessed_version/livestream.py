@@ -68,7 +68,7 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 class Pose_detection(multiprocessing.Process):
 
     # initialization
-    def __init__(self, model_path = '../landmarkers/pose_landmarker_full.task', 
+    def __init__(self, stop, model_path = '../landmarkers/pose_landmarker_full.task', 
                 stream_to_extrap = multiprocessing.Pipe(), extrap_to_stream = multiprocessing.Pipe(),
                 stream_to_gui = multiprocessing.Pipe(), gui_to_stream = multiprocessing.Pipe(),
                 mp_data_lock = multiprocessing.Lock()):# -> None:
@@ -85,6 +85,9 @@ class Pose_detection(multiprocessing.Process):
         self.gui_to_stream = gui_to_stream
         # lock
         self.mp_data_lock = mp_data_lock
+        
+        # process stop condition
+        self.stop = stop
 
         # allow setting of frame height and width
         self.height = HEIGHT

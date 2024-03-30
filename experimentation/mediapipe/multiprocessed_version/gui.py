@@ -40,7 +40,7 @@ import livestream# as lsmp   # custom class, handles mediapipe
 class Sim_GUI(multiprocessing.Process):
 
     # initialization
-    def __init__(self, 
+    def __init__(self, stop,
                 extrap_to_gui = multiprocessing.Pipe(), gui_to_extrap = multiprocessing.Pipe(),
                 stream_to_gui = multiprocessing.Pipe(), gui_to_stream = multiprocessing.Pipe()):# -> None:
         
@@ -53,6 +53,9 @@ class Sim_GUI(multiprocessing.Process):
         self.gui_to_extrap = gui_to_extrap
         self.stream_to_gui = stream_to_gui
         self.gui_to_stream = gui_to_stream
+        
+        # process stop condition
+        self.stop = stop
 
         # initialize send_extrap
         self.send_extrap = [0, 0, 0, 0]     # used to send user input to extrapolation process
