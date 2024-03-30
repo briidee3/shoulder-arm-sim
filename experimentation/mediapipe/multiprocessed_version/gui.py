@@ -285,7 +285,7 @@ class Sim_GUI(multiprocessing.Process):
     # start/run the gui display
     def start(self):
         
-        # start pipes
+        # initialize pipes
         self.gui_to_stream.send(None)
         self.gui_to_extrap.send(None)
 
