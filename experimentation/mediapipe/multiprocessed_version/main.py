@@ -26,7 +26,17 @@ no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR
 
 
 # function used to stop processes
-#def stop_processes():
+def stop_processes(stop, extrap, stream, gui_):
+    # set stop event
+    stop.set()
+
+    # wait for processes to end
+    print("Stopping processes...")
+    extrap.join()
+    stream.join()
+    gui_.join()
+
+    print("Processes ended.")
 
 
 ### ENTRY POINT
@@ -34,7 +44,10 @@ if __name__ == '__main__':
     # set multiprocessing start method to 'spawn' to prevent any issues running on windows (where only 'spawn' is available) and linux (where default is 'fork')
     #multiprocessing.set_start_method('spawn')
 
+    print("Starting biomechanics sim program...")
+
     # initialize pipes
+    print("Initializing data pipes...")
     extrap_to_stream_r, extrap_to_stream_w = multiprocessing.Pipe()     # pipe to (live)stream from extrapolation
     stream_to_extrap_r, stream_to_extrap_w = multiprocessing.Pipe()     # pipe to extrap(olation) from livestream
     gui_to_stream_r, gui_to_stream_w = multiprocessing.Pipe()           # pipe to (live)stream from gui
@@ -45,25 +58,25 @@ if __name__ == '__main__':
     # initialize lock(s)
     mp_data_lock = multiprocessing.Lock()
 
+    # initialize stop event
+    stop = multiprocessing.Event()
+
 
     ### PROCESS INITIALIZATION
     
     # intitialize extrapolation process
-    ep = extrapolation.Extrapolate_forces(False, False, extrap_to_stream_w, stream_to_extrap_r, extrap_to_gui_w, gui_to_extrap_r, mp_data_lock)
+    print("Starting `extrapolation.py`...")
+    ep = extrapolation.Extrapolate_forces(stop, False, False, extrap_to_stream_w, stream_to_extrap_r, extrap_to_gui_w, gui_to_extrap_r, mp_data_lock)
     ep.start()
 
     # initialize livestream process
-    livestream = livestream.Pose_detection(pose_landmarker, stream_to_extrap_w, extrap_to_stream_r, stream_to_gui_w, gui_to_stream_r)
+    print("Starting `livestream.py`...")
+    livestream = livestream.Pose_detection(stop, pose_landmarker, stream_to_extrap_w, extrap_to_stream_r, stream_to_gui_w, gui_to_stream_r)
     livestream.start()
 
     # initialize gui
-    gui = gui.Sim_GUI(extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
+    print("Starting `gui.py`...")
+    gui = gui.Sim_GUI(stop, extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
     gui.start()
-
-
-    # end processes
-    gui.join()
-    livestream.join()
-    ep.join()
 
 
