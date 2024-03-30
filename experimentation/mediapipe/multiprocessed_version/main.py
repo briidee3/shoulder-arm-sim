@@ -32,6 +32,7 @@ def stop_processes(stop, extrap, stream, gui_):
 
     # wait for processes to end
     print("Stopping processes...")
+    gui_.__del__()  # ends tkinter process
     extrap.join()
     stream.join()
     gui_.join()
@@ -80,7 +81,7 @@ if __name__ == '__main__':
     gui = gui.Sim_GUI(stop, extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
     gui.start()
 
-    while not cv2.waitkey(0) == 27:
+    while not cv2. waitKey(0) == 27:
         pass
     stop_processes(stop, ep, livestream, gui)
 
