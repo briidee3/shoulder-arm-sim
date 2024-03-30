@@ -329,6 +329,10 @@ class Sim_GUI(multiprocessing.Process):
 
     # update numerical data in gui
     def update_data(self):
+        # check if program should end
+        if self.stop:
+            self.__del__
+
         # update data
         self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
         self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
@@ -455,8 +459,12 @@ class Sim_GUI(multiprocessing.Process):
 
 
 
-    # handle end of runtime
+    # handle end of runtime (run when tkinter window closes)
     def __del__(self):
+
+        # stop threads
+        self.data_handler.join()
+
         # stop gui
         self.root.destroy()
 
