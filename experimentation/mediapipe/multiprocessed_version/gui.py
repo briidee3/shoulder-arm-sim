@@ -57,6 +57,12 @@ class Sim_GUI(multiprocessing.Process):
         # initialize send_extrap
         self.send_extrap = [0, 0, 0, 0]     # used to send user input to extrapolation process
 
+        # set up thread for separate handling of calculated data handling
+        self.data_handler = threading.Thread(target = self.handle_extrap_pipes)
+
+        # handle stopping program
+        self.stop = False
+
 
         ### DATA AND CONSTANTS
 
@@ -279,8 +285,12 @@ class Sim_GUI(multiprocessing.Process):
     # start/run the gui display
     def start(self):
         
-        # start piping back and forth with livestream
+        # start pipes
         self.gui_to_stream.send(None)
+        self.gui_to_extrap.send(None)
+
+        # start thread for handling data
+        self.data_handler.start()
 
         # start updater loops
         self.update_display()                               # update display
@@ -312,14 +322,7 @@ class Sim_GUI(multiprocessing.Process):
             self.image_label.configure(image = self.image_label.photo)
             #self.calculated_data = self.mediapipe_runtime.ep.get_calculated_data()
 
-            # receive data from extrap from pipe
-            self.calculated_data = self.extrap_to_gui.recv()
-
         self.gui_to_stream.send(None)                       # let livestream know gui is ready for new frame
-        self.gui_to_extrap.send(self.send_extrap)           # let extrap know gui is ready for next frame
-                                                            # and send user input data if it exists
-        # reset send_extrap
-        self.send_extrap = [0, 0, 0, 0]
 
         # call next update cycle
         self.root.after(self.delay, self.update_display)    # update approximately 60 times per second
@@ -364,6 +367,18 @@ class Sim_GUI(multiprocessing.Process):
         # update plot
         self.ax.scatter(self.history_elbow_angle, self.history_bicep_force)
         self.fig.canvas.draw()
+
+    
+    # handle data pipes to/from extrapolation process
+    def handle_extrap_pipes(self):
+        while not self.stop:
+            # receive data from extrap from pipe
+            self.calculated_data = self.extrap_to_gui.recv()
+
+            # send user input to extrapolation process if needed, otherwise let extrap know gui ready for next data
+            self.gui_to_extrap.send(self.send_extrap)
+            # reset user input
+            self.send_extrap = [0, 0, 0, 0]
 
 
     ### USER INPUT HANDLERS
