@@ -145,6 +145,8 @@ class Extrapolate_forces(multiprocessing.Process):
 
         # handle sending and receiving data from gui in a thread
         self.gui_handler = threading.Thread(target = self.handle_gui_data)
+        # initialize gui data handler
+        self.gui_handler.start()
 
         # toggle for calculating left arm or right arm
         self.is_right = right
@@ -243,19 +245,21 @@ class Extrapolate_forces(multiprocessing.Process):
 
         # initialize pipe with livestream
         self.extrap_to_stream.send(None)
-
-        # initialize gui data handler
-        self.gui_handler.start()
+        print("extrapolation.py: Initialized extrap_to_stream pipe.")
 
         # run until told to stop
         while not self.stop:
+            print("extrapolation.py: Getting data from `livestream.py`...")
             # receive data from livestream
             mp_data_out = self.stream_to_extrap.recv()
+            print("extrapolation.py: Got data from `livestream.py`.")
             # run calculations on data
             with self.mp_data_lock: # acquire lock
                 self.update_current_frame(mp_data_out)
                 # once calculations are done, let livestream know it's ready for the next one
                 self.extrap_to_stream.send(None)
+        
+        print("extrapolation.py: Exiting...")
             
             
 
