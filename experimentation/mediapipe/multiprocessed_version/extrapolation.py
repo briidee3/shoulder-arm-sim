@@ -24,11 +24,13 @@
 # IDEAS:
 #   - train a machine learning model to tune the weights for the ratios (after implementing ratio-based depth instead of max_dist-based depth)
 
+import math
 
 import numpy as np
-import math
 from matplotlib import pyplot as plt
+
 import multiprocessing
+import threading
 
 
 
