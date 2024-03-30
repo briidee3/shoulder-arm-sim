@@ -333,7 +333,7 @@ class Sim_GUI(multiprocessing.Process):
     def update_data(self):
         # check if program should end
         if self.stop:
-            self.__del__
+            self.root.event_generate("WM_DELETE_WINDOW")
 
         # update data
         self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
@@ -473,12 +473,12 @@ class Sim_GUI(multiprocessing.Process):
     # handle end of runtime (run when tkinter window closes)
     def __del__(self):
 
+        # stop gui
+        self.root.destroy()
+
         # stop threads
         self.extrap_handler.join()
         self.stream_handler.join()
-
-        # stop gui
-        self.root.destroy()
 
         # stop mediapipe
         #if self.mediapipe_runtime.webcam_stream.isOpened():
