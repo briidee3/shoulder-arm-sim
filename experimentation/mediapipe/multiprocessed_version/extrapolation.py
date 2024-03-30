@@ -138,6 +138,9 @@ class Extrapolate_forces(multiprocessing.Process):
         # lock for mediapipe output data
         self.mp_data_lock = mp_data_lock
 
+        # handle sending and receiving data from gui in a thread
+        self.gui_handler = threading.Thread(target = self.handle_gui_data)
+
         # process stop condition
         self.stop = False
 
@@ -239,27 +242,20 @@ class Extrapolate_forces(multiprocessing.Process):
         # initialize pipe with livestream
         self.extrap_to_stream.send(None)
 
+        # initialize gui data handler
+        self.gui_handler.start()
+
         # run until told to stop
         while not self.stop:
             # receive data from livestream
-            #self.mediapipe_data_output = self.stream_to_extrap.recv()
-
-            # handle mediapipe data piping
+            mp_data_out = self.stream_to_extrap.recv()
+            # run calculations on data
             with self.mp_data_lock: # acquire lock
-                # receive data from livestream, run calculations on it
-                mp_data_out = self.stream_to_extrap.recv()
                 self.update_current_frame(mp_data_out)
                 # once calculations are done, let livestream know it's ready for the next one
                 self.extrap_to_stream.send(None)
             
-            # send data to gui
-            if self.gui_to_extrap.poll():           # make sure gui is ready for data
-                # send data to gui for displaying
-                self.extrap_to_gui.send(self.calculated_data)
-                gui_data = gui_to_extrap.recv()     # clear pipe, check if data sent from gui to extrap
-                # if received data from gui, handle it
-                if (gui_data[0] + gui_data[3]) != 0:     # check if gui_data is all zeroes
-                    self.handle_gui_data(gui_data)
+            
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
@@ -297,13 +293,20 @@ class Extrapolate_forces(multiprocessing.Process):
         except:
             print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
 
-    
+
     # handle gui data when received
     def handle_gui_data(self, gui_data):
-        # set user input values using data from gui pipe
-        self.user_height, self.user_weight, self.ball_mass = gui_data[0:3]
-        if gui_data[3]:
-            self.biacromial_scale = gui_data[3]
+        while not self.stop:
+            # send data to gui
+            if self.gui_to_extrap.poll():                   # make sure gui is ready for data
+                self.extrap_to_gui.send(self.calculated_data) # send data to gui for displaying
+                gui_data = gui_to_extrap.recv()             # clear pipe, check if data sent from gui to extrap
+
+                # if received data from gui, handle it
+                if gui_data[0]:                             # check if height/weight/mass is all zeroes
+                    self.user_height, self.user_weight, self.ball_mass = gui_data[0:3]  # set user input values using data from gui pipe
+                if gui_data[3]:                             # check for bsf input
+                    self.biacromial_scale = gui_data[3]     # set bsf
 
 
     # IMPORTANT: temporary bandaid fix for calibration
