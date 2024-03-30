@@ -110,7 +110,7 @@ class Pose_detection(multiprocessing.Process):
         # boolean handlers
         #self.toggle_auto_calibrate = False
 
-        # allow use of current frame from external program (GUI)
+        # temp store frame data
         self.ret = None
         self.cur_frame = None
         
