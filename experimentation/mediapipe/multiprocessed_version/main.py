@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
     # initialize livestream process
     print("Starting `livestream.py`...")
-    livestream = livestream.Pose_detection(stop, pose_landmarker, stream_to_extrap_w, extrap_to_stream_r, stream_to_gui_w, gui_to_stream_r)
+    livestream = livestream.Pose_detection(stop, pose_landmarker, stream_to_extrap_w, extrap_to_stream_r, stream_to_gui_w, gui_to_stream_r, mp_data_lock)
     livestream.start()
 
     # initialize gui
