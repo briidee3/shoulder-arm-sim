@@ -301,7 +301,7 @@ class Extrapolate_forces(multiprocessing.Process):
             print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
 
 
-    # handle gui data when received
+    # handle gui data when received (to be run as thread)
     def handle_gui_data(self):
         while not self.stop.is_set():
             # send data to gui
