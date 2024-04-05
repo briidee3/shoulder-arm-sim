@@ -111,7 +111,7 @@ class Pose_detection(multiprocessing.Process):
         #self.toggle_auto_calibrate = False
 
         # temp store frame data
-        self.ret = None
+        self.ret = 1
         self.cur_frame = None
         
         # helps with counting frames across functions
@@ -172,9 +172,9 @@ class Pose_detection(multiprocessing.Process):
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
         except:
             print("livestream.py: ERROR in `run()`")
-        finally:
-            print("Info: Stopping mediapipe...")
-            self.stop_program()
+        #finally:
+        print("Info: Stopping mediapipe...")
+        self.stop_program()
 
     # initialize display/camera input
     def initialize_display(self): 
@@ -239,7 +239,11 @@ class Pose_detection(multiprocessing.Process):
     
     # callback function to terminate program
     def stop_program(self):
-        self.stop.set()    # redundancy
+
+        print("livestream.py: Stopping process...")
+
+        if not self.stop.is_set():
+            self.stop.set()    # redundancy
 
         # stop sending frames
         self.sending_frames.join()
@@ -251,23 +255,23 @@ class Pose_detection(multiprocessing.Process):
         # get rid of opencv windows still up
         cv2.destroyAllWindows()
 
-        print("Program closed.")
+        print("livestream.py: Process closed.")
         #exit()
 
 
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
 
-    # handle piping data to and from extrapolation process
+    # handle piping data to and from extrapolation process (to be run as thread)
     def extrapolate_and_receive(self, mp_out):
         try:
             if self.extrap_to_stream.poll():                                # check if data coming from extrapolation process (denoting it's ready to receive)
                 with self.mp_data_lock:                                     # acquire lock
-                    self.stream_to_extrap.send(mp_out)                        # send mp_out to extrapolation process
+                    self.stream_to_extrap.send(mp_out)                      # send mp_out to extrapolation process
                 self.extrap_to_stream.recv()                                # clear pipe
         except:
             print("livestream.py: ERROR in `extrapolate_and_receive()`")
 
-    # handle piping frame data to gui
+    # handle piping frame data to gui (to be run as thread)
     def frames_to_gui(self):
         try:
             # loop until livestream process stops
@@ -366,19 +370,19 @@ class Pose_detection(multiprocessing.Process):
             print("livestream.py: ERROR with mediapipe in draw_landmarks_on_frame()")
         
         ### DEPTH AND FORCES CALCULATIONS
-        try:
-            if (pose_landmarks_list) and not self.stop.is_set():   # check if results exist (and that program isn't stopping) before attempting calculations
+        #try:
+        #    if (pose_landmarks_list) and not self.stop.is_set():   # check if results exist (and that program isn't stopping) before attempting calculations
                 #print("Extrapolating depth...")
                 #print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
-                self.extrapolate_depth(mediapipe_out)
+        #        self.extrapolate_depth(mediapipe_out)
                 #print("Calculating body forces...")
                 #self.calc_body_forces()
                 #self.frame_to_gui()
             
-            self.frame_counter += 1
-        except:
-            print("livestream.py: ERROR with depth/force calculations in draw_landmarks_on_frame()")
-        
+        #    self.frame_counter += 1
+        #except:
+        #    print("livestream.py: ERROR with depth/force calculations in draw_landmarks_on_frame()")
+        self.mediapipe_out = mediapipe_out
         
         return 1#?
     
