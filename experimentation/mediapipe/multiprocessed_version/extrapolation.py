@@ -248,7 +248,7 @@ class Extrapolate_forces(multiprocessing.Process):
         print("extrapolation.py: Initialized extrap_to_stream pipe.")
 
         # run until told to stop
-        while not self.stop:
+        while not self.stop.is_set():
             print("extrapolation.py: Getting data from `livestream.py`...")
             # receive data from livestream
             mp_data_out = self.stream_to_extrap.recv()
@@ -302,7 +302,7 @@ class Extrapolate_forces(multiprocessing.Process):
 
     # handle gui data when received
     def handle_gui_data(self):
-        while not self.stop:
+        while not self.stop.is_set():
             # send data to gui
             if self.gui_to_extrap.poll():                   # make sure gui is ready for data
                 self.extrap_to_gui.send(self.calculated_data) # send data to gui for displaying

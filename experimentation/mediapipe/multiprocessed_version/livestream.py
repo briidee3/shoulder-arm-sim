@@ -154,7 +154,7 @@ class Pose_detection(multiprocessing.Process):
                 print("ERROR opening webcam")       # make it so it doesnt crash when there's no webcam
             else:
                 # main program loop
-                while not self.stop:
+                while not self.stop.is_set():
                     # old code #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
                     #if cv2.waitKey(1) == 27:   # trying to get keyboard input to work. doesnt wanna lol
                     #    print("ESC pressed")
@@ -231,11 +231,12 @@ class Pose_detection(multiprocessing.Process):
     
     # set stop variable
     def set_stop(self, set_ = True):
-        self.stop = set_
+        if set_:
+            self.stop.set()
     
     # callback function to terminate program
     def stop_program(self):
-        self.stop = True    # redundancy
+        self.stop.set()    # redundancy
 
         # stop sending frames
         self.sending_frames.join()
@@ -267,7 +268,7 @@ class Pose_detection(multiprocessing.Process):
     def frames_to_gui(self):
         try:
             # loop until livestream process stops
-            while not self.stop:
+            while not self.stop.is_set():
                 if self.gui_to_stream.poll():                               # make sure gui is ready for next frame
                     self.stream_to_gui.send((self.ret, self.cur_frame))         # send current image frame to gui
                     self.gui_to_stream.recv()                               # clear pipe
@@ -363,7 +364,7 @@ class Pose_detection(multiprocessing.Process):
         
         ### DEPTH AND FORCES CALCULATIONS
         try:
-            if (pose_landmarks_list) and not self.stop:   # check if results exist (and that program isn't stopping) before attempting calculations
+            if (pose_landmarks_list) and not self.stop.is_set():   # check if results exist (and that program isn't stopping) before attempting calculations
                 #print("Extrapolating depth...")
                 #print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
                 self.extrapolate_depth(mediapipe_out)

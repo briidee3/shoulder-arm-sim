@@ -81,8 +81,8 @@ if __name__ == '__main__':
     gui = gui.Sim_GUI(stop, extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
     gui.start()
 
-    while not cv2. waitKey(0) == 27:
-        pass
-    stop_processes(stop, ep, livestream, gui)
+    while True:
+        if cv2.waitKey(1) == 27:
+           top_processes(stop, ep, livestream, gui)
 
 
