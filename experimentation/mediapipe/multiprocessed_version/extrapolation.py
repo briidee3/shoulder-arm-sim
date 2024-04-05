@@ -309,10 +309,11 @@ class Extrapolate_forces(multiprocessing.Process):
                 gui_data = self.gui_to_extrap.recv()             # clear pipe, check if data sent from gui to extrap
 
                 # if received data from gui, handle it
-                if gui_data[0]:                             # check if height/weight/mass is all zeroes
-                    self.user_height, self.user_weight, self.ball_mass = gui_data[0:3]  # set user input values using data from gui pipe
-                if gui_data[3]:                             # check for bsf input
-                    self.biacromial_scale = gui_data[3]     # set bsf
+                if gui_data != None:
+                    if gui_data[0]:                             # check if height/weight/mass is all zeroes
+                        self.user_height, self.user_weight, self.ball_mass = gui_data[0:3]  # set user input values using data from gui pipe
+                    if gui_data[3]:                             # check for bsf input
+                        self.biacromial_scale = gui_data[3]     # set bsf
 
 
     # IMPORTANT: temporary bandaid fix for calibration
