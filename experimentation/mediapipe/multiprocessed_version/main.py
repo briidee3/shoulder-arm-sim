@@ -32,7 +32,6 @@ def stop_processes(stop, extrap, stream, gui_):
 
     # wait for processes to end
     print("Stopping processes...")
-    gui_.__del__()  # ends tkinter process
     extrap.join()
     stream.join()
     gui_.join()
@@ -62,6 +61,7 @@ if __name__ == '__main__':
 
     # initialize stop event
     stop = multiprocessing.Event()
+    stop.clear()    # redundancy, make sure not set
 
 
     ### PROCESS INITIALIZATION
@@ -81,8 +81,11 @@ if __name__ == '__main__':
     gui = gui.Sim_GUI(stop, extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
     gui.start()
 
+    print("Started processes.")
+
     while True:
         if cv2.waitKey(1) == 27:
-           top_processes(stop, ep, livestream, gui)
+            print("Stopping...")
+            stop_processes(stop, ep, livestream, gui)
 
 
