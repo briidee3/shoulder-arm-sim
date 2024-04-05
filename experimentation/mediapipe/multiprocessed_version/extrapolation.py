@@ -306,7 +306,7 @@ class Extrapolate_forces(multiprocessing.Process):
             # send data to gui
             if self.gui_to_extrap.poll():                   # make sure gui is ready for data
                 self.extrap_to_gui.send(self.calculated_data) # send data to gui for displaying
-                gui_data = gui_to_extrap.recv()             # clear pipe, check if data sent from gui to extrap
+                gui_data = self.gui_to_extrap.recv()             # clear pipe, check if data sent from gui to extrap
 
                 # if received data from gui, handle it
                 if gui_data[0]:                             # check if height/weight/mass is all zeroes
