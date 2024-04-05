@@ -28,7 +28,8 @@ no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR
 # function used to stop processes
 def stop_processes(stop, extrap, stream, gui_):
     # set stop event
-    stop.set()
+    if not stop.is_set():
+        stop.set()
 
     # wait for processes to end
     print("Stopping processes...")
