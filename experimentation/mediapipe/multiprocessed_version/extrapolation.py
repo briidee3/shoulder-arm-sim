@@ -325,9 +325,7 @@ class Extrapolate_forces(multiprocessing.Process):
                 # send data to gui
                 if self.gui_to_extrap.poll():                   # make sure gui is ready for data
                     self.extrap_to_gui.send(self.calculated_data) # send data to gui for displaying
-                    gui_data = self.gui_to_extrap.recv()             # clear pipe, check if data sent from gui to extrap
-                    print("extrapolation.py: gui data" + gui_data)
-                    self.set_user_input(gui_data)               # handle gui data
+                    self.gui_to_extrap.recv()                   # clear pipe, check if data sent from gui to extrap
         except:
             print("extrapolation.py: ERROR handling gui data")
     
@@ -339,6 +337,7 @@ class Extrapolate_forces(multiprocessing.Process):
             
             if not uin_data == None:    # check if user input is empty
                 self.set_user_input(uin_data)   # set user input data accordingly
+                print("extrapolation.py: gui data" + str(uin_data))
             self.uin_extrap_to_gui.send(None)
 
     # set user input data from parameter
