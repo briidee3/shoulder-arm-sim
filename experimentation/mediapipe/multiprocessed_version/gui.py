@@ -475,7 +475,8 @@ class Sim_GUI(multiprocessing.Process):
     def __del__(self):
 
         # redundant set stop to true for all processes
-        self.stop.set()
+        if not self.is_set():
+            self.stop.set()
 
         # stop gui
         #self.root.destroy()
