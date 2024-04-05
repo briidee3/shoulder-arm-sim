@@ -33,7 +33,8 @@ import livestream# as lsmp   # custom class, handles mediapipe
 
 # load and prep placeholder image for program initialization
 no_image_path = './no_image.png'            # placeholder image location
-no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR2RGB))
+#no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR2RGB))
+no_image = cv2.imread(no_image_path)
 
 
 # setup runnable class for management of the GUI
