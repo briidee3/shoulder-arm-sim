@@ -84,14 +84,20 @@ if __name__ == '__main__':
     print("Started processes.")
 
     # initialize object to hold current key press
-    k = cv2.waitKey(33)
+    #k = cv2.waitKey(33)
 
     # wait until 'Esc' button pressed, then exit program
-    while True:
-        k = cv2.waitKey(33)                 # waits for 33 ms iirc
-        if k == 27:                         # checks if key is 'Esc' (keycode 27)
-            print("Stopping...")
-            stop_processes(stop, ep, livestream, gui)
+    #while True:
+        #k = cv2.waitKey(33)                 # waits for 33 ms iirc
+        #if k == 27:                         # checks if key is 'Esc' (keycode 27)
+        #    print("Stopping...")
+        #    stop_processes(stop, ep, livestream, gui)
+
+    # wait for stop to be set
+    stop.wait()
+
+    # end program
+    stop_processes(stop, ep, livestream, gui)
     
     print("Program terminated.")
 
