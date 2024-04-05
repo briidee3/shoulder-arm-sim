@@ -332,8 +332,8 @@ class Sim_GUI(multiprocessing.Process):
     # update numerical data in gui
     def update_data(self):
         # check if program should end
-        if self.stop:
-            self.root.event_generate("WM_DELETE_WINDOW")
+        if self.stop.is_set():
+            self.__del__()
 
         # update data
         self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
@@ -377,7 +377,7 @@ class Sim_GUI(multiprocessing.Process):
     
     # handle data pipes to/from extrapolation process
     def handle_extrap_pipes(self):
-        while not self.stop:
+        while not self.stop.is_set():
             # receive data from extrap from pipe
             self.calculated_data = self.extrap_to_gui.recv()
 
@@ -388,7 +388,7 @@ class Sim_GUI(multiprocessing.Process):
     
     # handle data pipes to/from livestream
     def handle_stream_pipes(self):
-        while not self.stop:
+        while not self.stop.is_set():
             # get frame data from livestream
             self.ret, self.frame = self.stream_to_gui.recv()
             # let livestream know gui is ready for new frame
