@@ -43,7 +43,8 @@ class Sim_GUI(multiprocessing.Process):
     # initialization
     def __init__(self, stop,
                 extrap_to_gui = multiprocessing.Pipe(), gui_to_extrap = multiprocessing.Pipe(),
-                stream_to_gui = multiprocessing.Pipe(), gui_to_stream = multiprocessing.Pipe()):# -> None:
+                stream_to_gui = multiprocessing.Pipe(), gui_to_stream = multiprocessing.Pipe(),
+                uin_extrap_to_gui = multiprocessing.Lock(), uin_gui_to_extrap = multiprocessing.Lock()):# -> None:
         
         # base constructor
         multiprocessing.Process.__init__(self)
@@ -54,8 +55,10 @@ class Sim_GUI(multiprocessing.Process):
         self.gui_to_extrap = gui_to_extrap
         self.stream_to_gui = stream_to_gui
         self.gui_to_stream = gui_to_stream
+        self.uin_extrap_to_gui = uin_extrap_to_gui
+        self.uin_gui_to_extrap = uin_gui_to_extrap
         
-        # process stop condition
+        # program stop condition
         self.stop = stop
 
         # initialize send_extrap
@@ -383,16 +386,22 @@ class Sim_GUI(multiprocessing.Process):
             # receive data from extrap from pipe
             self.calculated_data = self.extrap_to_gui.recv()
 
-            # send user input to extrapolation process if needed, otherwise let extrap know gui ready for next data
-            self.gui_to_extrap.send(self.send_extrap)
-            # reset user input
-            self.send_extrap = [0, 0, 0, 0]
+            # let extrap know gui ready for next data
+            self.gui_to_extrap.send(None)
+    
+    # handle sending user input to extrap
+    def handle_uin_pipes(self):
+        while not self.stop.is_set():
+            if self.uin_extrap_to_gui.poll():
+                self.uin_gui_to_extrap.send(self.send_extrap)
+                self.uin_extrap_to_gui.recv()
     
     # handle data pipes to/from livestream (to be run as thread)
     def handle_stream_pipes(self):
         while not self.stop.is_set():
             # get frame data from livestream
             self.ret, self.frame = self.stream_to_gui.recv()
+            print("gui.py: self.ret:" + self.ret)
             # let livestream know gui is ready for new frame
             self.gui_to_stream.send(None)
 
