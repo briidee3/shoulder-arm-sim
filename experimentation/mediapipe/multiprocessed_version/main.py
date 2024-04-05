@@ -50,12 +50,19 @@ if __name__ == '__main__':
 
     # initialize pipes
     print("Initializing data pipes...")
+    # mediapipe data from streamto extrap
     extrap_to_stream_r, extrap_to_stream_w = multiprocessing.Pipe()     # pipe to (live)stream from extrapolation
-    stream_to_extrap_r, stream_to_extrap_w = multiprocessing.Pipe()     # pipe to extrap(olation) from livestream
+    stream_to_extrap_r, stream_to_extrap_w = multiprocessing.Pipe()     # pipe to extrap(olation) from 
+    # livestream data to gui
     gui_to_stream_r, gui_to_stream_w = multiprocessing.Pipe()           # pipe to (live)stream from gui
     stream_to_gui_r, stream_to_gui_w = multiprocessing.Pipe()           # pipe to gui from (live)stream
+    # calculated data from extrap to gui
     gui_to_extrap_r, gui_to_extrap_w = multiprocessing.Pipe()           # pipe to extrap(olation) from gui
     extrap_to_gui_r, extrap_to_gui_w = multiprocessing.Pipe()           # pipe to gui from extrap(olation)
+    # user input from gui to extrap
+    uin_gui_to_extrap_r, uin_gui_to_extrap_w = multiprocessing.Pipe()           # pipe to extrap(olation) from gui
+    uin_extrap_to_gui_r, uin_extrap_to_gui_w = multiprocessing.Pipe()           # pipe to gui from extrap(olation)
+
 
     # initialize lock(s)
     mp_data_lock = multiprocessing.Lock()
@@ -69,7 +76,7 @@ if __name__ == '__main__':
     
     # intitialize extrapolation process
     print("Starting `extrapolation.py`...")
-    ep = extrapolation.Extrapolate_forces(stop, False, False, extrap_to_stream_w, stream_to_extrap_r, extrap_to_gui_w, gui_to_extrap_r, mp_data_lock)
+    ep = extrapolation.Extrapolate_forces(stop, False, False, extrap_to_stream_w, stream_to_extrap_r, extrap_to_gui_w, gui_to_extrap_r, mp_data_lock, uin_gui_to_extrap_r, uin_extrap_to_gui_w)
     ep.start()
 
     # initialize livestream process
@@ -79,7 +86,7 @@ if __name__ == '__main__':
 
     # initialize gui
     print("Starting `gui.py`...")
-    gui = gui.Sim_GUI(stop, extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w)
+    gui = gui.Sim_GUI(stop, extrap_to_gui_r, gui_to_extrap_w, stream_to_gui_r, gui_to_stream_w, uin_gui_to_extrap_w, uin_extrap_to_gui_r)
     gui.start()
 
     print("Started processes.")
