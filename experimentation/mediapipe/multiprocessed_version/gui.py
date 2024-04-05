@@ -331,30 +331,31 @@ class Sim_GUI(multiprocessing.Process):
 
     # update numerical data in gui
     def update_data(self):
-        # check if program should end
-        if self.stop.is_set():
+
+        if not self.stop.is_set():  # check if program set to stop
+            # update data
+            self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
+            self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
+            self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
+            self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
+
+            # update manual calibration
+            #self.manual_calibration = self.mediapipe_runtime.toggle_auto_calibrate
+            # check if using manual calibration
+            #if not self.manual_calibration:
+            #    self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
+
+            # update elbow angle and bicep force data
+            self.update_bicep_array()
+            # optional live plot updater
+            if self.auto_update_graph:
+                self.update_scatterplot()
+
+            # call next update cycle
+            self.gui.after(self.update_interval, self.update_data)
+        else:   # handle if program set to stop
             self.__del__()
 
-        # update data
-        self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
-        self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
-        self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
-        self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
-
-        # update manual calibration
-        #self.manual_calibration = self.mediapipe_runtime.toggle_auto_calibrate
-        # check if using manual calibration
-        #if not self.manual_calibration:
-        #    self.ucf_var.set(str("%0.5f" % self.mediapipe_runtime.ep.get_conversion_ratio()))
-
-        # update elbow angle and bicep force data
-        self.update_bicep_array()
-        # optional live plot updater
-        if self.auto_update_graph:
-            self.update_scatterplot()
-
-        # call next update cycle
-        self.gui.after(self.update_interval, self.update_data)
 
 
     # handle keeping track of the past n timesteps of (left arm) body force calculations
@@ -473,8 +474,11 @@ class Sim_GUI(multiprocessing.Process):
     # handle end of runtime (run when tkinter window closes)
     def __del__(self):
 
+        # redundant set stop to true for all processes
+        self.stop.set()
+
         # stop gui
-        self.root.destroy()
+        #self.root.destroy()
 
         # stop threads
         self.extrap_handler.join()
@@ -487,4 +491,6 @@ class Sim_GUI(multiprocessing.Process):
         #self.mediapipe_runtime.join()
 
         # end gui
-        #self.root.destroy()
+        self.root.destroy()
+
+
