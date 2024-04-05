@@ -253,12 +253,13 @@ class Extrapolate_forces(multiprocessing.Process):
             # receive data from livestream
             mp_data_out = self.stream_to_extrap.recv()
             print("extrapolation.py: Got data from `livestream.py`.")
+
             # run calculations on data
             if not mp_data_out == None:     # first check if mp_data_out is empty
                 with self.mp_data_lock: # acquire lock
                     self.update_current_frame(mp_data_out)
-                    # once calculations are done, let livestream know it's ready for the next one
-                    self.extrap_to_stream.send(None)
+                # once calculations are done, let livestream know it's ready for the next one
+                self.extrap_to_stream.send(None)
         
         print("extrapolation.py: Exiting...")
             
@@ -308,13 +309,20 @@ class Extrapolate_forces(multiprocessing.Process):
             if self.gui_to_extrap.poll():                   # make sure gui is ready for data
                 self.extrap_to_gui.send(self.calculated_data) # send data to gui for displaying
                 gui_data = self.gui_to_extrap.recv()             # clear pipe, check if data sent from gui to extrap
+                print("extrapolation.py: gui data" + gui_data)
+                self.set_user_input(gui_data)               # handle gui data
 
-                # if received data from gui, handle it
-                if gui_data != None:
-                    if gui_data[0]:                             # check if height/weight/mass is all zeroes
-                        self.user_height, self.user_weight, self.ball_mass = gui_data[0:3]  # set user input values using data from gui pipe
-                    if gui_data[3]:                             # check for bsf input
-                        self.biacromial_scale = gui_data[3]     # set bsf
+    # set user input data from parameter
+    def set_user_input(self, gui_data):
+        try:
+            # if received data from gui, handle it
+            if gui_data != None:
+                if gui_data[0]:                             # check if height/weight/mass is all zeroes
+                    self.user_height, self.user_weight, self.ball_mass = gui_data[0:3]  # set user input values using data from gui pipe
+                if gui_data[3]:                             # check for bsf input
+                    self.biacromial_scale = gui_data[3]     # set bsf
+        except:
+            print("extrapolation.py: ERROR in `set_user_input()` -- gui_data = " + str(gui_data))
 
 
     # IMPORTANT: temporary bandaid fix for calibration
