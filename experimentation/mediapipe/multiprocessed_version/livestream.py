@@ -262,11 +262,11 @@ class Pose_detection(multiprocessing.Process):
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
 
     # handle piping data to and from extrapolation process (to be run as thread)
-    def extrapolate_and_receive(self, mp_out):
+    def extrapolate_and_receive(self):
         try:
             if self.extrap_to_stream.poll():                                # check if data coming from extrapolation process (denoting it's ready to receive)
                 with self.mp_data_lock:                                     # acquire lock
-                    self.stream_to_extrap.send(mp_out)                      # send mp_out to extrapolation process
+                    self.stream_to_extrap.send(self.mediapipe_out)                      # send mp_out to extrapolation process
                 self.extrap_to_stream.recv()                                # clear pipe
         except:
             print("livestream.py: ERROR in `extrapolate_and_receive()`")
@@ -382,7 +382,10 @@ class Pose_detection(multiprocessing.Process):
         #    self.frame_counter += 1
         #except:
         #    print("livestream.py: ERROR with depth/force calculations in draw_landmarks_on_frame()")
-        self.mediapipe_out = mediapipe_out
+        
+        # only modify local data if not locked
+        if not self.mp_data_lock.locked():
+            self.mediapipe_out = mediapipe_out
         
         return 1#?
     
