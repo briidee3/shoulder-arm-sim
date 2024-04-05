@@ -304,13 +304,24 @@ class Extrapolate_forces(multiprocessing.Process):
 
     # handle gui data when received (to be run as thread)
     def handle_gui_data(self):
-        while not self.stop.is_set():
-            # send data to gui
-            if self.gui_to_extrap.poll():                   # make sure gui is ready for data
-                self.extrap_to_gui.send(self.calculated_data) # send data to gui for displaying
-                gui_data = self.gui_to_extrap.recv()             # clear pipe, check if data sent from gui to extrap
-                print("extrapolation.py: gui data" + gui_data)
-                self.set_user_input(gui_data)               # handle gui data
+        try:
+            while not self.stop.is_set():
+                # send data to gui
+                if self.gui_to_extrap.poll():                   # make sure gui is ready for data
+                    self.extrap_to_gui.send(self.calculated_data) # send data to gui for displaying
+                    gui_data = self.gui_to_extrap.recv()             # clear pipe, check if data sent from gui to extrap
+                    print("extrapolation.py: gui data" + gui_data)
+                    self.set_user_input(gui_data)               # handle gui data
+        except:
+            print("extrapolation.py: ERROR handling gui data")
+    
+    # handle sending calculated data to gui
+    #def handle_send_gui_data(self):
+    #    while not self.stop.is_set():
+    #        # send data to gui
+    #        if self.gui_to_extrap.poll():                   # make sure gui is ready for data
+    #            self.extrap_to_gui.send(self.calculated_data) # send data to gui for displaying
+    #            self.gui_to_extrap.recv()
 
     # set user input data from parameter
     def set_user_input(self, gui_data):
