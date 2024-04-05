@@ -252,6 +252,7 @@ class Pose_detection(multiprocessing.Process):
 
         # stop sending frames
         self.sending_frames.join()
+        self.data_piping.join()
 
         # release capture object from memory if open
         if self.webcam_stream.isOpened():
@@ -269,10 +270,11 @@ class Pose_detection(multiprocessing.Process):
     # handle piping data to and from extrapolation process (to be run as thread)
     def extrapolate_and_receive(self):
         try:
-            if self.extrap_to_stream.poll():                                # check if data coming from extrapolation process (denoting it's ready to receive)
-                with self.mp_data_lock:                                     # acquire lock
-                    self.stream_to_extrap.send(self.mediapipe_out)                      # send mp_out to extrapolation process
-                self.extrap_to_stream.recv()                                # clear pipe
+            while not self.stop.is_set():   # check if stop is set
+                if self.extrap_to_stream.poll():                                # check if data coming from extrapolation process (denoting it's ready to receive)
+                    with self.mp_data_lock:                                     # acquire lock
+                        self.stream_to_extrap.send(self.mediapipe_out)                      # send mp_out to extrapolation process
+                    self.extrap_to_stream.recv()                                # clear pipe
         except:
             print("livestream.py: ERROR in `extrapolate_and_receive()`")
 
