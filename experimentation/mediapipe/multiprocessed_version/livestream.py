@@ -83,7 +83,8 @@ class Pose_detection(multiprocessing.Process):
         self.extrap_to_stream = extrap_to_stream
         self.stream_to_gui = stream_to_gui
         self.gui_to_stream = gui_to_stream
-        # lock
+
+        # lock for mediapipe data
         self.mp_data_lock = mp_data_lock
         
         # process stop condition
@@ -140,9 +141,13 @@ class Pose_detection(multiprocessing.Process):
         # initialize display input
         self.initialize_display()
 
-        # initialize display output
+        # initialize display output thread
         self.sending_frames = threading.Thread(target = self.frames_to_gui)
         self.sending_frames.start()
+
+        # initialize data piping thread
+        self.data_piping = threading.Thread(target = self.extrapolate_and_receive)
+        self.data_piping.start()
 
         print("Initialized Pose_detection()")
 
