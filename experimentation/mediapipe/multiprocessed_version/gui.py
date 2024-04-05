@@ -293,7 +293,7 @@ class Sim_GUI(multiprocessing.Process):
         
         # initialize pipes
         self.gui_to_stream.send(None)
-        self.gui_to_extrap.send(None)
+        self.gui_to_extrap.send(None) 
 
         # start threads for handling data
         self.extrap_handler.start()
@@ -377,7 +377,7 @@ class Sim_GUI(multiprocessing.Process):
         self.fig.canvas.draw()
 
     
-    # handle data pipes to/from extrapolation process
+    # handle data pipes to/from extrapolation process (to be run as thread)
     def handle_extrap_pipes(self):
         while not self.stop.is_set():
             # receive data from extrap from pipe
@@ -388,7 +388,7 @@ class Sim_GUI(multiprocessing.Process):
             # reset user input
             self.send_extrap = [0, 0, 0, 0]
     
-    # handle data pipes to/from livestream
+    # handle data pipes to/from livestream (to be run as thread)
     def handle_stream_pipes(self):
         while not self.stop.is_set():
             # get frame data from livestream
