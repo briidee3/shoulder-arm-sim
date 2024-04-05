@@ -284,7 +284,7 @@ class Pose_detection(multiprocessing.Process):
             # loop until livestream process stops
             while not self.stop.is_set():
                 if self.gui_to_stream.poll():                               # make sure gui is ready for next frame
-                    self.stream_to_gui.send((self.ret, self.cur_frame))         # send current image frame to gui
+                    self.stream_to_gui.send(self.cur_frame)                 # send current image frame to gui
                     self.gui_to_stream.recv()                               # clear pipe
         except:
             print("livestream.py: ERROR in `frames_to_gui()`")

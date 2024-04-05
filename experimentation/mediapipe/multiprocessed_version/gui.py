@@ -73,7 +73,7 @@ class Sim_GUI(multiprocessing.Process):
         
         # temp store frame data
         self.ret = 0
-        self.frame = no_image
+        self.frame = None
 
         # variable for dynamic width of settings
         self.settings_width = 20
@@ -324,7 +324,7 @@ class Sim_GUI(multiprocessing.Process):
         #stream_data = self.stream_to_gui.recv()
         #print(stream_data)
 
-        if self.ret:                                             # only update if frame is present
+        if not self.frame == None:                                             # only update if frame is present
             self.frame = cv2.cvtColor(cv2.flip(self.frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
             self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(self.frame))
             self.image_label.configure(image = self.image_label.photo)
@@ -400,8 +400,10 @@ class Sim_GUI(multiprocessing.Process):
     def handle_stream_pipes(self):
         while not self.stop.is_set():
             # get frame data from livestream
-            self.ret, self.frame = self.stream_to_gui.recv()
-            print("gui.py: self.ret:" + self.ret)
+            #(self.ret, self.frame) = self.stream_to_gui.recv()
+            self.frame = self.stream_to_gui.recv()
+            #print("gui.py: self.ret:" + str(self.ret))
+            
             # let livestream know gui is ready for new frame
             self.gui_to_stream.send(None)
 
