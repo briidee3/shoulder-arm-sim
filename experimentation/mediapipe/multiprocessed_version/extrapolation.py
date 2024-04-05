@@ -254,10 +254,11 @@ class Extrapolate_forces(multiprocessing.Process):
             mp_data_out = self.stream_to_extrap.recv()
             print("extrapolation.py: Got data from `livestream.py`.")
             # run calculations on data
-            with self.mp_data_lock: # acquire lock
-                self.update_current_frame(mp_data_out)
-                # once calculations are done, let livestream know it's ready for the next one
-                self.extrap_to_stream.send(None)
+            if not mp_data_out == None:     # first check if mp_data_out is empty
+                with self.mp_data_lock: # acquire lock
+                    self.update_current_frame(mp_data_out)
+                    # once calculations are done, let livestream know it's ready for the next one
+                    self.extrap_to_stream.send(None)
         
         print("extrapolation.py: Exiting...")
             
