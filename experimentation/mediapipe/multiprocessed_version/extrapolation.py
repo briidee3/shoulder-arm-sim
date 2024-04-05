@@ -118,7 +118,8 @@ class Extrapolate_forces(multiprocessing.Process):
     def __init__(self, stop = multiprocessing.Event(), right = False, one_arm = False, 
                 extrap_to_stream = multiprocessing.Pipe(), stream_to_extrap = multiprocessing.Pipe(),
                 extrap_to_gui = multiprocessing.Pipe(), gui_to_extrap = multiprocessing.Pipe(),
-                mp_data_lock = multiprocessing.Lock()):# -> None:
+                mp_data_lock = multiprocessing.Lock(), 
+                uin_extrap_to_gui = multiprocessing.Lock(), uin_gui_to_extrap = multiprocessing.Lock()):# -> None:
         
         # base constructor
         multiprocessing.Process.__init__(self)
@@ -137,16 +138,22 @@ class Extrapolate_forces(multiprocessing.Process):
         self.stream_to_extrap = stream_to_extrap
         self.extrap_to_gui = extrap_to_gui
         self.gui_to_extrap = gui_to_extrap
+        self.uin_extrap_to_gui = uin_extrap_to_gui
+        self.uin_gui_to_extrap = uin_gui_to_extrap
+
         # lock for mediapipe output data
         self.mp_data_lock = mp_data_lock
         
         # process stop condition
         self.stop = stop
 
-        # handle sending and receiving data from gui in a thread
-        self.gui_handler = threading.Thread(target = self.handle_gui_data)
-        # initialize gui data handler
-        self.gui_handler.start()
+        # handle sending data to gui in a thread
+        self.gui_handler = threading.Thread(target = self.handle_calcd_data)
+        self.gui_handler.start()    # initialize calculated data output to gui handler
+
+        # handle receiving user input from gui
+        self.uin_handler = threading.Thread(target = self.handle_uin_gui_data)
+        self.uin_handler.start()
 
         # toggle for calculating left arm or right arm
         self.is_right = right
@@ -243,9 +250,11 @@ class Extrapolate_forces(multiprocessing.Process):
     # IMPORTANT: run process 
     def run(self):
 
-        # initialize pipe with livestream
-        self.extrap_to_stream.send(None)
-        print("extrapolation.py: Initialized extrap_to_stream pipe.")
+        # initialize pipes
+        self.extrap_to_stream.send(None)    # pipe with livestream
+        self.uin_extrap_to_gui.send(None)       # pipe for user input with gui
+
+        print("extrapolation.py: Initialized pipes.")
 
         # run until told to stop
         while not self.stop.is_set():
@@ -262,6 +271,13 @@ class Extrapolate_forces(multiprocessing.Process):
                 self.extrap_to_stream.send(None)
         
         print("extrapolation.py: Exiting...")
+        self.stop_program()
+        print("extrapolation.py: Exited.")
+
+    # stop program
+    def stop_program(self):
+        self.gui_handler.join()
+        self.uin_handler.join()
             
             
 
@@ -303,7 +319,7 @@ class Extrapolate_forces(multiprocessing.Process):
 
 
     # handle gui data when received (to be run as thread)
-    def handle_gui_data(self):
+    def handle_calcd_data(self):
         try:
             while not self.stop.is_set():
                 # send data to gui
@@ -315,23 +331,23 @@ class Extrapolate_forces(multiprocessing.Process):
         except:
             print("extrapolation.py: ERROR handling gui data")
     
-    # handle sending calculated data to gui
-    #def handle_send_gui_data(self):
-    #    while not self.stop.is_set():
-    #        # send data to gui
-    #        if self.gui_to_extrap.poll():                   # make sure gui is ready for data
-    #            self.extrap_to_gui.send(self.calculated_data) # send data to gui for displaying
-    #            self.gui_to_extrap.recv()
+    # handle receiving user input data from gui
+    def handle_uin_gui_data(self):
+        while not self.stop.is_set():
+            # receive data
+            uin_data = self.uin_gui_to_extrap.recv()
+            
+            if not uin_data == None:    # check if user input is empty
+                self.set_user_input(uin_data)   # set user input data accordingly
+            self.uin_extrap_to_gui.send(None)
 
     # set user input data from parameter
-    def set_user_input(self, gui_data):
+    def set_user_input(self, uin_data):
         try:
-            # if received data from gui, handle it
-            if gui_data != None:
-                if gui_data[0]:                             # check if height/weight/mass is all zeroes
-                    self.user_height, self.user_weight, self.ball_mass = gui_data[0:3]  # set user input values using data from gui pipe
-                if gui_data[3]:                             # check for bsf input
-                    self.biacromial_scale = gui_data[3]     # set bsf
+            if gui_data[0]:                             # check if height/weight/mass is all zeroes
+                self.user_height, self.user_weight, self.ball_mass = gui_data[0:3]  # set user input values using data from gui pipe
+            if gui_data[3]:                             # check for bsf input
+                self.biacromial_scale = gui_data[3]     # set bsf
         except:
             print("extrapolation.py: ERROR in `set_user_input()` -- gui_data = " + str(gui_data))
 
