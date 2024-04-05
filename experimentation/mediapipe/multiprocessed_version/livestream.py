@@ -149,6 +149,9 @@ class Pose_detection(multiprocessing.Process):
     # run the program
     def run(self):
         try:
+            # start pipe to extrap
+            self.stream_to_extrap.send(None)
+
             # display and update video stream
             if self.webcam_stream.isOpened() == False:
                 print("ERROR opening webcam")       # make it so it doesnt crash when there's no webcam
