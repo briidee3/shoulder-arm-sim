@@ -32,8 +32,8 @@ import livestream# as lsmp   # custom class, handles mediapipe
 #pose_landmarker = './landmarkers/pose_landmarker_full.task'
 
 # load and prep placeholder image for program initialization
-#no_image_path = './no_image.png'            # placeholder image location
-#no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR2RGB))
+no_image_path = './no_image.png'            # placeholder image location
+no_image = Image.fromarray(cv2.cvtColor(cv2.imread(no_image_path), cv2.COLOR_BGR2RGB))
 
 
 # setup runnable class for management of the GUI
@@ -68,8 +68,8 @@ class Sim_GUI(multiprocessing.Process):
         ### DATA AND CONSTANTS
         
         # temp store frame data
-        self.ret = None
-        self.frame = None
+        self.ret = 0
+        self.frame = no_image
 
         # variable for dynamic width of settings
         self.settings_width = 20
