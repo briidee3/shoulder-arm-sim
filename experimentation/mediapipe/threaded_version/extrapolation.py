@@ -112,7 +112,7 @@ SEGMENT_TO_VERTEX = {
 class Extrapolate_forces():
         
     # initialization
-    def __init__(self, right = False, one_arm = False) -> None:
+    def __init__(self, right = False, one_arm = False, mp_data_lock = threading.Lock()) -> None:
         ### USER INPUT DATA
 
         self.user_height = 1.78     # user height (meters)
@@ -134,7 +134,10 @@ class Extrapolate_forces():
         self.biacromial_scale = 0.23            # temporarily set to middle of male (0.234) to female (0.227) range for testing
 
         # ndarray to store mediapipe data output, even if from other process(es)
-        self.mediapipe_data_output = np.ndarray((10, 3), dtype = "float64")
+        self.mediapipe_data_output = np.zeros((10, 3), dtype = "float64")
+
+        # lock for mediapipe data
+        self.mp_data_lock = mp_data_lock
 
         # used for storing distance data (to prevent unnecessary recalculations)
         # consider changing to float32 or float16

@@ -101,6 +101,9 @@ class Pose_detection(threading.Thread):
         self.stop = False
         self.toggle_auto_calibrate = False
 
+        # lock for mediapipe output data
+        self.mp_data_lock = threading.Lock()
+
         # allow use of current frame from external program (GUI)
         self.ret = None
         self.cur_frame = None
@@ -126,7 +129,7 @@ class Pose_detection(threading.Thread):
         # initialize extrapolation and body force calculation object
         #self.right_arm = extrapolation.Extrapolate_forces(is_right = True)  # right arm
         #self.left_arm = extrapolation.Extrapolate_forces()             # left arm
-        self.ep = extrapolation.Extrapolate_forces()                    # both arms
+        self.ep = extrapolation.Extrapolate_forces(self.mp_data_lock)                    # both arms
         
         #self.initialize_display()                                       # initialize display input
         # initialization of image (updated asynchronously)
@@ -317,7 +320,8 @@ class Pose_detection(threading.Thread):
             if (pose_landmarks_list) and not self.stop:   # check if results exist (and that program isn't stopping) before attempting calculations
                 #print("Extrapolating depth...")
                 #print("DEBUG: pose_landmarks_list: %s" % mediapipe_out)
-                self.extrapolate_depth(mediapipe_out)
+                with self.mp_data_lock:
+                    self.extrapolate_depth(mediapipe_out)
                 #print("Calculating body forces...")
                 #self.calc_body_forces()
             
