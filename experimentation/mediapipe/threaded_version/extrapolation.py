@@ -486,7 +486,7 @@ class Extrapolate_forces():
             segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length
             max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
             #print("v1 %s, v2 %s, si %s" % (vertex_one, vertex_two, segment_index))  # DEBUG
-            angle = self.angle_from_normal(cur_dist, max_dist)                      # calculate difference between max distance and current distance
+            angle = self.angle_from_normal((self.sim_to_real_conversion_factor * cur_dist), max_dist)   # calculate difference between max distance and current distance
 
             r = np.sin(angle) * max_dist                                         # calculate depth
             #print(r)
