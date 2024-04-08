@@ -86,6 +86,9 @@ class Pose_detection(multiprocessing.Process):
 
         # lock for mediapipe data
         self.mp_data_lock = mp_data_lock
+
+        # lock for frame data
+        self.frame_lock = multiprocessing.Lock()
         
         # process stop condition
         self.stop = stop
@@ -154,8 +157,9 @@ class Pose_detection(multiprocessing.Process):
     # run the program
     def run(self):
         try:
-            # start pipe to extrap
+            # start pipes
             self.stream_to_extrap.send(None)
+            self.stream_to_gui.send(None)
 
             # display and update video stream
             if self.webcam_stream.isOpened() == False:
@@ -171,7 +175,8 @@ class Pose_detection(multiprocessing.Process):
                     cur_msec = (int)(time.time() * 1000)
 
                     # capture video for each frame
-                    self.ret, self.cur_frame = self.webcam_stream.read()    # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                    with self.frame_lock:   # lock frame data to prevent issues with sending frames to gui
+                        self.ret, self.cur_frame = self.webcam_stream.read()    # ret is true if frame available, false otherwise; cur_frame is current frame (image)
 
                     # run detector callback function, updates annotated_image
                     self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
@@ -273,7 +278,7 @@ class Pose_detection(multiprocessing.Process):
             while not self.stop.is_set():   # check if stop is set
                 if self.extrap_to_stream.poll():                                # check if data coming from extrapolation process (denoting it's ready to receive)
                     with self.mp_data_lock:                                     # acquire lock
-                        self.stream_to_extrap.send(self.mediapipe_out)                      # send mp_out to extrapolation process
+                        self.stream_to_extrap.send(self.mediapipe_out)          # send mp_out to extrapolation process
                     self.extrap_to_stream.recv()                                # clear pipe
         except:
             print("livestream.py: ERROR in `extrapolate_and_receive()`")
@@ -284,7 +289,8 @@ class Pose_detection(multiprocessing.Process):
             # loop until livestream process stops
             while not self.stop.is_set():
                 if self.gui_to_stream.poll():                               # make sure gui is ready for next frame
-                    self.stream_to_gui.send(self.cur_frame)                 # send current image frame to gui
+                    with self.frame_lock:
+                        self.stream_to_gui.send(self.cur_frame)                 # send current image frame to gui
                     self.gui_to_stream.recv()                               # clear pipe
         except:
             print("livestream.py: ERROR in `frames_to_gui()`")

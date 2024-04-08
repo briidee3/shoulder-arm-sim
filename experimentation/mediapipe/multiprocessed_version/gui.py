@@ -401,7 +401,12 @@ class Sim_GUI(multiprocessing.Process):
         while not self.stop.is_set():
             # get frame data from livestream
             #(self.ret, self.frame) = self.stream_to_gui.recv()
-            self.frame = self.stream_to_gui.recv()
+
+            frame = self.stream_to_gui.recv()
+
+            # check to make sure recent frame sent exists
+            if not frame == None:
+                self.frame = frame
             #print("gui.py: self.ret:" + str(self.ret))
             
             # let livestream know gui is ready for new frame
