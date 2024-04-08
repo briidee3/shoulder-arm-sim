@@ -47,7 +47,7 @@ import extrapolation
 video_source = 0
 
 # model to be used as "Pose Landmarker"
-pose_landmarker = './landmarkers/pose_landmarker_heavy.task'
+#pose_landmarker = '../landmarkers/pose_landmarker_heavy.task'
 WIDTH = 640
 HEIGHT = 480
 
@@ -128,51 +128,55 @@ class Pose_detection(threading.Thread):
         #self.left_arm = extrapolation.Extrapolate_forces()             # left arm
         self.ep = extrapolation.Extrapolate_forces()                    # both arms
         
-        self.initialize_display()                                       # initialize display input
+        #self.initialize_display()                                       # initialize display input
+        # initialization of image (updated asynchronously)
+        self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
+
+        # options for pose landmarker
+        options = PoseLandmarkerOptions(
+            base_options = BaseOptions(model_asset_path = self.model_path),
+            running_mode = VisionRunningMode.LIVE_STREAM,
+            result_callback = self.draw_landmarks_on_frame
+        )
+        self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
 
         print("Initialized Pose_detection()")
 
     # run the program
     def run(self):
-        try:
-            # display and update video stream
-            if self.webcam_stream.isOpened() == False:
-                print("ERROR opening webcam")       # make it so it doesnt crash when there's no webcam
-            else:
-                # main program loop
-                while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
-                    #if cv2.waitKey(1) == 27:   # trying to get keyboard input to work. doesnt wanna lol
-                    #    print("ESC pressed")
-                    
-                    # get current millisecond for use by detector
-                    cur_msec = (int)(time.time() * 1000)
+        #try:
+        # display and update video stream
+        if self.webcam_stream.isOpened() == False:
+            print("ERROR opening webcam")       # make it so it doesnt crash when there's no webcam
+        else:
+            # main program loop
+            while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
+                #if cv2.waitKey(1) == 27:   # trying to get keyboard input to work. doesnt wanna lol
+                #    print("ESC pressed")
+                
+                # get current millisecond for use by detector
+                cur_msec = (int)(time.time() * 1000)
 
-                    # capture video for each frame
-                    self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                # capture video for each frame
+                ret, cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                # set object variables
+                self.ret = ret
+                self.cur_frame = cur_frame
 
-                    # run detector callback function, updates annotated_image
-                    self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
-        except:
-            print("livestream_mediapipe_class.py: ERROR in `run()`")
-        finally:
-            print("Info: Stopping mediapipe...")
-            self.stop_program()
+                # run detector callback function, updates annotated_image
+                self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
+        #except:
+        #    print("livestream_mediapipe_class.py: ERROR in `run()`")
+        #finally:
+        #    print("Info: Stopping mediapipe...")
+        self.stop_program()
 
     # initialize display/camera input
-    def initialize_display(self): 
-        try:
-            # initialization of image (updated asynchronously)
-            self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
-
-            # options for pose landmarker
-            options = PoseLandmarkerOptions(
-                base_options = BaseOptions(model_asset_path = self.model_path),
-                running_mode = VisionRunningMode.LIVE_STREAM,
-                result_callback = self.draw_landmarks_on_frame
-            )
-            self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
-        except:
-            print("livestream_mediapipe_class.py: ERROR in `initialize_display()`")
+    #def initialize_display(self): 
+    #    try:
+            
+    #    except:
+    #        print("livestream_mediapipe_class.py: ERROR in `initialize_display()`")
         
     # set height and width of image
     def set_image_hw(self, height = HEIGHT, width = WIDTH):
