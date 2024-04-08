@@ -117,6 +117,9 @@ class Pose_detection(multiprocessing.Process):
         # temp store frame data
         self.ret = 1
         self.cur_frame = None
+
+        # local store mediapipe output
+        self.mediapipe_out = np.zeros((10, 3), dtype = "float64")
         
         # helps with counting frames across functions
         self.frame_counter = 0                                          # used to keep track of which frame is which
@@ -142,7 +145,17 @@ class Pose_detection(multiprocessing.Process):
         #self.ep = extrapolation.Extrapolate_forces()                    # both arms
 
         # initialize display input
-        self.initialize_display()
+        #self.initialize_display()
+        # initialization of image (updated asynchronously)
+        self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
+
+        # options for pose landmarker
+        options = PoseLandmarkerOptions(
+            base_options = BaseOptions(model_asset_path = self.model_path),
+            running_mode = VisionRunningMode.LIVE_STREAM,
+            result_callback = self.draw_landmarks_on_frame
+        )
+        self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
 
         # initialize display output thread
         self.sending_frames = threading.Thread(target = self.frames_to_gui)
@@ -187,21 +200,11 @@ class Pose_detection(multiprocessing.Process):
         self.stop_program()
 
     # initialize display/camera input
-    def initialize_display(self): 
-        try:
-            # initialization of image (updated asynchronously)
-            self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
-
-            # options for pose landmarker
-            options = PoseLandmarkerOptions(
-                base_options = BaseOptions(model_asset_path = self.model_path),
-                running_mode = VisionRunningMode.LIVE_STREAM,
-                result_callback = self.draw_landmarks_on_frame
-            )
-            self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
-
-        except:
-            print("livestream.py: ERROR in `initialize_display()`")
+    #def initialize_display(self): 
+    #    try:
+        
+    #    except:
+    #        print("livestream.py: ERROR in `initialize_display()`")
         
     # set height and width of image
     def set_image_hw(self, height = HEIGHT, width = WIDTH):
@@ -274,14 +277,14 @@ class Pose_detection(multiprocessing.Process):
 
     # handle piping data to and from extrapolation process (to be run as thread)
     def extrapolate_and_receive(self):
-        try:
-            while not self.stop.is_set():   # check if stop is set
-                if self.extrap_to_stream.poll():                                # check if data coming from extrapolation process (denoting it's ready to receive)
-                    with self.mp_data_lock:                                     # acquire lock
-                        self.stream_to_extrap.send(self.mediapipe_out)          # send mp_out to extrapolation process
-                    self.extrap_to_stream.recv()                                # clear pipe
-        except:
-            print("livestream.py: ERROR in `extrapolate_and_receive()`")
+        #try:
+        while not self.stop.is_set():   # check if stop is set
+            if self.extrap_to_stream.poll():                                # check if data coming from extrapolation process (denoting it's ready to receive)
+                with self.mp_data_lock:                                     # acquire lock
+                    self.stream_to_extrap.send(self.mediapipe_out)          # send mp_out to extrapolation process
+                self.extrap_to_stream.recv()                                # clear pipe
+        #except:
+        #    print("livestream.py: ERROR in `extrapolate_and_receive()`")
 
     # handle piping frame data to gui (to be run as thread)
     def frames_to_gui(self):
