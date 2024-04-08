@@ -29,6 +29,7 @@ import numpy as np
 import math
 from matplotlib import pyplot as plt
 
+import threading
 
 
 # set to not display in scientific notation
@@ -308,11 +309,16 @@ class Extrapolate_forces():
     def calc_dist_between_vertices(self, first_part, second_part):
         try:
             # calculate distance for parts in current frame
-            dist = np.linalg.norm(
-                            self.mediapipe_data_output[first_part, :] - 
-                            self.mediapipe_data_output[second_part, :]
-                        )
+            #dist = np.linalg.norm(
+            #                self.mediapipe_data_output[second_part, :] - 
+            #                self.mediapipe_data_output[first_part, :]
+            #            )
             
+            first = self.mediapipe_data_output[first_part]
+            second = self.mediapipe_data_output[second_part]
+
+            dist = np.sqrt( (second[0] - first[0])**2 + (second[2] - first[2])**2 )
+
             # update max distance between these parts, if necessary
             if dist > self.max_array[first_part][second_part]:
                 self.max_array[first_part][second_part] = dist
@@ -516,8 +522,8 @@ class Extrapolate_forces():
                         self.mediapipe_data_output[self.vertex_order[i][j + 1], 1] = vertex_y
             
             # calculate elbow angle for both arms
-            self.calc_elbow_angle(False)    # left
-            self.calc_elbow_angle(True)     # right
+            self.calc_elbow_angle(right_side = False)    # left
+            self.calc_elbow_angle(right_side = True)     # right
         except:
             print("extrapolation.py: ERROR in set_depth()")
 
@@ -532,6 +538,10 @@ class Extrapolate_forces():
             x = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 0]
             y = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 1]
             z = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 2]
+
+            # DEBUG
+            if not right_side:
+                print("extrapolation.py: DEPTH OF LEFT ELBOW: " + str(y[1]))
 
             #shoulder = self.mediapipe_data_output[(0 + (int)(right_side))]
             #elbow = self.mediapipe_data_output[(2 + (int)(right_side))]
@@ -594,10 +604,10 @@ class Extrapolate_forces():
                 #elbow_angle = 2 * np.acos(quat_w)  
 
             #DEBUGGING
-            if right_side:
-                print(np.rad2deg(self.elbow_angles[(int)(right_side)]))
-            print("vector A: ", vector_a)
-            print("vector B: ", vector_b)
+            #if right_side:
+            #    print(np.rad2deg(self.elbow_angles[(int)(right_side)]))
+            #rint("vector A: ", vector_a)
+            #print("vector B: ", vector_b)
 
             #return elbow_angle
 
