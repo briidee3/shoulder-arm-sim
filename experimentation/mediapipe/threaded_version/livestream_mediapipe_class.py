@@ -364,28 +364,35 @@ class Pose_detection(threading.Thread):
     #   - make it so that this utilizes as many components as possible from `draw_landmarks_on_frame` so as to
     #     not repeat things and waste memory in the process  
     #   - or just see about running hand landmarks in a different thread or multiprocess it
+    # referenced https://github.com/googlesamples/mediapipe/blob/main/examples/hand_landmarker/python/hand_landmarker.ipynb
     def hand_draw_landmarks_on_frame(self, detection_result: HandLandmarkerResult, rgb_image: mp.Image, _):
         try:
             hand_landmarks_list = detection_result.hand_landmarks
+            handedness_list = detection_result.handedness
             # get annotated_image after running draw_landmarks_on_frame for PoseLandmarker, use it as a base
             annotated_image = self.annotated_image #np.copy(rgb_image.numpy_view())
             
             # loop thru detected hand poses to visualize
             for idx in range(len(hand_landmarks_list)):
                 hand_landmarks = hand_landmarks_list[idx]
+                handedness = handedness_list[idx]
 
                 # draw the hand landmarks
                 hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-                for landmark in hand_landmarks:
-                    hand_landmarks_proto.landmark.extend([
-                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
-                    ])
+                #for landmark in hand_landmarks:
+                hand_landmarks_proto.landmark.extend([
+                    landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
+                ])
                 solutions.drawing_utils.draw_landmarks(
                     annotated_image,
                     hand_landmarks_proto,
                     solutions.hand.HAND_CONNECTIONS,
-                    solutions.drawing_styles.get_default_hand_landmarks_style()
+                    solutions.drawing_styles.get_default_hand_landmarks_style(),
+                    solutions.drawing_styles.get_default_hand_connections_style()
                 )
+
+            # update object version of annotated_image
+            self.annotated_image = annotated_image
         except:
             print("livestream_mediapipe_class.py: ERROR with mediapipe in hand_draw_landmarks_on_frame()")
 
