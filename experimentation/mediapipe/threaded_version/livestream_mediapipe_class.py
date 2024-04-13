@@ -112,6 +112,9 @@ class Pose_detection(threading.Thread):
         # lock for mediapipe output data
         self.mp_data_lock = threading.Lock()
 
+        # lock for annotated image
+        self.annotated_image_lock = threading.Lock()
+
         # allow use of current frame from external program (GUI)
         self.ret = None
         self.cur_frame = None
@@ -176,14 +179,14 @@ class Pose_detection(threading.Thread):
                 #    print("ESC pressed")
                 
                 # get current millisecond for use by detector
-                cur_msec = (int)(time.time() * 1000)
-                self.cur_msec = cur_msec    # object-wide version of cur_msec (currently in testing)
+                self.cur_msec = (int)(time.time() * 1000)
+                #self.cur_msec = cur_msec    # object-wide version of cur_msec (currently in testing)
 
                 # capture video for each frame
-                ret, cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
                 # set object variables
-                self.ret = ret
-                self.cur_frame = cur_frame
+                #self.ret = ret
+                #self.cur_frame = cur_frame
 
                 # run detector callback functions, updates annotated_image
                 self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
