@@ -394,8 +394,9 @@ class Pose_detection(threading.Thread):
 
             # update object version of annotated_image
             self.annotated_image = annotated_image
-        except:
+        except Exception as e:
             print("livestream_mediapipe_class.py: ERROR with mediapipe in hand_draw_landmarks_on_frame()")
+            print("\tException: %s" % str(e))
 
         return 1
     
