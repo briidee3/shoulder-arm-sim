@@ -315,7 +315,8 @@ class Pose_detection(threading.Thread):
                 )
 
             # set current frame to annotated image
-            self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
+            with self.annotated_image_lock:
+                self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
             try:
                 # call hand landmarker callback function after finishing for pose landmarker
                 self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
@@ -375,7 +376,7 @@ class Pose_detection(threading.Thread):
             handedness_list = detection_result.handedness
             # get annotated_image after running draw_landmarks_on_frame for PoseLandmarker, use it as a base
             annotated_image = self.annotated_image #np.copy(rgb_image.numpy_view())
-            
+        
             # loop thru detected hand poses to visualize
             for idx in range(len(hand_landmarks_list)):
                 hand_landmarks = hand_landmarks_list[idx]
@@ -395,8 +396,10 @@ class Pose_detection(threading.Thread):
                     solutions.drawing_styles.get_default_hand_connections_style()
                 )
 
-            # update object version of annotated_image
-            self.annotated_image = annotated_image
+                
+            with self.annotated_image_lock:# update object version of annotated_image
+                self.annotated_image = annotated_image
+                
         except Exception as e:
             print("livestream_mediapipe_class.py: ERROR with mediapipe in hand_draw_landmarks_on_frame()")
             print("\tException: %s" % str(e))
