@@ -181,7 +181,7 @@ class Pose_detection(threading.Thread):
                 self.cur_frame = cur_frame
 
                 # run detector callback functions, updates annotated_image
-                self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
+                self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
                 #self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
         #except:
         #    print("livestream_mediapipe_class.py: ERROR in `run()`")
@@ -310,7 +310,7 @@ class Pose_detection(threading.Thread):
             self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
             try:
                 # call hand landmarker callback function after finishing for pose landmarker
-                self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
+                self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
             except:
                 print("livestream_mediapipe_class.py: ERROR handling hand_detector in draw_landmarks_on_frame()")
 
