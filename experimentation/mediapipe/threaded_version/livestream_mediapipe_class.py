@@ -152,12 +152,12 @@ class Pose_detection(threading.Thread):
         self.pose_detector = PoseLandmarker.create_from_options(options)     # load pose landmarker model for use in detection
 
         # options for hand landmarker
-        options = HandLandmarkerOptions(
+        hand_options = HandLandmarkerOptions(
             base_options = HandBaseOptions(model_asset_path = self.hand_model_path),
             running_mode = HandVisionRunningMode.LIVE_STREAM,
             result_callback = self.hand_draw_landmarks_on_frame
         )
-        self.hand_detector = HandLandmarker.create_from_options(options)    # load hand landmarker model for use in detection
+        self.hand_detector = HandLandmarker.create_from_options(hand_options)    # load hand landmarker model for use in detection
 
         print("Initialized Pose_detection()")
 
