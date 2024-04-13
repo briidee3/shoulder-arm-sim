@@ -182,7 +182,7 @@ class Pose_detection(threading.Thread):
 
                 # run detector callback functions, updates annotated_image
                 self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
-                self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
+                #self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
         #except:
         #    print("livestream_mediapipe_class.py: ERROR in `run()`")
         #finally:
@@ -281,6 +281,8 @@ class Pose_detection(threading.Thread):
 
     # pose detector callback function
     # annotate and display frame with skeleton
+    # TODO:
+    #   - once HandLandmarker is all set, stop drawing the hand landmarks from PoseLandmarker
     def draw_landmarks_on_frame(self, detection_result: PoseLandmarkerResult, rgb_image: mp.Image, _):  #(rgb_image, detection_result):
         try:
             pose_landmarks_list = detection_result.pose_landmarks
@@ -306,7 +308,13 @@ class Pose_detection(threading.Thread):
 
             # set current frame to annotated image
             self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
-            
+            try:
+                # call hand landmarker callback function after finishing for pose landmarker
+                self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
+            except:
+                print("livestream_mediapipe_class.py: ERROR handling hand_detector in draw_landmarks_on_frame()")
+
+
             # add shoulders, elbows, and wrists to current dataframe
             it = 0                                                      # temp iterator
             for i in range(11, 17):
@@ -353,28 +361,29 @@ class Pose_detection(threading.Thread):
     #     not repeat things and waste memory in the process  
     #   - or just see about running hand landmarks in a different thread or multiprocess it
     def hand_draw_landmarks_on_frame(self, detection_result: HandLandmarkerResult, rgb_image: mp.Image, _):
-        try:
-            hand_landmarks_list = detection_result.hand_landmarks
-            annotated_image = np.copy(rgb_image.numpy_view())
-            
-            # loop thru detected hand poses to visualize
-            for idx in range(len(hand_landmarks_list)):
-                hand_landmarks = hand_landmarks_list[idx]
+        #try:
+        hand_landmarks_list = detection_result.hand_landmarks
+        # get annotated_image after running draw_landmarks_on_frame for PoseLandmarker, use it as a base
+        annotated_image = self.annotated_image #np.copy(rgb_image.numpy_view())
+        
+        # loop thru detected hand poses to visualize
+        for idx in range(len(hand_landmarks_list)):
+            hand_landmarks = hand_landmarks_list[idx]
 
-                # draw the hand landmarks
-                hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-                for landmark in hand_landmarks:
-                    hand_landmarks_proto.landmark.extend([
-                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
-                    ])
-                solutions.drawing_utils.draw_landmarks(
-                    annotated_image,
-                    hand_landmarks_proto,
-                    solutions.hand.HAND_CONNECTIONS,
-                    solutions.drawing_styles.get_default_hand_landmarks_style()
-                )
-        except:
-            print("livestream_mediapipe_class.py: ERROR with mediapipe in hand_draw_landmarks_on_frame()")
+            # draw the hand landmarks
+            hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+            for landmark in hand_landmarks:
+                hand_landmarks_proto.landmark.extend([
+                    landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
+                ])
+            solutions.drawing_utils.draw_landmarks(
+                annotated_image,
+                hand_landmarks_proto,
+                solutions.hand.HAND_CONNECTIONS,
+                solutions.drawing_styles.get_default_hand_landmarks_style()
+            )
+        #except:
+        #    print("livestream_mediapipe_class.py: ERROR with mediapipe in hand_draw_landmarks_on_frame()")
 
         return 1
     
