@@ -74,12 +74,13 @@ HandLandmarkerResult = mp.tasks.vision.HandLandmarkerResult
 class Pose_detection(threading.Thread):
 
     # initialization
-    def __init__(self, pose_model_path) -> None:
+    def __init__(self, pose_model_path, hand_model_path) -> None:
         # initialize thread
         threading.Thread.__init__(self)
         
         # allow model_path to be accessible to functions
         self.pose_model_path = pose_model_path
+        self.hand_model_path = hand_model_path
 
         # allow setting of frame height and width
         self.height = HEIGHT
@@ -146,7 +147,12 @@ class Pose_detection(threading.Thread):
             running_mode = VisionRunningMode.LIVE_STREAM,
             result_callback = self.draw_landmarks_on_frame
         )
-        self.detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
+        self.pose_detector = PoseLandmarker.create_from_options(options)     # load landmarker model for use in detection
+
+        # options for hand landmarker
+        options = HandLandmarkerOptions(
+            base_options = BaseOptions(model_asset_path = self.hand_model_path)
+        )
 
         print("Initialized Pose_detection()")
 
@@ -172,7 +178,7 @@ class Pose_detection(threading.Thread):
                 self.cur_frame = cur_frame
 
                 # run detector callback function, updates annotated_image
-                self.detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
+                self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
         #except:
         #    print("livestream_mediapipe_class.py: ERROR in `run()`")
         #finally:
@@ -269,7 +275,7 @@ class Pose_detection(threading.Thread):
         #self.ep.plot_picep_forces().show()                                   # display a graph depicting calculated bicep forces
 
 
-    # detector callback function
+    # pose detector callback function
     # annotate and display frame with skeleton
     def draw_landmarks_on_frame(self, detection_result: PoseLandmarkerResult, rgb_image: mp.Image, _):  #(rgb_image, detection_result):
         try:

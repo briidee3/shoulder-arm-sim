@@ -63,7 +63,7 @@ class SimGUI():
         self.hbf_max_len = 1000             # max length for history of bicep force
 
         # initialize mediapipe thread
-        self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker)
+        self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker, hand_landmarker)
         self.mediapipe_runtime.start()
 
         # allow entry in imperial (instead of metric)
