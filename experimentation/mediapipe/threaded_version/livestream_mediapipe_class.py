@@ -61,6 +61,11 @@ PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
 PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
+# HandLandmarker task object callback references
+HandLandmarker = mp.tasks.vision.HandLandmarker
+HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
+HandLandmarkerResult = mp.tasks.vision.HandLandmarkerResult
+
 
 
 ### CLASS
@@ -69,12 +74,12 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 class Pose_detection(threading.Thread):
 
     # initialization
-    def __init__(self, model_path) -> None:
+    def __init__(self, pose_model_path) -> None:
         # initialize thread
         threading.Thread.__init__(self)
         
         # allow model_path to be accessible to functions
-        self.model_path = model_path
+        self.pose_model_path = pose_model_path
 
         # allow setting of frame height and width
         self.height = HEIGHT
@@ -137,7 +142,7 @@ class Pose_detection(threading.Thread):
 
         # options for pose landmarker
         options = PoseLandmarkerOptions(
-            base_options = BaseOptions(model_asset_path = self.model_path),
+            base_options = BaseOptions(model_asset_path = self.pose_model_path),
             running_mode = VisionRunningMode.LIVE_STREAM,
             result_callback = self.draw_landmarks_on_frame
         )
