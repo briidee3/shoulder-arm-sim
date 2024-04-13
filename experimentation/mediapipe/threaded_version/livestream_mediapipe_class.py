@@ -115,6 +115,7 @@ class Pose_detection(threading.Thread):
         # allow use of current frame from external program (GUI)
         self.ret = None
         self.cur_frame = None
+        self.cur_msec = 0
         
         # helps with counting frames across functions
         self.frame_counter = 0                                          # used to keep track of which frame is which
@@ -175,6 +176,7 @@ class Pose_detection(threading.Thread):
                 
                 # get current millisecond for use by detector
                 cur_msec = (int)(time.time() * 1000)
+                self.cur_msec = cur_msec    # object-wide version of cur_msec (currently in testing)
 
                 # capture video for each frame
                 ret, cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
@@ -183,7 +185,7 @@ class Pose_detection(threading.Thread):
                 self.cur_frame = cur_frame
 
                 # run detector callback functions, updates annotated_image
-                self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
+                self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
                 #self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
         #except:
         #    print("livestream_mediapipe_class.py: ERROR in `run()`")
@@ -312,7 +314,7 @@ class Pose_detection(threading.Thread):
             self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
             try:
                 # call hand landmarker callback function after finishing for pose landmarker
-                self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), cur_msec )
+                self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
             except:
                 print("livestream_mediapipe_class.py: ERROR handling hand_detector in draw_landmarks_on_frame()")
 
