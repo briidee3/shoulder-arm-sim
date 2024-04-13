@@ -112,8 +112,10 @@ class Pose_detection(threading.Thread):
         # lock for mediapipe output data
         self.mp_data_lock = threading.Lock()
 
-        # lock for annotated image
-        self.annotated_image_lock = threading.Lock()
+        # for use syncing annotated image
+        #self.annotated_image_lock = threading.Lock()
+        self.annot_img_finish = True
+
 
         # allow use of current frame from external program (GUI)
         self.ret = None
@@ -146,6 +148,8 @@ class Pose_detection(threading.Thread):
         #self.initialize_display()                                       # initialize display input
         # initialization of image (updated asynchronously)
         self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
+        # used as final annotated image for use by gui (after being annotated by both HandLandmarker and PoseLandmarker)
+        self.full_annotated_image = self.annotated_image
 
         # options for pose landmarker
         options = PoseLandmarkerOptions(
@@ -223,7 +227,7 @@ class Pose_detection(threading.Thread):
 
     # helper function for use by GUI, returns current frame
     def get_cur_frame(self):
-        return self.ret, self.annotated_image
+        return self.ret, self.full_annotated_image
     
     # return current calculated data
     def get_calculated_data(self):
@@ -315,8 +319,10 @@ class Pose_detection(threading.Thread):
                 )
 
             # set current frame to annotated image
-            with self.annotated_image_lock:
-                self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
+            #with self.annotated_image_lock:
+            #if self.annot_img_finish:   # check if hand landmarker is done annotating prev image
+            self.annotated_image = annotated_image  # set object's annotated_image variable to the local (to the function) one
+            #    self.annot_img_finish = False           # prevents pose landmarker from overwriting annotated image before hand landmarker gets to it
             try:
                 # call hand landmarker callback function after finishing for pose landmarker
                 self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
@@ -397,9 +403,11 @@ class Pose_detection(threading.Thread):
                 )
 
                 
-            with self.annotated_image_lock:# update object version of annotated_image
-                self.annotated_image = annotated_image
-                
+            #with self.annotated_image_lock:# update object version of annotated_image
+            #if not self.annot_img_finish:   # used to prevent sync issues with pose landmarker
+            self.full_annotated_image = annotated_image
+                #self.annot_img_finish = True
+
         except Exception as e:
             print("livestream_mediapipe_class.py: ERROR with mediapipe in hand_draw_landmarks_on_frame()")
             print("\tException: %s" % str(e))
