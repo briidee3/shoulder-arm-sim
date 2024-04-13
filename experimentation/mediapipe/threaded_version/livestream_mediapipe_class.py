@@ -62,9 +62,11 @@ PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 # HandLandmarker task object callback references
+HandBaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
 HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
 HandLandmarkerResult = mp.tasks.vision.HandLandmarkerResult
+HandVisionRunningMode = mp.tasks.vision.RunningMode
 
 
 
@@ -151,8 +153,8 @@ class Pose_detection(threading.Thread):
 
         # options for hand landmarker
         options = HandLandmarkerOptions(
-            base_options = BaseOptions(model_asset_path = self.hand_model_path),
-            running_mode = VisionRunningMode.LIVE_STREAM,
+            base_options = HandBaseOptions(model_asset_path = self.hand_model_path),
+            running_mode = HandVisionRunningMode.LIVE_STREAM,
             result_callback = self.hand_draw_landmarks_on_frame
         )
         self.hand_detector = HandLandmarker.create_from_options(options)    # load hand landmarker model for use in detection
