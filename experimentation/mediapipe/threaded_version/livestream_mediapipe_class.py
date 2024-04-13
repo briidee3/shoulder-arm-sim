@@ -155,6 +155,7 @@ class Pose_detection(threading.Thread):
         # options for hand landmarker
         hand_options = HandLandmarkerOptions(
             base_options = HandBaseOptions(model_asset_path = self.hand_model_path),
+            num_hands = 2,
             running_mode = HandVisionRunningMode.LIVE_STREAM,
             result_callback = self.hand_draw_landmarks_on_frame
         )
@@ -379,10 +380,10 @@ class Pose_detection(threading.Thread):
 
                 # draw the hand landmarks
                 hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-                #for landmark in hand_landmarks:
-                hand_landmarks_proto.landmark.extend([
-                    landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
-                ])
+                for landmark in hand_landmarks:
+                    hand_landmarks_proto.landmark.extend([
+                        landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) 
+                    ])
                 solutions.drawing_utils.draw_landmarks(
                     annotated_image,
                     hand_landmarks_proto,
