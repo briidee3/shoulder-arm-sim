@@ -387,7 +387,7 @@ class Pose_detection(threading.Thread):
                 solutions.drawing_utils.draw_landmarks(
                     annotated_image,
                     hand_landmarks_proto,
-                    solutions.hand.HAND_CONNECTIONS,
+                    solutions.hands.HAND_CONNECTIONS,
                     solutions.drawing_styles.get_default_hand_landmarks_style(),
                     solutions.drawing_styles.get_default_hand_connections_style()
                 )
