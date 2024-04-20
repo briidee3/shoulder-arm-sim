@@ -69,6 +69,13 @@ HIP_WIDTH_TO_HEIGHT = 1             # temporarily set to 1, until the actual rat
 #RATIOS_NDARRAY[L_ELBOW][L_WRIST] = FOREARM_TO_HEIGHT
 #RATIOS_NDARRAY[R_SHOULDER][R_ELBOW] = UPPERARM_TO_HEIGHT
 #RATIOS_NDARRAY[R_ELBOW][R_WRIST] = FOREARM_TO_HEIGHT
+# hand ratios (rough measurement/estimation, should probably be updated at some point)
+# (acquired by measuring this picture: https://developers.google.com/static/mediapipe/images/solutions/hand-landmarks.png on screen using a measuring tape)
+WRIST_TO_INDEX = 0.5
+WRIST_TO_PINKY = 0.435
+INDEX_TO_PINKY = 0.361
+WRIST_TO_THUMB = 0.213
+
 
 ## INDEX DICTIONARIES
 # for use converting vertex indices to segment index
@@ -136,6 +143,8 @@ class Extrapolate_forces():
 
         # ndarray to store mediapipe data output, even if from other process(es)
         self.mediapipe_data_output = np.zeros((10, 3), dtype = "float64")
+        # ndarray to store mediapipe hand data output
+        self.hand_mp_out = np.zeros((2,3,3), dtype = "float16")
 
         # lock for mediapipe data
         self.mp_data_lock = mp_data_lock
@@ -218,10 +227,11 @@ class Extrapolate_forces():
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
-    def update_current_frame(self, mp_data_out, current_frame):
+    def update_current_frame(self, mp_data_out, hand_mp_out, current_frame):
         try:
             # set data of current frame dataset
             self.mediapipe_data_output = mp_data_out
+            self.hand_mp_out = hand_mp_out
             
             # reset dist_array
             self.dist_array = np.zeros(np.shape(self.dist_array))
@@ -243,8 +253,11 @@ class Extrapolate_forces():
             # calculate calibration coefficient/metric to sim units conversion ratio
             self.calc_conversion_ratio()
             
-            # set depth
+            # set depth (pose landmarker data)
             self.set_depth()
+
+            # find orientation of hand
+            self.calc_hand_orientation()
 
             # calculate bicep forces
             self.calc_bicep_force()
@@ -473,18 +486,14 @@ class Extrapolate_forces():
 
     # get depth for body part in most recent frame
     def get_depth(self, vertex_one, vertex_two):
-
-
-
-        # TODO: MAKE SURE THIS IS WORKING AS INTENDED
-
-
-
         try:
             cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two)      # current distance between given parts
             
-            segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length
+            segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length 
+
+            # TODO : put this part into simulation units (currently not)
             max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
+            
             #print("v1 %s, v2 %s, si %s" % (vertex_one, vertex_two, segment_index))  # DEBUG
             angle = self.angle_from_normal((self.sim_to_real_conversion_factor * cur_dist), max_dist)   # calculate difference between max distance and current distance
 
@@ -526,6 +535,12 @@ class Extrapolate_forces():
             self.calc_elbow_angle(right_side = True)     # right
         except:
             print("extrapolation.py: ERROR in set_depth()")
+
+
+
+    ### HAND CALCULATIONS
+    #def calc_hand_orientation(self):
+
 
 
 
