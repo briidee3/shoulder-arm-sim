@@ -49,9 +49,9 @@ L_HIP = 8#23
 R_HIP = 9#24
 ## HAND INDEXING
 WRIST = 0
-INDEX_BASE = 1
-PINKY_BASE = 2
-THUMB_BASE = 3
+INDEX = 1
+PINKY = 2
+THUMB = 3
 
 ## INDEXING FOR SEGMENT ARRAYS
 SHOULDER_WIDTH = 0
@@ -81,6 +81,7 @@ HIP_WIDTH_TO_HEIGHT = 1             # temporarily set to 1, until the actual rat
 #RATIOS_NDARRAY[R_ELBOW][R_WRIST] = FOREARM_TO_HEIGHT
 
 # hand ratios (rough measurement/estimation, should probably be updated at some point)
+# all relative to WRIST_TO_INDEX
 # (acquired by measuring this picture: https://developers.google.com/static/mediapipe/images/solutions/hand-landmarks.png on screen using a measuring tape)
 WRIST_TO_INDEX = 0.5        # base used for getting ratios in comparison
 WRIST_TO_PINKY = 0.435
@@ -515,14 +516,14 @@ class Extrapolate_forces():
         try:
             cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two, is_hand)      # current distance between given parts
             
-            #if not is_hand:     # check if calculating for hand data
-            segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length 
-            max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
-            #else:               # use hand data
-
+            if is_hand:     # check if calculating for hand data, if so, calculate for hand
+                max_dist = HAND_VERTICES_TO_RATIOS[vertex_one][vertex_two]
+            else:               # use pose landmarker data
+                segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length 
+                max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
 
             #print("v1 %s, v2 %s, si %s" % (vertex_one, vertex_two, segment_index))  # DEBUG
-            angle = self.angle_from_normal((self.sim_to_real_conversion_factor * cur_dist), max_dist)   # calculate difference between max distance and current distance
+            angle = self.angle_from_normal(((self.sim_to_real_conversion_factor * int(not is_hand)) * cur_dist), max_dist)   # calculate difference between max distance and current distance
 
             r = np.sin(angle) * max_dist                                            # calculate depth
             #print(r)
