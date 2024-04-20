@@ -125,6 +125,17 @@ SEGMENT_TO_VERTEX = {
     ),
     HIP_WIDTH : (L_HIP, R_HIP)
 }
+# for use getting ratios given hand index pairs
+HAND_VERTICES_TO_RATIOS = {
+    WRIST : {
+        INDEX : WRIST_TO_INDEX,
+        PINKY : WRIST_TO_PINKY,
+        THUMB : WRIST_TO_THUMB
+    },
+    INDEX : {
+        PINKY : INDEX_TO_PINKY
+    }
+}
 
 
 #### OBJECT FOR EASE OF MANAGEMENT OF EXTRAPOLATION OF DEPTH AND CALCULATION OF BODY FORCES
@@ -502,7 +513,7 @@ class Extrapolate_forces():
     # get depth for body part in most recent frame
     def get_depth(self, vertex_one = 0, vertex_two = 1, is_hand = False):
         try:
-            cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two)      # current distance between given parts
+            cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two, is_hand)      # current distance between given parts
             
             #if not is_hand:     # check if calculating for hand data
             segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length 
