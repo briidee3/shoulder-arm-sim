@@ -48,7 +48,10 @@ R_INDEX = 7#20
 L_HIP = 8#23
 R_HIP = 9#24
 ## HAND INDEXING
-W_TO_I = 0
+WRIST = 0
+INDEX_BASE = 1
+PINKY_BASE = 2
+THUMB_BASE = 3
 
 ## INDEXING FOR SEGMENT ARRAYS
 SHOULDER_WIDTH = 0
@@ -56,6 +59,11 @@ UPPERARM_LENGTH = 1
 FOREARM_LENGTH = 2
 SHOULDER_TO_HIP = 3
 HIP_WIDTH = 4
+## FOR HAND SEGMENT ARRAYS
+W_TO_I = 0  # wrist to index
+W_TO_P = 1  # wrist to pinky
+W_TO_T = 2  # wrist to thumb
+I_TO_P = 3  # index to pinky
 
 ## RATIOS
 # these are the average ratios for each body segment/part to height
@@ -71,6 +79,7 @@ HIP_WIDTH_TO_HEIGHT = 1             # temporarily set to 1, until the actual rat
 #RATIOS_NDARRAY[L_ELBOW][L_WRIST] = FOREARM_TO_HEIGHT
 #RATIOS_NDARRAY[R_SHOULDER][R_ELBOW] = UPPERARM_TO_HEIGHT
 #RATIOS_NDARRAY[R_ELBOW][R_WRIST] = FOREARM_TO_HEIGHT
+
 # hand ratios (rough measurement/estimation, should probably be updated at some point)
 # (acquired by measuring this picture: https://developers.google.com/static/mediapipe/images/solutions/hand-landmarks.png on screen using a measuring tape)
 WRIST_TO_INDEX = 0.5        # base used for getting ratios in comparison
@@ -491,12 +500,16 @@ class Extrapolate_forces():
             print("extrapolation.py: ERROR in `angle_from_normal()")
 
     # get depth for body part in most recent frame
-    def get_depth(self, vertex_one, vertex_two):
+    def get_depth(self, vertex_one = 0, vertex_two = 1, is_hand = False):
         try:
             cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two)      # current distance between given parts
             
+            #if not is_hand:     # check if calculating for hand data
             segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length 
             max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
+            #else:               # use hand data
+
+
             #print("v1 %s, v2 %s, si %s" % (vertex_one, vertex_two, segment_index))  # DEBUG
             angle = self.angle_from_normal((self.sim_to_real_conversion_factor * cur_dist), max_dist)   # calculate difference between max distance and current distance
 
@@ -558,7 +571,7 @@ class Extrapolate_forces():
 
     # get depth for hand parts (for one hand)
     # TODO: combine this with set_depth()
-    def set_hand_depth(self, hand_data = self.hand_mp_out, is_right = False):
+    def set_hand_depth(self, is_right = False):
         try:
             # go thru all vertices for hand
             for i in range(0, 4):#len(self.hand_mp_out)):
