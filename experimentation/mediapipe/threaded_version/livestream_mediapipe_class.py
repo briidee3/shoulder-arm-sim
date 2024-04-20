@@ -140,6 +140,9 @@ class Pose_detection(threading.Thread):
             "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
         }
 
+        # output data from hand landmarker
+        self.hand_mp_out = np.zeros((2,3,3), dtype = "float16")
+
         # initialize extrapolation and body force calculation object
         #self.right_arm = extrapolation.Extrapolate_forces(is_right = True)  # right arm
         #self.left_arm = extrapolation.Extrapolate_forces()             # left arm
@@ -264,11 +267,11 @@ class Pose_detection(threading.Thread):
 
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
 
-    # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
+    # given 2D motion tracking data for a single frame, run calculations in extrapolation.py
     def extrapolate_depth(self, mediapipe_output):
         try:
             # set the data for the current frame
-            self.ep.update_current_frame(mediapipe_output, self.frame_counter)    # update mediapipe data
+            self.ep.update_current_frame(mediapipe_output, self.hand_mp_out, self.frame_counter)    # update mediapipe data
             # calculations that don't need to run each frame (hence run every "tick")
             #if not self.toggle_auto_calibrate and (self.frame_counter % self.tick_length == 0):    # now done in extrapolation.py each frame update
             #    self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
@@ -430,7 +433,13 @@ class Pose_detection(threading.Thread):
                     it += 1             # iterate
                 it = 0                  # reset iterator before moving to next hand (if available)
 
-            print("\n\nHAND DATA: %s" % str(hand_mp_out))
+            # update object hand data
+            for i in range(0, 2):   # for each of the hands
+                if not ((hand_mp_out[i, 0, 0] + hand_mp_out[i, 1, 0] + hand_mp_out[i, 2, 0]) == 0):   # check if hand data is present (left) by checking if the sum of the x component of each vertex being used is zero
+                    self.hand_mp_out[i] = hand_mp_out[i]
+
+            #print("\n\n(DEBUG) HAND DATA: %s" % str(hand_mp_out))
+            
 
         except Exception as e:
             print("livestream_mediapipe_class.py: ERROR with mediapipe in hand_draw_landmarks_on_frame()")
