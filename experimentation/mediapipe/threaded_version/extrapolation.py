@@ -47,6 +47,8 @@ L_INDEX = 6#19
 R_INDEX = 7#20
 L_HIP = 8#23
 R_HIP = 9#24
+## HAND INDEXING
+W_TO_I = 0
 
 ## INDEXING FOR SEGMENT ARRAYS
 SHOULDER_WIDTH = 0
@@ -71,7 +73,7 @@ HIP_WIDTH_TO_HEIGHT = 1             # temporarily set to 1, until the actual rat
 #RATIOS_NDARRAY[R_ELBOW][R_WRIST] = FOREARM_TO_HEIGHT
 # hand ratios (rough measurement/estimation, should probably be updated at some point)
 # (acquired by measuring this picture: https://developers.google.com/static/mediapipe/images/solutions/hand-landmarks.png on screen using a measuring tape)
-WRIST_TO_INDEX = 0.5
+WRIST_TO_INDEX = 0.5        # base used for getting ratios in comparison
 WRIST_TO_PINKY = 0.435
 INDEX_TO_PINKY = 0.361
 WRIST_TO_THUMB = 0.213
@@ -319,7 +321,7 @@ class Extrapolate_forces():
     ### DISTANCE FUNCTIONS:
 
     # get distance between vertices for current frame
-    def calc_dist_between_vertices(self, first_part, second_part):
+    def calc_dist_between_vertices(self, first_part = 0, second_part = 0, is_hand = False):
         try:
             # calculate distance for parts in current frame
             #dist = np.linalg.norm(
@@ -327,13 +329,17 @@ class Extrapolate_forces():
             #                self.mediapipe_data_output[first_part, :]
             #            )
             
-            first = self.mediapipe_data_output[first_part]
-            second = self.mediapipe_data_output[second_part]
+            if not is_hand: # check if using hand data
+                first = self.mediapipe_data_output[first_part]
+                second = self.mediapipe_data_output[second_part]
+            else:           # work with hand data
+                first = self.hand_mp_out[first_part]
+                second = self.hand_mp_out[second_part]
 
             dist = np.sqrt( (second[0] - first[0])**2 + (second[2] - first[2])**2 )
 
             # update max distance between these parts, if necessary
-            if dist > self.max_array[first_part][second_part]:
+            if (not is_hand) and dist > self.max_array[first_part][second_part]:
                 self.max_array[first_part][second_part] = dist
 
             # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
@@ -467,7 +473,7 @@ class Extrapolate_forces():
     def set_calibration_manual(self, is_manual = True):
         self.manual_calibration = is_manual
     
-    # reset max_array data to essentially reset the application
+    # reset max_array data to essentially reset the application (no longer used in calibration)
     def reset_calibration(self):
         self.max_array = np.zeros((8,8), dtype = "float64") # reset max distances
         self.sim_to_real_conversion_factor = 1
@@ -494,7 +500,7 @@ class Extrapolate_forces():
             #print("v1 %s, v2 %s, si %s" % (vertex_one, vertex_two, segment_index))  # DEBUG
             angle = self.angle_from_normal((self.sim_to_real_conversion_factor * cur_dist), max_dist)   # calculate difference between max distance and current distance
 
-            r = np.sin(angle) * max_dist                                         # calculate depth
+            r = np.sin(angle) * max_dist                                            # calculate depth
             #print(r)
 
             return r
@@ -536,8 +542,37 @@ class Extrapolate_forces():
 
 
     ### HAND CALCULATIONS
-    #def calc_hand_orientation(self):
 
+    # calculate orientation of hand
+    def calc_hand_orientation(self):
+        try: 
+            # do for both hands
+            #   probably wanna split this up eventually, so that it only runs calculations on a given hand if it was in view/updated
+            # i in range(0, 2):
+                # get depth of hand parts
+            i = 0   # do nothing (tmp)
+
+
+        except Exception as e:
+            print("extrapolation.py: ERROR in `calc_hand_orientation()`: %s\n" % str(e))
+
+    # get depth for hand parts (for one hand)
+    # TODO: combine this with set_depth()
+    def set_hand_depth(self, hand_data = self.hand_mp_out, is_right = False):
+        try:
+            # go thru all vertices for hand
+            for i in range(0, 4):#len(self.hand_mp_out)):
+                
+                wrist_loc = self.hand_mp_out[is_right, 0]
+                index_loc = self.hand_mp_out[is_right, 1]
+                pinky_loc = self.hand_mp_out[is_right, 2]
+                thumb_loc = self.hand_mp_out[is_right, 3]
+
+                
+
+
+        except Exception as e:
+            print("extrapolation.py: ERROR in `set_hand_depth()`: %s\n" % str(e))
 
 
 
