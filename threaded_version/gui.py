@@ -14,6 +14,7 @@ import math
 from matplotlib import pyplot as plt
 
 import threading
+import os
 
 import cv2
 
@@ -30,6 +31,12 @@ import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 # model to use for mediapipe
 pose_landmarker = '../landmarkers/pose/pose_landmarker_full.task'
 hand_landmarker = '../landmarkers/hand/hand_landmarker.task'
+
+# check if windows; if so, use windows file pathing
+if os.name == 'nt':
+    pose_landmarker = "..\\landmarkers\\pose\\pose_landmarker_full.task"
+    hand_landmarker = "..\\landmarkers\\hand\\hand_landmarker.task"
+
 
 # load and prep placeholder image for program initialization
 no_image_path = './no_image.png'            # placeholder image location
