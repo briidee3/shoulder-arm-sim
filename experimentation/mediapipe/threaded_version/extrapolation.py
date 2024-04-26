@@ -47,6 +47,11 @@ L_INDEX = 6#19
 R_INDEX = 7#20
 L_HIP = 8#23
 R_HIP = 9#24
+## HAND INDEXING
+WRIST = 0
+INDEX = 1
+PINKY = 2
+THUMB = 3
 
 ## INDEXING FOR SEGMENT ARRAYS
 SHOULDER_WIDTH = 0
@@ -54,6 +59,11 @@ UPPERARM_LENGTH = 1
 FOREARM_LENGTH = 2
 SHOULDER_TO_HIP = 3
 HIP_WIDTH = 4
+## FOR HAND SEGMENT ARRAYS
+W_TO_I = 0  # wrist to index
+W_TO_P = 1  # wrist to pinky
+W_TO_T = 2  # wrist to thumb
+I_TO_P = 3  # index to pinky
 
 ## RATIOS
 # these are the average ratios for each body segment/part to height
@@ -69,6 +79,15 @@ HIP_WIDTH_TO_HEIGHT = 1             # temporarily set to 1, until the actual rat
 #RATIOS_NDARRAY[L_ELBOW][L_WRIST] = FOREARM_TO_HEIGHT
 #RATIOS_NDARRAY[R_SHOULDER][R_ELBOW] = UPPERARM_TO_HEIGHT
 #RATIOS_NDARRAY[R_ELBOW][R_WRIST] = FOREARM_TO_HEIGHT
+
+# hand ratios (rough measurement/estimation, should probably be updated at some point)
+# all relative to WRIST_TO_INDEX
+# (acquired by measuring this picture: https://developers.google.com/static/mediapipe/images/solutions/hand-landmarks.png on screen using a measuring tape)
+WRIST_TO_INDEX = 0.5        # base used for getting ratios in comparison
+WRIST_TO_PINKY = 0.435
+INDEX_TO_PINKY = 0.361
+WRIST_TO_THUMB = 0.213
+
 
 ## INDEX DICTIONARIES
 # for use converting vertex indices to segment index
@@ -107,6 +126,17 @@ SEGMENT_TO_VERTEX = {
     ),
     HIP_WIDTH : (L_HIP, R_HIP)
 }
+# for use getting ratios given hand index pairs
+HAND_VERTICES_TO_RATIOS = {
+    WRIST : {
+        INDEX : WRIST_TO_INDEX,
+        PINKY : WRIST_TO_PINKY,
+        THUMB : WRIST_TO_THUMB
+    },
+    INDEX : {
+        PINKY : INDEX_TO_PINKY
+    }
+}
 
 
 #### OBJECT FOR EASE OF MANAGEMENT OF EXTRAPOLATION OF DEPTH AND CALCULATION OF BODY FORCES
@@ -136,6 +166,8 @@ class Extrapolate_forces():
 
         # ndarray to store mediapipe data output, even if from other process(es)
         self.mediapipe_data_output = np.zeros((10, 3), dtype = "float64")
+        # ndarray to store mediapipe hand data output
+        self.hand_mp_out = np.zeros((2,3,3), dtype = "float16")
 
         # lock for mediapipe data
         self.mp_data_lock = mp_data_lock
@@ -218,10 +250,11 @@ class Extrapolate_forces():
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
-    def update_current_frame(self, mp_data_out, current_frame):
+    def update_current_frame(self, mp_data_out, hand_mp_out, current_frame):
         try:
             # set data of current frame dataset
             self.mediapipe_data_output = mp_data_out
+            self.hand_mp_out = hand_mp_out
             
             # reset dist_array
             self.dist_array = np.zeros(np.shape(self.dist_array))
@@ -243,8 +276,11 @@ class Extrapolate_forces():
             # calculate calibration coefficient/metric to sim units conversion ratio
             self.calc_conversion_ratio()
             
-            # set depth
+            # set depth (pose landmarker data)
             self.set_depth()
+
+            # find orientation of hand
+            self.calc_hand_orientation()
 
             # calculate bicep forces
             self.calc_bicep_force()
@@ -306,7 +342,7 @@ class Extrapolate_forces():
     ### DISTANCE FUNCTIONS:
 
     # get distance between vertices for current frame
-    def calc_dist_between_vertices(self, first_part, second_part):
+    def calc_dist_between_vertices(self, first_part = 0, second_part = 0, is_hand = False):
         try:
             # calculate distance for parts in current frame
             #dist = np.linalg.norm(
@@ -314,13 +350,17 @@ class Extrapolate_forces():
             #                self.mediapipe_data_output[first_part, :]
             #            )
             
-            first = self.mediapipe_data_output[first_part]
-            second = self.mediapipe_data_output[second_part]
+            if not is_hand: # check if using hand data
+                first = self.mediapipe_data_output[first_part]
+                second = self.mediapipe_data_output[second_part]
+            else:           # work with hand data
+                first = self.hand_mp_out[first_part]
+                second = self.hand_mp_out[second_part]
 
             dist = np.sqrt( (second[0] - first[0])**2 + (second[2] - first[2])**2 )
 
             # update max distance between these parts, if necessary
-            if dist > self.max_array[first_part][second_part]:
+            if (not is_hand) and dist > self.max_array[first_part][second_part]:
                 self.max_array[first_part][second_part] = dist
 
             # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
@@ -454,7 +494,7 @@ class Extrapolate_forces():
     def set_calibration_manual(self, is_manual = True):
         self.manual_calibration = is_manual
     
-    # reset max_array data to essentially reset the application
+    # reset max_array data to essentially reset the application (no longer used in calibration)
     def reset_calibration(self):
         self.max_array = np.zeros((8,8), dtype = "float64") # reset max distances
         self.sim_to_real_conversion_factor = 1
@@ -472,23 +512,20 @@ class Extrapolate_forces():
             print("extrapolation.py: ERROR in `angle_from_normal()")
 
     # get depth for body part in most recent frame
-    def get_depth(self, vertex_one, vertex_two):
-
-
-
-        # TODO: MAKE SURE THIS IS WORKING AS INTENDED
-
-
-
+    def get_depth(self, vertex_one = 0, vertex_two = 1, is_hand = False):
         try:
-            cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two)      # current distance between given parts
+            cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two, is_hand)      # current distance between given parts
             
-            segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length
-            max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
-            #print("v1 %s, v2 %s, si %s" % (vertex_one, vertex_two, segment_index))  # DEBUG
-            angle = self.angle_from_normal((self.sim_to_real_conversion_factor * cur_dist), max_dist)   # calculate difference between max distance and current distance
+            if is_hand:     # check if calculating for hand data, if so, calculate for hand
+                max_dist = HAND_VERTICES_TO_RATIOS[vertex_one][vertex_two]
+            else:               # use pose landmarker data
+                segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length 
+                max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
 
-            r = np.sin(angle) * max_dist                                         # calculate depth
+            #print("v1 %s, v2 %s, si %s" % (vertex_one, vertex_two, segment_index))  # DEBUG
+            angle = self.angle_from_normal(((self.sim_to_real_conversion_factor * int(not is_hand)) * cur_dist), max_dist)   # calculate difference between max distance and current distance
+
+            r = np.sin(angle) * max_dist                                            # calculate depth
             #print(r)
 
             return r
@@ -526,6 +563,41 @@ class Extrapolate_forces():
             self.calc_elbow_angle(right_side = True)     # right
         except:
             print("extrapolation.py: ERROR in set_depth()")
+
+
+
+    ### HAND CALCULATIONS
+
+    # calculate orientation of hand
+    def calc_hand_orientation(self):
+        try: 
+            # do for both hands
+            #   probably wanna split this up eventually, so that it only runs calculations on a given hand if it was in view/updated
+            # i in range(0, 2):
+                # get depth of hand parts
+            i = 0   # do nothing (tmp)
+
+
+        except Exception as e:
+            print("extrapolation.py: ERROR in `calc_hand_orientation()`: %s\n" % str(e))
+
+    # get depth for hand parts (for one hand)
+    # TODO: combine this with set_depth()
+    def set_hand_depth(self, is_right = False):
+        try:
+            # go thru all vertices for hand
+            for i in range(0, 4):#len(self.hand_mp_out)):
+                
+                wrist_loc = self.hand_mp_out[is_right, 0]
+                index_loc = self.hand_mp_out[is_right, 1]
+                pinky_loc = self.hand_mp_out[is_right, 2]
+                thumb_loc = self.hand_mp_out[is_right, 3]
+
+                
+
+
+        except Exception as e:
+            print("extrapolation.py: ERROR in `set_hand_depth()`: %s\n" % str(e))
 
 
 

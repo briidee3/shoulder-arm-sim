@@ -140,6 +140,9 @@ class Pose_detection(threading.Thread):
             "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
         }
 
+        # output data from hand landmarker
+        self.hand_mp_out = np.zeros((2,3,3), dtype = "float16")
+
         # initialize extrapolation and body force calculation object
         #self.right_arm = extrapolation.Extrapolate_forces(is_right = True)  # right arm
         #self.left_arm = extrapolation.Extrapolate_forces()             # left arm
@@ -264,11 +267,11 @@ class Pose_detection(threading.Thread):
 
     ### DEPTH EXTRAPOLATION and BODY FORCE CALCULATIONS
 
-    # given 2D motion tracking data for a single frame, return 3D motion tracking data for a single frame
+    # given 2D motion tracking data for a single frame, run calculations in extrapolation.py
     def extrapolate_depth(self, mediapipe_output):
         try:
             # set the data for the current frame
-            self.ep.update_current_frame(mediapipe_output, self.frame_counter)    # update mediapipe data
+            self.ep.update_current_frame(mediapipe_output, self.hand_mp_out, self.frame_counter)    # update mediapipe data
             # calculations that don't need to run each frame (hence run every "tick")
             #if not self.toggle_auto_calibrate and (self.frame_counter % self.tick_length == 0):    # now done in extrapolation.py each frame update
             #    self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
@@ -382,6 +385,9 @@ class Pose_detection(threading.Thread):
             handedness_list = detection_result.handedness
             # get annotated_image after running draw_landmarks_on_frame for PoseLandmarker, use it as a base
             annotated_image = self.annotated_image #np.copy(rgb_image.numpy_view())
+            # hold data for current hand data frame
+            hand_mp_out = np.zeros((2,3,3), dtype = "float16")       # actual landmarker data (which hand, num vertices, num dimensions)
+
         
             # loop thru detected hand poses to visualize
             for idx in range(len(hand_landmarks_list)):
@@ -407,6 +413,33 @@ class Pose_detection(threading.Thread):
             #if not self.annot_img_finish:   # used to prevent sync issues with pose landmarker
             self.full_annotated_image = annotated_image
                 #self.annot_img_finish = True
+
+
+            # put together the hand data we're looking for
+            it = 0                      # iterator for iterating thru data frame (i.e. hand_mp_out)
+            for i in handedness_list:   # do for each hand
+                for j in (0, 5, 17, 1):   # get the parts of the hand we're looking for (wrist, index base, pinky base, thumb base)
+                    # get which hand
+                    hand = i[0].index   # from mediapipe, left hand is 1, right is 0
+                    # swap hand values, so left is 0 and right is 1, in accordance with the rest of this whole program
+                    if hand:
+                        hand = 0
+                    else:
+                        hand = 1
+
+                    hand_mp_out[hand, it, 0] = hand_landmarks_list[0][j].x        # get hand landmark data (x)
+                    hand_mp_out[hand, it, 1] = 0                                  # set depth to 0 (since mediapipe depth is inconsistent) (y)
+                    hand_mp_out[hand, it, 2] = hand_landmarks_list[0][j].y        # get hand landmark data (z)
+                    it += 1             # iterate
+                it = 0                  # reset iterator before moving to next hand (if available)
+
+            # update object hand data
+            for i in range(0, 2):   # for each of the hands
+                if not ((hand_mp_out[i, 0, 0] + hand_mp_out[i, 1, 0] + hand_mp_out[i, 2, 0]) == 0):   # check if hand data is present (left) by checking if the sum of the x component of each vertex being used is zero
+                    self.hand_mp_out[i] = hand_mp_out[i]
+
+            #print("\n\n(DEBUG) HAND DATA: %s" % str(hand_mp_out))
+            
 
         except Exception as e:
             print("livestream_mediapipe_class.py: ERROR with mediapipe in hand_draw_landmarks_on_frame()")
