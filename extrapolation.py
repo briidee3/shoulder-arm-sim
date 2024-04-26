@@ -584,6 +584,7 @@ class Extrapolate_forces():
 
     # get depth for hand parts (for one hand)
     # TODO: combine this with set_depth()
+    # (unfinished; time constraints)
     def set_hand_depth(self, is_right = False):
         try:
             # go thru all vertices for hand
