@@ -141,7 +141,7 @@ class Pose_detection(threading.Thread):
         }
 
         # output data from hand landmarker
-        self.hand_mp_out = np.zeros((2,3,3), dtype = "float16")
+        self.hand_mp_out = np.zeros((2,3,3), dtype = "float32")
 
         # initialize extrapolation and body force calculation object
         #self.right_arm = extrapolation.Extrapolate_forces(is_right = True)  # right arm
@@ -386,7 +386,7 @@ class Pose_detection(threading.Thread):
             # get annotated_image after running draw_landmarks_on_frame for PoseLandmarker, use it as a base
             annotated_image = self.annotated_image #np.copy(rgb_image.numpy_view())
             # hold data for current hand data frame
-            hand_mp_out = np.zeros((2,3,3), dtype = "float16")       # actual landmarker data (which hand, num vertices, num dimensions)
+            hand_mp_out = np.zeros((2,3,3), dtype = "float32")       # actual landmarker data (which hand, num vertices, num dimensions)
 
         
             # loop thru detected hand poses to visualize
