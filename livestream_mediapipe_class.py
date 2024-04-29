@@ -414,29 +414,32 @@ class Pose_detection(threading.Thread):
             self.full_annotated_image = annotated_image
                 #self.annot_img_finish = True
 
-
             # put together the hand data we're looking for
             it = 0                      # iterator for iterating thru data frame (i.e. hand_mp_out)
-            for i in handedness_list:   # do for each hand
-                for j in (0, 5, 17, 1):   # get the parts of the hand we're looking for (wrist, index base, pinky base, thumb base)
+            for i in handedness_list:       # do for each hand
+                for j in (0, 5, 17, 1):     # get the parts of the hand we're looking for (wrist, index base, pinky base, thumb base)
                     # get which hand
-                    hand = i[0].index   # from mediapipe, left hand is 1, right is 0
+                    hand = i[0].index       # from mediapipe, left hand is 1, right is 0
+
                     # swap hand values, so left is 0 and right is 1, in accordance with the rest of this whole program
                     if hand:
                         hand = 0
+                        # DEBUG
+                        print("Hand vertex: %s\t(x,y,z): (%s, %s, %s)" %
+                            (str(j), str(hand_landmarks_list[0][j].x), str(hand_landmarks_list[0][j].y), str(hand_landmarks_list[0][j].z)))
                     else:
                         hand = 1
-
-                    hand_mp_out[hand, it, 0] = hand_landmarks_list[0][j].x        # get hand landmark data (x)
-                    hand_mp_out[hand, it, 1] = 0                                  # set depth to 0 (since mediapipe depth is inconsistent) (y)
-                    hand_mp_out[hand, it, 2] = hand_landmarks_list[0][j].y        # get hand landmark data (z)
+                    
+                    # put hand position data into ndarray for sending to extrapolation.py
+                    hand_mp_out[hand, it, 0] = hand_landmarks_list[0][j].x
+                    hand_mp_out[hand, it, 1] = hand_landmarks_list[0][j].z
+                    hand_mp_out[hand, it, 2] = hand_landmarks_list[0][j].y
                     it += 1             # iterate
                 it = 0                  # reset iterator before moving to next hand (if available)
 
             # update object hand data
             for i in range(0, 2):   # for each of the hands
-                if not ((hand_mp_out[i, 0, 0] + hand_mp_out[i, 1, 0] + hand_mp_out[i, 2, 0]) == 0):   # check if hand data is present (left) by checking if the sum of the x component of each vertex being used is zero
-                    self.hand_mp_out[i] = hand_mp_out[i]
+                self.hand_mp_out[i] = hand_mp_out[i]
 
             #print("\n\n(DEBUG) HAND DATA: %s" % str(hand_mp_out))
             
