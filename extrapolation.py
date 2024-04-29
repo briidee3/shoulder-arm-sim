@@ -167,7 +167,9 @@ class Extrapolate_forces():
         # ndarray to store mediapipe data output, even if from other process(es)
         self.mediapipe_data_output = np.zeros((10, 3), dtype = "float64")
         # ndarray to store mediapipe hand data output
-        self.hand_mp_out = np.zeros((2,3,3), dtype = "float16")
+        self.hand_mp_out = np.zeros((2,3,3), dtype = "float32")
+        self.hand_check = np.zeros((2), dtype = "float32")              # used to check if hand data updated
+        self.hand_orientation = np.zeros((2), dtype = "float32")        # used to hold angle between hand and forearm
 
         # lock for mediapipe data
         self.mp_data_lock = mp_data_lock
@@ -184,6 +186,7 @@ class Extrapolate_forces():
         self.bodypart_lengths = np.ones((6), dtype = "float32")         # stores body part lengths, assuming symmetry between sides (so, only one value for forearm length as opposed to 2, for example. may be changed later)
         # biases for bodypart lengths (calculated in countdown_calibrate), default to 1 for no bias
         self.bodypart_ratio_bias_array = np.ones((np.shape(self.bodypart_lengths)[0]), dtype = "float32")
+
         # stores calculated data by frame
         self.calculated_data = {
                 "right_bicep_force": "NaN",
@@ -569,36 +572,49 @@ class Extrapolate_forces():
 
     ### HAND CALCULATIONS
 
-    # calculate orientation of hand
-    def calc_hand_orientation(self):
+    # calculate orientation of hand (called from calc_elbow_angle)
+    def calc_hand_orientation(self, is_right = False, forearm = np.zeros((3), dtype = "float32")):
         try: 
-            # do for both hands
-            #   probably wanna split this up eventually, so that it only runs calculations on a given hand if it was in view/updated
-            # i in range(0, 2):
-                # get depth of hand parts
-            i = 0   # do nothing (tmp)
+            i = int(is_right)
+            hand_check = self.hand_mp_out[i, 0, 0] + self.hand_mp_out[i, 1, 0] + self.hand_mp_out[i, 2, 0]  # used for checking for changes in hand data (prevent redundant calculations)
+            # get depth of hand parts
+            # check if hand data is present by checking the sum of the x component of each vertex, which should be different if change occurred
+            if not (hand_check == self.hand_check[i]):
+                w_to_i = self.hand_mp_out[i, 5, :] - self.hand_mp_out[i, 0, :]    # wrist to index vector
+                w_to_p = self.hand_mp_out[i, 17, :] - self.hand_mp_out[i, 0, :]   # wrist to pinky vector
 
+                # get normal of hand data (cross product between 0,5 vector and 0,17 vector) unit vector
+                hand_normal = np.cross(w_to_i, w_to_p) / np.dot(w_to_i, w_to_p)
+
+                # get angle between using atan2
+                self.hand_orientation[i] = np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm))
+            
+            if not is_right:
+                #DEBUG
+                print("\nangle between hand and forearm: %s\n" % self.hand_orientation[int(is_right)])
+
+            self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
         except Exception as e:
             print("extrapolation.py: ERROR in `calc_hand_orientation()`: %s\n" % str(e))
 
     # get depth for hand parts (for one hand)
     # TODO: combine this with set_depth()
-    def set_hand_depth(self, is_right = False):
-        try:
+    #def set_hand_depth(self, is_right = False):
+    #    try:
             # go thru all vertices for hand
-            for i in range(0, 4):#len(self.hand_mp_out)):
+    #        for i in range(0, 4):#len(self.hand_mp_out)):
                 
-                wrist_loc = self.hand_mp_out[is_right, 0]
-                index_loc = self.hand_mp_out[is_right, 1]
-                pinky_loc = self.hand_mp_out[is_right, 2]
-                thumb_loc = self.hand_mp_out[is_right, 3]
+    #            wrist_loc = self.hand_mp_out[is_right, 0]
+    #            index_loc = self.hand_mp_out[is_right, 1]
+    #            pinky_loc = self.hand_mp_out[is_right, 2]
+    #            thumb_loc = self.hand_mp_out[is_right, 3]
 
                 
 
 
-        except Exception as e:
-            print("extrapolation.py: ERROR in `set_hand_depth()`: %s\n" % str(e))
+    #    except Exception as e:
+    #        print("extrapolation.py: ERROR in `set_hand_depth()`: %s\n" % str(e))
 
 
 
@@ -613,16 +629,16 @@ class Extrapolate_forces():
             z = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 2]
 
             # DEBUG
-            if not right_side:
-                print("extrapolation.py: DEPTH OF LEFT ELBOW: " + str(y[1]))
+            #if not right_side:
+                #print("extrapolation.py: DEPTH OF LEFT ELBOW: " + str(y[1]))
 
             #shoulder = self.mediapipe_data_output[(0 + (int)(right_side))]
             #elbow = self.mediapipe_data_output[(2 + (int)(right_side))]
             #wrist = self.mediapipe_data_output[(4 + (int)(right_side))]
 
             # get unit vectors representing upper and lower arm
-            vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]
-            vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]
+            vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]    # upper arm
+            vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]    # lower arm
             vector_a = vector_a / np.linalg.norm(vector_a)  # turn into unit vector
             vector_b = vector_b / np.linalg.norm(vector_b)  # turn into unit vector
 
@@ -683,6 +699,9 @@ class Extrapolate_forces():
             #print("vector B: ", vector_b)
 
             #return elbow_angle
+
+            # call calc_hand_orientation from here to prevent need to recalculate vector_b
+            self.calc_hand_orientation(right_side, vector_b)
 
         except:
             print("extrapolation.py: ERROR in `calc_elbow_angle()`")
