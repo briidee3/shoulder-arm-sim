@@ -169,7 +169,7 @@ class Extrapolate_forces():
         # ndarray to store mediapipe hand data output
         self.hand_mp_out = np.zeros((2,3,3), dtype = "float32")
         self.hand_check = np.zeros((2), dtype = "float32")              # used to check if hand data updated
-        self.hand_orientation = np.zeros((2), dtype = "float32")        # used to hold angle between hand and forearm
+        self.hand_orientation = np.zeros((2, 2), dtype = "float32")     # theta: hand normal and forearm - 90 deg, phi: hand normal and screen normal
 
         # lock for mediapipe data
         self.mp_data_lock = mp_data_lock
@@ -281,9 +281,6 @@ class Extrapolate_forces():
             
             # set depth (pose landmarker data)
             self.set_depth()
-
-            # find orientation of hand
-            self.calc_hand_orientation()
 
             # calculate bicep forces
             self.calc_bicep_force()
@@ -580,18 +577,23 @@ class Extrapolate_forces():
             # get depth of hand parts
             # check if hand data is present by checking the sum of the x component of each vertex, which should be different if change occurred
             if not (hand_check == self.hand_check[i]):
-                w_to_i = self.hand_mp_out[i, 5, :] - self.hand_mp_out[i, 0, :]    # wrist to index vector
-                w_to_p = self.hand_mp_out[i, 17, :] - self.hand_mp_out[i, 0, :]   # wrist to pinky vector
+                w_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 0, :]    # wrist to index vector
+                w_to_p = self.hand_mp_out[i, 2, :] - self.hand_mp_out[i, 0, :]   # wrist to pinky vector
+                screen_normal = np.zeros((3), dtype = "float32")                # normal of screen
+                screen_normal[:] = (0, -1, 0)
 
                 # get normal of hand data (cross product between 0,5 vector and 0,17 vector) unit vector
                 hand_normal = np.cross(w_to_i, w_to_p) / np.dot(w_to_i, w_to_p)
 
                 # get angle between using atan2
-                self.hand_orientation[i] = np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm))
+                # phi (hand normal to forearm - 90 degrees)
+                self.hand_orientation[i, 1] = np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm)) - (np.pi/2)
+                # theta (hand normal to screen normal)
+                self.hand_orientation[i, 0] = np.arctan2(np.linalg.norm(np.cross(hand_normal, screen_normal)), np.dot(hand_normal, screen_normal))
             
-            if not is_right:
-                #DEBUG
-                print("\nangle between hand and forearm: %s\n" % self.hand_orientation[int(is_right)])
+                if not is_right:
+                    #DEBUG
+                    print("\nangle between hand and forearm: \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[i, 0]), np.rad2deg(self.hand_orientation[i, 1])))
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
