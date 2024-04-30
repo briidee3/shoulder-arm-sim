@@ -432,7 +432,7 @@ class Pose_detection(threading.Thread):
                     
                     # put hand position data into ndarray for sending to extrapolation.py
                     hand_mp_out[hand, it, 0] = hand_landmarks_list[0][j].x
-                    hand_mp_out[hand, it, 1] = hand_landmarks_list[0][j].z
+                    hand_mp_out[hand, it, 1] = hand_landmarks_list[0][j].z  # z and y swapped due to convention of prev used coord system
                     hand_mp_out[hand, it, 2] = hand_landmarks_list[0][j].y
                     it += 1             # iterate
                 it = 0                  # reset iterator before moving to next hand (if available)

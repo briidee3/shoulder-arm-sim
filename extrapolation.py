@@ -4,6 +4,10 @@
 # This version has been edited for use directly with MediaPipe, as opposed to with FreeMoCap data output.
 
 
+# NOTES:
+#   - X is left/right, Z is up/down, Y is depth
+
+
 # TODO: 
 
 # IDEAS:
@@ -747,7 +751,7 @@ class Extrapolate_forces():
             theta = np.arccos(np.clip((vector[1] / rho), -1, 1))        # axis is y axis
 
             vector /= np.linalg.norm(vector)    # turn to unit vector
-            phi = np.arctan2(np.linalg.norm(np.cross(up, vector)), np.dot(up, vector)) - np.pi
+            phi = np.arctan2(np.linalg.norm(np.cross(up, vector)), np.dot(up, vector)) - (np.pi/2)
             
             # DEBUG
             if vertex_one == 2: # left elbow anchor => upper arm
