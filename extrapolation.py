@@ -5,24 +5,9 @@
 
 
 # TODO: 
-#   - optimize code
-#       - minimize reads/writes
-#           - try to do in-place manipulations of data
-#   - implement multithreading, like how it was done for `livestream_mediapipe_class.py`
-#   - take picture of user, notifying user, making em click a button, then counting down, snapping pic
-#       - this will be the calibration shot, and function "recalibrate" will do this.
-#       - this removes the need for lots of unnecessary calculations and reads/writes.
-#       - the output of this will be used to calculate depth and 
-#   - figure out if raw mediapipe output is x, y, z, or x, z, y
-#   - fix elbow angle inaccuracies (e.g. how 90 degrees isn't seen as 90 degrees due to the calculations
-#       being used being parallel to the plane of the screen/webcam)
-#   - orientation from shoulder to hip stuffs
-#       - send over the hips data from the mediapipe stuff
-#   - initialize an array at the start containing vector lengths of segment distances
-#   - update the actual lengths of body segments during run time
 
 # IDEAS:
-#   - train a machine learning model to tune the weights for the ratios (after implementing ratio-based depth instead of max_dist-based depth)
+#   - during initial calibration, have user make all points in body planar with the camera, and check differences in ratios, use as offsets for rest of program
 
 
 import numpy as np
@@ -580,8 +565,8 @@ class Extrapolate_forces():
                 w_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 0, :]  # wrist to index vector
                 w_to_p = self.hand_mp_out[i, 2, :] - self.hand_mp_out[i, 0, :]  # wrist to pinky vector
                 #p_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 2, :]  # pinky to index vector
-                screen_normal = np.zeros((3), dtype = "float32")                # normal of screen
-                screen_normal[:] = (-1, 0, 0)
+                #screen_normal = np.zeros((3), dtype = "float32")                # normal of screen
+                #screen_normal[:] = (0, (-(-1)**int(is_right)), 0)
 
                 # get normal of hand data (cross product between 0,5 vector and 0,17 vector) unit vector
                 hand_normal = np.cross(w_to_i, w_to_p)
@@ -722,24 +707,51 @@ class Extrapolate_forces():
     # get spherical coordinates for each of the 3 vertices (bodyparts) of interest
     # vertex_one is the anchor point, and vertex_two is calculated based on its anchor
     # NOTE: x is horizontal, z is up and down, y is forward and backwards (in the coordinate system we're using; comes from past version of program)
-    def calc_spher_coords(self, vertex_one, vertex_two):    
-        try:
+    #def calc_spher_coords(self, vertex_one, vertex_two):    
+    #    try:
             # basically one dimensional vectors
-            x_diff = self.mediapipe_data_output[vertex_two][0] - self.mediapipe_data_output[vertex_one][0]
-            y_diff = self.mediapipe_data_output[vertex_two][1] - self.mediapipe_data_output[vertex_one][1]
-            z_diff = self.mediapipe_data_output[vertex_two][2] - self.mediapipe_data_output[vertex_one][2]
+    #        x_diff = self.mediapipe_data_output[vertex_two][0] - self.mediapipe_data_output[vertex_one][0]
+    #        y_diff = self.mediapipe_data_output[vertex_two][1] - self.mediapipe_data_output[vertex_one][1]
+    #        z_diff = self.mediapipe_data_output[vertex_two][2] - self.mediapipe_data_output[vertex_one][2]
 
             #rho = np.sqrt((x_diff ** 2) + (y_diff ** 2) + (z_diff ** 2))
             #print("test")
-            rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
+    #        rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
             #print("%s", rho)
             # division by zero is fine here for now, since it returns infinity, and np.arctan(infinity) = 90 degrees
-            theta = np.arctan(x_diff / y_diff)                   # swapped x and y due to equations having different Cartesian coordinate system layout
+    #        theta = np.arctan(x_diff / y_diff)                   # swapped x and y due to equations having different Cartesian coordinate system layout
             #print(theta)
             # NOTE: find better way to do this (preferably without "if" statements)
             # ensure the argument for np.arccos() is always less than or equal to 1
-            phi = np.arccos(np.clip((z_diff / rho), -1, 1))
+    #        phi = np.arccos(np.clip((z_diff / rho), -1, 1))
             #print(phi)
+            
+            # DEBUG
+    #        if vertex_one == 2: # left elbow
+    #            print("Forearm spherical coords: (%s, %s, %s)" % (rho, theta, phi))
+
+    #        return [rho, theta, phi]
+    #    except:
+    #        print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
+
+    # new version of calc_spher_coords (using up as axis)
+    def calc_spher_coords(self, vertex_one, vertex_two):
+        try:
+            # get vector from vertices/points
+            vector = self.mediapipe_data_output[vertex_two] - self.mediapipe_data_output[vertex_one]
+
+            # use up vector as polar axis
+            up = (0, 0, 1)
+
+            rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
+            theta = np.arccos(np.clip((vector[1] / rho), -1, 1))        # axis is y axis
+
+            vector /= np.linalg.norm(vector)    # turn to unit vector
+            phi = np.arctan2(np.linalg.norm(np.cross(up, vector)), np.dot(up, vector)) - np.pi
+            
+            # DEBUG
+            if vertex_one == 2: # left elbow anchor => upper arm
+                print("Forearm spherical coords: (%s, %s, %s)" % (rho, theta, phi))
 
             return [rho, theta, phi]
         except:
