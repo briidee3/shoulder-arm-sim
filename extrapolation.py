@@ -600,9 +600,9 @@ class Extrapolate_forces():
                 if not (theta == np.nan):
                     self.hand_orientation[i, 0] = theta
             
-                #if not is_right:
+                if not is_right:
                     #DEBUG
-                    #print("\nAngle between hand and forearm: \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[i, 0]), np.rad2deg(self.hand_orientation[i, 1])))
+                    print("\nAngle between hand and forearm: \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[i, 0]), np.rad2deg(self.hand_orientation[i, 1])))
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
@@ -673,9 +673,10 @@ class Extrapolate_forces():
 
             # calculate angle at elbow
             #elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
+            
             # using arctan2
             cross_ua_fa = np.cross(vector_b, vector_a)
-            self.elbow_angles[(int)(right_side)] = np.arctan2(np.linalg.norm(cross_ua_fa), np.dot(vector_b, vector_a))
+            self.elbow_angles[(int)(right_side)] = np.pi - np.arctan2(np.linalg.norm(cross_ua_fa), np.dot(vector_b, vector_a))
 
 
             # trying with quaternion stuff instead
@@ -723,7 +724,7 @@ class Extrapolate_forces():
     # NOTE: x is horizontal, z is up and down, y is forward and backwards (in the coordinate system we're using; comes from past version of program)
     def calc_spher_coords(self, vertex_one, vertex_two):    
         try:
-            # effectively sets origin to cur_anchor
+            # basically one dimensional vectors
             x_diff = self.mediapipe_data_output[vertex_two][0] - self.mediapipe_data_output[vertex_one][0]
             y_diff = self.mediapipe_data_output[vertex_two][1] - self.mediapipe_data_output[vertex_one][1]
             z_diff = self.mediapipe_data_output[vertex_two][2] - self.mediapipe_data_output[vertex_one][2]
