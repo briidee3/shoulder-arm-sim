@@ -570,26 +570,34 @@ class Extrapolate_forces():
     ### HAND CALCULATIONS
 
     # calculate orientation of hand (called from calc_elbow_angle)
-    def calc_hand_orientation(self, is_right = False, forearm = np.zeros((3), dtype = "float32")):
+    def calc_hand_orientation(self, is_right = False, forearm = np.zeros((3), dtype = "float32"), cross_ua_fa = np.zeros((3), dtype = "float32")):
         try: 
             i = int(is_right)
             hand_check = self.hand_mp_out[i, 0, 0] + self.hand_mp_out[i, 1, 0] + self.hand_mp_out[i, 2, 0]  # used for checking for changes in hand data (prevent redundant calculations)
             # get depth of hand parts
             # check if hand data is present by checking the sum of the x component of each vertex, which should be different if change occurred
             if not (hand_check == self.hand_check[i]):
-                w_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 0, :]    # wrist to index vector
-                w_to_p = self.hand_mp_out[i, 2, :] - self.hand_mp_out[i, 0, :]   # wrist to pinky vector
+                w_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 0, :]  # wrist to index vector
+                w_to_p = self.hand_mp_out[i, 2, :] - self.hand_mp_out[i, 0, :]  # wrist to pinky vector
+                #p_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 2, :]  # pinky to index vector
                 screen_normal = np.zeros((3), dtype = "float32")                # normal of screen
-                screen_normal[:] = (0, -1, 0)
+                screen_normal[:] = (-1, 0, 0)
 
                 # get normal of hand data (cross product between 0,5 vector and 0,17 vector) unit vector
-                hand_normal = np.cross(w_to_i, w_to_p) / np.dot(w_to_i, w_to_p)
+                hand_normal = np.cross(w_to_i, w_to_p)
+                hand_normal /= np.linalg.norm(hand_normal)
+
+                # get normal rotated 90 deg clockwise about forearm axis for use getting theta
+                hand_normal_rot = np.cross(hand_normal, forearm)
 
                 # get angle between using atan2
                 # phi (hand normal to forearm - 90 degrees)
                 self.hand_orientation[i, 1] = np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm)) - (np.pi/2)
                 # theta (hand normal to screen normal)
-                self.hand_orientation[i, 0] = np.arctan2(np.linalg.norm(np.cross(hand_normal, screen_normal)), np.dot(hand_normal, screen_normal))
+                self.hand_orientation[i, 0] = np.arctan2(np.linalg.norm(np.cross(hand_normal, cross_ua_fa)), np.dot(hand_normal, cross_ua_fa))
+                
+
+                # figure out whether 
             
                 if not is_right:
                     #DEBUG
@@ -665,7 +673,8 @@ class Extrapolate_forces():
             # calculate angle at elbow
             #elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
             # using arctan2
-            self.elbow_angles[(int)(right_side)] = np.arctan2(np.linalg.norm(np.cross(vector_a, vector_b)), np.dot(vector_a, vector_b))
+            cross_ua_fa = np.cross(vector_b, vector_a)
+            self.elbow_angles[(int)(right_side)] = np.arctan2(np.linalg.norm(cross_ua_fa), np.dot(vector_b, vector_a))
 
 
             # trying with quaternion stuff instead
@@ -703,7 +712,7 @@ class Extrapolate_forces():
             #return elbow_angle
 
             # call calc_hand_orientation from here to prevent need to recalculate vector_b
-            self.calc_hand_orientation(right_side, vector_b)
+            self.calc_hand_orientation(right_side, vector_b, norm_cross_ua_fa)
 
         except:
             print("extrapolation.py: ERROR in `calc_elbow_angle()`")
