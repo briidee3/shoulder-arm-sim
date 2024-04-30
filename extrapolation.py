@@ -587,21 +587,22 @@ class Extrapolate_forces():
                 hand_normal = np.cross(w_to_i, w_to_p)
                 hand_normal /= np.linalg.norm(hand_normal)
 
-                # get normal rotated 90 deg clockwise about forearm axis for use getting theta
-                hand_normal_rot = np.cross(hand_normal, forearm)
+                # normal between forearm and normal between forearm and upper arm
+                normal_fa_ua_fa = np.cross(cross_ua_fa, forearm)
 
                 # get angle between using atan2
                 # phi (hand normal to forearm - 90 degrees)
-                self.hand_orientation[i, 1] = np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm)) - (np.pi/2)
+                phi = np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm)) - (np.pi/2)
+                if not (phi == np.nan):
+                    self.hand_orientation[i, 1] = phi
                 # theta (hand normal to screen normal)
-                self.hand_orientation[i, 0] = np.arctan2(np.linalg.norm(np.cross(hand_normal, cross_ua_fa)), np.dot(hand_normal, cross_ua_fa))
-                
-
-                # figure out whether 
+                theta = np.arctan2(np.linalg.norm(np.cross(normal_fa_ua_fa, hand_normal)), np.dot(normal_fa_ua_fa, hand_normal))
+                if not (theta == np.nan):
+                    self.hand_orientation[i, 0] = theta
             
-                if not is_right:
+                #if not is_right:
                     #DEBUG
-                    print("\nangle between hand and forearm: \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[i, 0]), np.rad2deg(self.hand_orientation[i, 1])))
+                    #print("\nAngle between hand and forearm: \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[i, 0]), np.rad2deg(self.hand_orientation[i, 1])))
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
@@ -712,7 +713,7 @@ class Extrapolate_forces():
             #return elbow_angle
 
             # call calc_hand_orientation from here to prevent need to recalculate vector_b
-            self.calc_hand_orientation(right_side, vector_b, norm_cross_ua_fa)
+            self.calc_hand_orientation(right_side, vector_b, cross_ua_fa)
 
         except:
             print("extrapolation.py: ERROR in `calc_elbow_angle()`")
