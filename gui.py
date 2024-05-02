@@ -25,6 +25,9 @@ from PIL import ImageTk
 
 import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 
+import sqlite3
+
+
 
 ### OPTIONS
 
@@ -267,12 +270,90 @@ class SimGUI():
         self.forces_graph_update.grid(row = 0, column = 0)
         self.forces_graph_autoupdate.grid(row = 1, column = 0)
 
+        self.init_data = None
+
+    
+
+
+
+
+
+
+    def fetch_data(self):
+        # Connect to the SQLite database
+        conn = sqlite3.connect('datatransfer.db')
+        c = conn.cursor()
+
+        # SQL query to fetch the most recent entry
+        query = '''
+        SELECT
+            init_distance_shoulder, init_distance_hip_shoulder, init_left_distance_hip_shoulder,
+            init_height_diff_right_shoulder_to_right_hip, init_head_width, init_nose_eye_ear_angle,
+            init_right_shoulder_to_right_elbow, init_right_elbow_to_right_wrist,
+            init_left_shoulder_to_left_elbow, init_left_elbow_to_left_wrist, init_user_max_mpu,
+            m_to_mpu_ratio, init_distance_shoulder2, init_distance_hip_shoulder2,
+            init_left_distance_hip_shoulder2, init_height_diff_right_shoulder_to_right_hip2,
+            init_head_width2, init_nose_eye_ear_angle2, init_right_shoulder_to_right_elbow2,
+            init_right_elbow_to_right_wrist2, init_left_shoulder_to_left_elbow2,
+            init_left_elbow_to_left_wrist2, init_user_max_mpu2, init_distance_shoulder3,
+            init_distance_hip_shoulder3, init_left_distance_hip_shoulder3,
+            init_height_diff_right_shoulder_to_right_hip3, init_head_width3,
+            init_nose_eye_ear_angle3, init_right_shoulder_to_right_elbow3,
+            init_right_elbow_to_right_wrist3, init_left_shoulder_to_left_elbow3,
+            init_left_elbow_to_left_wrist3, init_user_max_mpu3, init_distance_shoulder_ratio,
+            init_distance_hip_shoulder_ratio, init_left_distance_hip_shoulder_ratio,
+            init_height_diff_right_shoulder_to_right_hip_ratio, init_head_width_ratio,
+            init_nose_eye_ear_angle_ratio, init_right_shoulder_to_right_elbow_ratio,
+            init_right_elbow_to_right_wrist_ratio, init_left_shoulder_to_left_elbow_ratio,
+            init_left_elbow_to_left_wrist_ratio, init_user_max_mpu_ratio, depth_ratio
+        FROM measurements
+        ORDER BY id DESC LIMIT 1
+        '''
+        c.execute(query)
+        result = c.fetchone()
+        conn.close()
+
+        # Print the results
+        if result:
+            print("Data Retrieved from Database:")
+            print(result)
+        else:
+            print("No data found.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     
     # start/run the gui display
     def start(self):
         # start updater loops
+        self.fetch_data()
         self.update_display()                               # update display
         self.update_data()                                  # update numerical data
         #self.mediapipe_runtime.run()
@@ -424,6 +505,6 @@ class SimGUI():
         # end gui
         #self.root.destroy()
 
-# make SimGUI object and start it (making this file runnable)
-gui = SimGUI()
-gui.start()
+if __name__ == '__main__':
+    gui = SimGUI()
+    gui.start()
