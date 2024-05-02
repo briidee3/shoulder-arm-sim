@@ -289,18 +289,18 @@ class Extrapolate_forces():
             print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
 
     # IMPORTANT: temporary bandaid fix for calibration
-    def calc_wingspan(self):
-        self.calc_dist_between_vertices(L_INDEX, R_INDEX)
+    #def calc_wingspan(self):
+    #    self.calc_dist_between_vertices(L_INDEX, R_INDEX)
 
     # track max dist between half wingspan for calibration (automatically done via calc_dist_between_vertices, updating max_dist)
-    def calc_half_wingspan(self):
-        try:
-            # keep track of arm length
-            self.calc_dist_between_vertices((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right)))
-        except:
-            print("extrapolation.py: ERROR in `calc_half_wingspan()`")
+    #def calc_half_wingspan(self):
+    #    try:
+    #        # keep track of arm length
+    #        self.calc_dist_between_vertices((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right)))
+    #    except:
+    #        print("extrapolation.py: ERROR in `calc_half_wingspan()`")
 
-    # track shoulder width
+    # track shoulder width (needed for shoulder-based calibration)
     def calc_shoulder_width(self):
         try:
             # keep track of shoulder width
@@ -391,11 +391,11 @@ class Extrapolate_forces():
 
         
     # get avg ratio for shoulder distance
-    def calc_avg_ratio_shoulders(self):
-        try:
-            self.avg_ratio_array[0][1] = self.real_to_sim_units(self.user_height * self.biacromial_scale)
-        except:
-            print("extrapolation.py: ERROR in `calc_avg_ratio_shoulders()`")
+    #def calc_avg_ratio_shoulders(self):
+    #    try:
+    #        self.avg_ratio_array[0][1] = self.real_to_sim_units(self.user_height * self.biacromial_scale)
+    #    except:
+    #        print("extrapolation.py: ERROR in `calc_avg_ratio_shoulders()`")
 
 
     # retrieve the max distance between body parts found thus far
@@ -460,44 +460,45 @@ class Extrapolate_forces():
 
     # calculate ratio for conversion of simulated units to metric units (meters) using wingspan and input real height
     # using the wingspan method
-    def calc_conversion_ratio_wingspan(self, real_height_metric = 1.78):        # DEPRECATED
-        # get ratio to real distance in meters using max distance between wrists via mediapipe output data
-        if self.use_full_wingspan:
-            sim_wingspan = self.get_max_dist(L_INDEX, R_INDEX)
-
-        # new calibration method
-        # uses half wingspan, for ease of use
-
-        # set global conversion factor
-        #global sim_to_real_conversion_factor
-        if not self.manual_calibration:
-            # calculate for full wingspan
-            if self.use_full_wingspan: 
-                sim_wingspan = self.get_max_dist(L_INDEX, R_INDEX)
-                self.sim_to_real_conversion_factor = real_height_metric / sim_wingspan
-            # calculate for half wingspan
-            else:
-                half_wingspan = self.get_max_dist((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right))) + (self.get_max_dist(L_SHOULDER, R_SHOULDER) / 2)
-                self.sim_to_real_conversion_factor = real_height_metric / (half_wingspan * 2)
-
-        return self.sim_to_real_conversion_factor
+    # (unused)
+    #def calc_conversion_ratio_wingspan(self, real_height_metric = 1.78):        # DEPRECATED
+    #    # get ratio to real distance in meters using max distance between wrists via mediapipe output data
+    #    if self.use_full_wingspan:
+    #        sim_wingspan = self.get_max_dist(L_INDEX, R_INDEX)
+    #
+    #    # new calibration method
+    #    # uses half wingspan, for ease of use
+    #
+    #    # set global conversion factor
+    #    #global sim_to_real_conversion_factor
+    #    if not self.manual_calibration:
+    #        # calculate for full wingspan
+    #        if self.use_full_wingspan: 
+    #            sim_wingspan = self.get_max_dist(L_INDEX, R_INDEX)
+    #            self.sim_to_real_conversion_factor = real_height_metric / sim_wingspan
+    #        # calculate for half wingspan
+    #        else:
+    #            half_wingspan = self.get_max_dist((L_INDEX + (int)(self.is_right)), (L_SHOULDER + (int)(self.is_right))) + (self.get_max_dist(L_SHOULDER, R_SHOULDER) / 2)
+    #            self.sim_to_real_conversion_factor = real_height_metric / (half_wingspan * 2)
+    #
+    #    return self.sim_to_real_conversion_factor
     
     # get conversion ratio (so it doesn't need to be calculated for each of these calls)
     def get_conversion_ratio(self):
         return self.sim_to_real_conversion_factor
     
     # set the conversion factor/ratio manually
-    def set_conversion_ratio(self, conv_ratio):
-        self.sim_to_real_conversion_factor = conv_ratio
+    #def set_conversion_ratio(self, conv_ratio):
+    #    self.sim_to_real_conversion_factor = conv_ratio
     
     # set calibration to manual
-    def set_calibration_manual(self, is_manual = True):
-        self.manual_calibration = is_manual
+    #def set_calibration_manual(self, is_manual = True):
+    #    self.manual_calibration = is_manual
     
     # reset max_array data to essentially reset the application (no longer used in calibration)
-    def reset_calibration(self):
-        self.max_array = np.zeros((8,8), dtype = "float64") # reset max distances
-        self.sim_to_real_conversion_factor = 1
+    #def reset_calibration(self):
+    #    self.max_array = np.zeros((8,8), dtype = "float64") # reset max distances
+    #    self.sim_to_real_conversion_factor = 1
         
 
 
@@ -583,6 +584,7 @@ class Extrapolate_forces():
 
     # get depth for hand parts (for one hand)
     # TODO: combine this with set_depth()
+    # (unfinished; time constraints)
     def set_hand_depth(self, is_right = False):
         try:
             # go thru all vertices for hand
