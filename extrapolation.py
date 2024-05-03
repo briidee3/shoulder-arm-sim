@@ -750,6 +750,8 @@ class Extrapolate_forces():
 
             rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
             #theta = np.arccos(vector[1] / rho)
+            # calculate theta; right now, this only has a range of 180 degrees in front of the anchor (i.e. vertex_two).abs
+            #   to fix this, check if vertex is in front of or behind other vertex; if behind, multiply by -1 to get full range (i.e. 0 to -pi and 0 to pi)
             theta = np.abs(np.arctan2(vector[2], (x_axis[0] * vector[0])) / 2)
 
             vector /= np.linalg.norm(vector)    # turn to unit vector
