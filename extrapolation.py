@@ -477,8 +477,8 @@ class Extrapolate_forces():
         return self.sim_to_real_conversion_factor
     
     # set the conversion factor/ratio manually
-    #def set_conversion_ratio(self, conv_ratio):
-    #    self.sim_to_real_conversion_factor = conv_ratio
+    def set_conversion_ratio(self, conv_ratio):
+        self.sim_to_real_conversion_factor = conv_ratio
     
     # set calibration to manual
     #def set_calibration_manual(self, is_manual = True):
@@ -589,9 +589,9 @@ class Extrapolate_forces():
                 if not (theta == np.nan):
                     self.hand_orientation[i, 0] = theta
             
-                if not is_right:
+                #if not is_right:
                     #DEBUG
-                    print("\nAngle between hand and forearm: \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[i, 0]), np.rad2deg(self.hand_orientation[i, 1])))
+                #    print("\nAngle between hand and forearm: \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[i, 0]), np.rad2deg(self.hand_orientation[i, 1])))
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
@@ -741,16 +741,18 @@ class Extrapolate_forces():
     # new version of calc_spher_coords (using up as axis)
     def calc_spher_coords(self, vertex_one, vertex_two):
         try:
-            # get vector from vertices/points
+            # get vector from given vertices/points
             vector = self.mediapipe_data_output[vertex_two] - self.mediapipe_data_output[vertex_one]
 
             # use up vector as polar axis
             up = (0, 0, 1)
 
             rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
-            theta = np.arccos(np.clip((vector[1] / rho), -1, 1))        # axis is y axis
+            theta = np.arccos(vector[1] / rho)
+            #theta = np.arctan(np.clip(vector[2] / vector[0], -1, 1))
 
             vector /= np.linalg.norm(vector)    # turn to unit vector
+            # using atan2 to get angle between polar axis and current body segment
             phi = np.arctan2(np.linalg.norm(np.cross(up, vector)), np.dot(up, vector)) - (np.pi/2)
             
             # DEBUG
