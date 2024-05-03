@@ -739,25 +739,29 @@ class Extrapolate_forces():
     #        print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
 
     # new version of calc_spher_coords (using up as axis)
-    def calc_spher_coords(self, vertex_one, vertex_two):
+    def calc_spher_coords(self, is_right, vertex_one, vertex_two):
         try:
             # get vector from given vertices/points
             vector = self.mediapipe_data_output[vertex_two] - self.mediapipe_data_output[vertex_one]
 
             # use up vector as polar axis
-            up = (0, 0, 1)
+            z_axis = (0, 0, 1)
+            x_axis = ((-1)**(int(is_right)), 0, 0)  # x axis is -1 if is_right is True (i.e. (-1)^(1)), or 1 if False (i.e. (-1)^(0))
 
             rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
-            theta = np.arccos(vector[1] / rho)
-            #theta = np.arctan(np.clip(vector[2] / vector[0], -1, 1))
+            #theta = np.arccos(vector[1] / rho)
+            theta = np.abs(np.arctan2(vector[2], (x_axis[0] * vector[0])))
 
             vector /= np.linalg.norm(vector)    # turn to unit vector
             # using atan2 to get angle between polar axis and current body segment
-            phi = np.arctan2(np.linalg.norm(np.cross(up, vector)), np.dot(up, vector)) - (np.pi/2)
+            phi = np.arctan2(np.linalg.norm(np.cross(z_axis, vector)), np.dot(z_axis, vector)) - (np.pi/2)
             
             # DEBUG
-            if vertex_one == 2: # left elbow anchor => upper arm
-                print("Forearm spherical coords: (%s, %s, %s)" % (rho, theta, phi))
+            #if not is_right: # left elbow anchor => upper arm
+            side = "Right"
+            if (vertex_one == 2):
+                side = "Left"
+            print("%s forearm spherical coords: (%s, %s, %s)" % (side, rho, theta, phi))
 
             return [rho, theta, phi]
         except:
@@ -795,8 +799,8 @@ class Extrapolate_forces():
 
                 # get spherical coordinate data for arm segments
                 try:
-                    uarm_spher_coords = self.calc_spher_coords((L_SHOULDER + (int)(is_right)), (L_ELBOW + (int)(is_right)))
-                    farm_spher_coords = self.calc_spher_coords((L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
+                    uarm_spher_coords = self.calc_spher_coords(bool(is_right), (L_SHOULDER + (int)(is_right)), (L_ELBOW + (int)(is_right)))
+                    farm_spher_coords = self.calc_spher_coords(bool(is_right), (L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
                 except:
                     print("extrapolation.py: ERROR calculating spherical coords in `calc_bicep_force()`")
 
