@@ -393,7 +393,7 @@ class Extrapolate_forces():
 
 
 
-    ### NEW CALIBRATION: AVG RATIOS AND OFFSETS
+    ### NEW CALIBRATION: AVG RATIOS AND OFFSETS (offsets not completed or used)
 
     # calculate true length of segments (e.g. upper arm) via use of avg ratios and estimated deviation from avg ratios
     # 
@@ -665,7 +665,7 @@ class Extrapolate_forces():
             
             # using arctan2
             cross_ua_fa = np.cross(vector_b, vector_a)
-            self.elbow_angles[(int)(right_side)] = np.pi - np.arctan2(np.linalg.norm(cross_ua_fa), np.dot(vector_b, vector_a))
+            self.elbow_angles[(int)(right_side)] = np.arctan2(np.linalg.norm(cross_ua_fa), np.dot(vector_b, vector_a))
 
 
             # trying with quaternion stuff instead
@@ -760,20 +760,20 @@ class Extrapolate_forces():
             
             # DEBUG
             #if not is_right: # left elbow anchor => upper arm
-            segment = "<segment>"
-            match vertex_one:
-                case 0:
-                    segment = "\nLeft upper arm"
-                case 1:
-                    segment = "\nRight upper arm"
-                case 2:
-                    segment = "Left lower arm"
-                case 3:
-                    segment = "Right lower arm"
-                case _:
-                    segment = segment
+            #segment = "<segment>"
+            #match vertex_one:
+            #    case 0:
+            #        segment = "\nLeft upper arm"
+            #    case 1:
+            #        segment = "\nRight upper arm"
+            #    case 2:
+            #        segment = "Left lower arm"
+            #    case 3:
+            #        segment = "Right lower arm"
+            #    case _:
+            #        segment = segment
             
-            print("%s spherical coords: (%s, %s, %s)" % (segment, rho, theta, phi))
+            #print("%s spherical coords: (%s, %s, %s)" % (segment, rho, theta, phi))
 
             return [rho, theta, phi]
         except:
@@ -801,8 +801,9 @@ class Extrapolate_forces():
 
             # run through once for left, once for right
             for is_right in [0, 1]:
-                # only calculate the following if the elbow angle exists
+                # get elbow angle data
                 elbow_angle = self.elbow_angles[int(is_right)]
+
                 if math.isnan(elbow_angle):
                     return math.nan                                         # if elbow_angle == nan, exit function by returning nan
 
@@ -827,17 +828,22 @@ class Extrapolate_forces():
                 except:
                     print("extrapolation.py: ERROR calculating metrics in `calc_bicep_force()`")
 
-                # angles
+                # angles calculations
                 try:
-                    #theta_arm = (np.pi / 2) - farm_spher_coords[THETA]          # angle at shoulder
-                    theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]         # angle of upper arm
-                    theta_u = elbow_angle#theta_arm + theta_uarm                # angle at elbow
-                    theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
-                    theta_la = np.cos(theta_uarm) #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
-                except:
-                    print("extrapolation.py: ERROR calculating angles in `calc_bicep_force()`")
+                    #theta_arm = (np.pi / 2) - farm_spher_coords[PHI]          # angle at shoulder
+                    #theta_arm = farm_spher_coords[PHI]
+                    #theta_uarm = (np.pi / 2) + uarm_spher_coords[PHI]         # angle of upper arm
+                    theta_uarm = uarm_spher_coords[PHI]
+                    #theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]
+                    theta_u = elbow_angle #theta_arm + theta_uarm                # angle at elbow
+                    theta_b = np.pi - np.arccos( (b - u * np.cos(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) )  #np.sin(theta_u) ) )      # angle at bicep insertion point
+                    #theta_b = np.pi - np.arccos( np.clip( ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) ), -1, 1 ) )  #np.sin(theta_u) ) )      # angle at bicep insertion point
+                    theta_la = np.cos(theta_uarm)   # theta_uarm should = theta_u - theta_arm
+                    #theta_la = np.sin(theta_u - theta_arm - (np.pi/2))     #np.cos(theta_uarm) #np.sin(theta_uarm)        # used for leverage arms fa and bal
+                except Exception as e:
+                    print("extrapolation.py: ERROR calculating angles in `calc_bicep_force()`: %s" % e)
 
-                # lever arms
+                # lever arms calculations
                 try:
                     la_fa = cgf * theta_la                                      # forearm lever arm
                     la_bal = f * theta_la                                       # ball lever arm
