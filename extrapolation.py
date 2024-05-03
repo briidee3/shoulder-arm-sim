@@ -750,7 +750,7 @@ class Extrapolate_forces():
 
             rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
             #theta = np.arccos(vector[1] / rho)
-            theta = np.abs(np.arctan2(vector[2], (x_axis[0] * vector[0])))
+            theta = np.abs(np.arctan2(vector[2], (x_axis[0] * vector[0])) / 2)
 
             vector /= np.linalg.norm(vector)    # turn to unit vector
             # using atan2 to get angle between polar axis and current body segment
@@ -758,10 +758,20 @@ class Extrapolate_forces():
             
             # DEBUG
             #if not is_right: # left elbow anchor => upper arm
-            side = "Right"
-            if (vertex_one == 2):
-                side = "Left"
-            print("%s forearm spherical coords: (%s, %s, %s)" % (side, rho, theta, phi))
+            segment = "<segment>"
+            match vertex_one:
+                case 0:
+                    segment = "\nLeft upper arm"
+                case 1:
+                    segment = "\nRight upper arm"
+                case 2:
+                    segment = "Left lower arm"
+                case 3:
+                    segment = "Right lower arm"
+                case _:
+                    segment = segment
+            
+            print("%s spherical coords: (%s, %s, %s)" % (segment, rho, theta, phi))
 
             return [rho, theta, phi]
         except:
