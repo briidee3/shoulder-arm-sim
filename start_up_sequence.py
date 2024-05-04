@@ -40,6 +40,8 @@ import sqlite3
 
 
 import os
+
+#import gui
 print("Current Working Directory:", os.getcwd())
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -787,6 +789,12 @@ def calculate_z(z_init, max_length, max_length3, actual_length, angle, pitch, hi
 
 def calculate_z(z_init, max_length, max_length3, actual_length, angle, pitch, hipShoElb):
     z = 0
+
+
+
+
+
+
     max_len1 = max_length*m_to_mpu_ratio
     max_len3 = max_length3*m_to_mpu_ratio
     max_len = max_len1
@@ -815,19 +823,23 @@ def calculate_z(z_init, max_length, max_length3, actual_length, angle, pitch, hi
         return z
     
 def calculate_z_angle(z_init, max_length, angle):
-    #print("calc ran")
+    #only used for shoulder
+
+    forward_lean = (angle/90)  
+    angle_in_radians = math.asin(forward_lean)
+    angle_in_degrees = math.degrees(angle_in_radians)
 
     z = 0
     if angle > 0: #Backward
         if developer_mode:
             print("z_init: " + str(z_init) + ", max_length: " + str(max_length*m_to_mpu_ratio) + ", angle: " + str(angle/90) + ", z + : " + str(((max_length*m_to_mpu_ratio)*(angle/90))))
-        z = z_init + ((max_length*m_to_mpu_ratio)*(angle/90))
+        z = z_init + ((max_length*m_to_mpu_ratio)*(angle_in_degrees/90))
 
         return z
     else: # Forward
         if developer_mode:
             print("z_init: " + str(z_init) + ", max_length: " + str(max_length*m_to_mpu_ratio) + ", angle: " + str(angle/90) + ", z + : " + str(((max_length*m_to_mpu_ratio)*(angle/90))))
-        z = z_init + ((max_length*m_to_mpu_ratio)*(angle/90))        
+        z = z_init + ((max_length*m_to_mpu_ratio)*(angle_in_degrees/90))        
         
         return z
 
@@ -856,24 +868,12 @@ def calculate_body_yaw(distance_shoulder, distance_hip_shoulder, direction_facin
     return 0
 
 
-def calculate_body_pitch(head_width, height_diff_hip_shoulder, eye_ear_angle, init_eye_ear_angle):
+def calculate_body_pitch(height_diff_hip_shoulder, eye_ear_angle, init_eye_ear_angle):
     """
     Calculate the body's pitch based on height difference between the right should and the right hip over the width of the head 
     and the direction facing(up or down) to notate whether the user is leaning forward or backward.
     """
 
-    """
-    if head_width is not None and height_diff_hip_shoulder is not None and height_diff_hip_shoulder != 0:
-            if eye_ear_angle <= init_eye_ear_angle:
-                if developer_mode:
-                    print("up")
-                return round(((180-(height_diff_hip_shoulder / init_val), 0)*90), 4) #init_val = ? add arcsin - took out *2 after *90)
-            else:
-                if developer_mode:
-                    print("down")
-                return round((((height_diff_hip_shoulder / init_val), 0)*90)-180, 4) #init_val = ? - took out *2 after *90)
-    return 0
-    """
     uncertainty_buffer = 10 #10 degrees
     hipShoElb = calculate_left_hip_shoulder_elbow_angle()
     max_height = init_height_diff_right_shoulder_to_right_hip3 + ((init_height_diff_right_shoulder_to_right_hip-init_height_diff_right_shoulder_to_right_hip3)*(hipShoElb)/90)
@@ -882,35 +882,30 @@ def calculate_body_pitch(head_width, height_diff_hip_shoulder, eye_ear_angle, in
 
 
 
-    if head_width is not None and height_diff_hip_shoulder is not None and height_diff_hip_shoulder is not None:
+    #print("height diff: " + str(height_diff_hip_shoulder) + ", max height: " + str(max_height) + ", arms down: " + str(init_height_diff_right_shoulder_to_right_hip3) + ", arms up: " + str(init_height_diff_right_shoulder_to_right_hip))
+    if height_diff_hip_shoulder > max_height:
+        ratio = 1  
+    elif (height_diff_hip_shoulder/max_height) < 0.1:
+        ratio = 0.1
+    else:
+        ratio = (height_diff_hip_shoulder/max_height)  
+    angle_in_radians = math.asin(ratio)
+    angle_in_degrees = math.degrees(angle_in_radians)
 
+    print("\n\nratio: " + str(ratio) + ", radians: " + str(angle_in_radians) + ", degrees: " + str(angle_in_degrees) + "\n\n")
 
-        print("height diff: " + str(height_diff_hip_shoulder) + ", max height: " + str(max_height) + ", arms down: " + str(init_height_diff_right_shoulder_to_right_hip3) + ", arms up: " + str(init_height_diff_right_shoulder_to_right_hip))
-        if height_diff_hip_shoulder > max_height:
-            ratio = 1  # Adjusted to use head_width for the arc sine calculation
-        elif (height_diff_hip_shoulder/max_height) < 0.1:
-            ratio = 0.1
-        else:
-            ratio = (height_diff_hip_shoulder/max_height)  # Adjusted to use head_width for the arc sine calculation
-        angle_in_radians = math.asin(ratio)
-        angle_in_degrees = math.degrees(angle_in_radians)
-
-        print("\n\nratio: " + str(ratio) + ", radians: " + str(angle_in_radians) + ", degrees: " + str(angle_in_degrees) + "\n\n")
-
-        if eye_ear_angle <= init_eye_ear_angle:
-            if developer_mode:
-                print("up")
-            # Adjust the calculation to use the angle from arcsin
-            return_val = round(-(90-(angle_in_degrees)), 4)
-            return return_val if return_val < uncertainty_buffer else 0
-        else:
-            if developer_mode:
-                print("down")
-            # Adjust the calculation to use the angle from arcsin
-            return_val = round(90-(angle_in_degrees), 4)
-            return return_val if return_val > uncertainty_buffer else 0
-    
-    return 0
+    if eye_ear_angle <= init_eye_ear_angle:
+        if developer_mode:
+            print("up")
+        
+        return_val = round(-(90-(angle_in_degrees)), 4)
+        return return_val if return_val < uncertainty_buffer else 0
+    else:
+        if developer_mode:
+            print("down")
+        
+        return_val = round(90-(angle_in_degrees), 4)
+        return return_val if return_val > uncertainty_buffer else 0
 
 
 
@@ -1325,7 +1320,7 @@ def data_update(image):
     direction_num, direction_facing = calculate_direction(distance_right, distance_left)
     body_yaw = calculate_body_yaw(distance_shoulder, distance_hip_shoulder, direction_facing, (init_distance_shoulder/init_distance_hip_shoulder))
     body_roll = calculate_body_roll()  # Calculate shoulder angle
-    body_pitch = calculate_body_pitch(head_width, height_diff_shoulder_hip, nose_eye_ear_angle, init_nose_eye_ear_angle)
+    body_pitch = calculate_body_pitch(height_diff_shoulder_hip, nose_eye_ear_angle, init_nose_eye_ear_angle)
     hipShoElb = calculate_left_hip_shoulder_elbow_angle()
     left_hip_x = get_left_hip_x()
     left_hip_y = get_left_hip_y()
@@ -1596,6 +1591,40 @@ def format_point_name(point):
 
 
 
+def data_collection():
+    global init_distance_shoulder, init_distance_hip_shoulder, init_left_distance_hip_shoulder, init_height_diff_right_shoulder_to_right_hip, init_head_width, init_nose_eye_ear_angle, init_right_shoulder_to_right_elbow, init_right_elbow_to_right_wrist, init_left_shoulder_to_left_elbow, init_left_elbow_to_left_wrist, init_user_max_mpu, m_to_mpu_ratio, init_distance_shoulder2, init_distance_hip_shoulder2, init_left_distance_hip_shoulder2, init_height_diff_right_shoulder_to_right_hip2, init_head_width2, init_nose_eye_ear_angle2, init_right_shoulder_to_right_elbow2, init_right_elbow_to_right_wrist2, init_left_shoulder_to_left_elbow2, init_left_elbow_to_left_wrist2, init_user_max_mpu2, init_distance_shoulder3, init_distance_hip_shoulder3, init_left_distance_hip_shoulder3, init_height_diff_right_shoulder_to_right_hip3, init_head_width3, init_nose_eye_ear_angle3, init_right_shoulder_to_right_elbow3, init_right_elbow_to_right_wrist3, init_left_shoulder_to_left_elbow3, init_left_elbow_to_left_wrist3, init_user_max_mpu3, init_distance_shoulder_ratio, init_distance_hip_shoulder_ratio, init_left_distance_hip_shoulder_ratio, init_height_diff_right_shoulder_to_right_hip_ratio, init_head_width_ratio, init_nose_eye_ear_angle_ratio, init_right_shoulder_to_right_elbow_ratio, init_right_elbow_to_right_wrist_ratio, init_left_shoulder_to_left_elbow_ratio, init_left_elbow_to_left_wrist_ratio, init_user_max_mpu_ratio, depth_ratio
+    
+    # Prepare data for writing
+    data = (
+        init_distance_shoulder, init_distance_hip_shoulder, init_left_distance_hip_shoulder, 
+        init_height_diff_right_shoulder_to_right_hip, init_head_width, init_nose_eye_ear_angle, 
+        init_right_shoulder_to_right_elbow, init_right_elbow_to_right_wrist, 
+        init_left_shoulder_to_left_elbow, init_left_elbow_to_left_wrist, init_user_max_mpu, 
+        m_to_mpu_ratio, init_distance_shoulder2, init_distance_hip_shoulder2, 
+        init_left_distance_hip_shoulder2, init_height_diff_right_shoulder_to_right_hip2, 
+        init_head_width2, init_nose_eye_ear_angle2, init_right_shoulder_to_right_elbow2, 
+        init_right_elbow_to_right_wrist2, init_left_shoulder_to_left_elbow2, 
+        init_left_elbow_to_left_wrist2, init_user_max_mpu2, init_distance_shoulder3, 
+        init_distance_hip_shoulder3, init_left_distance_hip_shoulder3, 
+        init_height_diff_right_shoulder_to_right_hip3, init_head_width3, 
+        init_nose_eye_ear_angle3, init_right_shoulder_to_right_elbow3, 
+        init_right_elbow_to_right_wrist3, init_left_shoulder_to_left_elbow3, 
+        init_left_elbow_to_left_wrist3, init_user_max_mpu3, init_distance_shoulder_ratio, 
+        init_distance_hip_shoulder_ratio, init_left_distance_hip_shoulder_ratio, 
+        init_height_diff_right_shoulder_to_right_hip_ratio, init_head_width_ratio, 
+        init_nose_eye_ear_angle_ratio, init_right_shoulder_to_right_elbow_ratio, 
+        init_right_elbow_to_right_wrist_ratio, init_left_shoulder_to_left_elbow_ratio, 
+        init_left_elbow_to_left_wrist_ratio, init_user_max_mpu_ratio, depth_ratio
+    )
+
+    # Convert data tuple to a comma-separated string
+    data_str = ",".join(map(str, data))
+
+    # Write to file
+    with open("measurements_data.txt", "w") as file:
+        file.write(data_str)
+
+"""
 
 def data_collection():
     global init_distance_shoulder, init_distance_hip_shoulder, init_left_distance_hip_shoulder, init_height_diff_right_shoulder_to_right_hip, init_head_width, init_nose_eye_ear_angle, init_right_shoulder_to_right_elbow, init_right_elbow_to_right_wrist, init_left_shoulder_to_left_elbow, init_left_elbow_to_left_wrist, init_user_max_mpu, m_to_mpu_ratio, image_rgb, results, landmarks, instruction_image_label, img_instruct_label, main_frame, init_distance_shoulder2, init_distance_hip_shoulder2, init_left_distance_hip_shoulder2, init_height_diff_right_shoulder_to_right_hip2, init_head_width2, init_nose_eye_ear_angle2, init_right_shoulder_to_right_elbow2, init_right_elbow_to_right_wrist2, init_left_shoulder_to_left_elbow2, init_left_elbow_to_left_wrist2, init_user_max_mpu2, init_distance_shoulder3, init_distance_hip_shoulder3, init_left_distance_hip_shoulder3, init_height_diff_right_shoulder_to_right_hip3, init_head_width3, init_nose_eye_ear_angle3, init_right_shoulder_to_right_elbow3, init_right_elbow_to_right_wrist3, init_left_shoulder_to_left_elbow3, init_left_elbow_to_left_wrist3, init_user_max_mpu3, init_distance_shoulder_ratio, init_distance_hip_shoulder_ratio, init_left_distance_hip_shoulder_ratio, init_height_diff_right_shoulder_to_right_hip_ratio, init_head_width_ratio, init_nose_eye_ear_angle_ratio, init_right_shoulder_to_right_elbow_ratio, init_right_elbow_to_right_wrist_ratio, init_left_shoulder_to_left_elbow_ratio, init_left_elbow_to_left_wrist_ratio, init_user_max_mpu_ratio, depth_ratio
@@ -1659,7 +1688,7 @@ def data_collection():
 
 # Ensure that all variables used in data_collection are defined before calling the function.
 
-
+"""
 
 
 
@@ -1680,9 +1709,20 @@ def update_image():
     image.flags.writeable = True
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-    
 
-    data_collection()
+
+
+
+    """
+    cap.release()
+    root.destroy()
+    cv2.destroyAllWindows()
+    time.sleep(10)
+    simgui1 = gui.SimGUI()
+    simgui1.start()
+    """
+
+    #data_collection()
     if current_stage == 'overlay_1':
         overlay = draw_guide_overlay_1(frame, results)
         points_in_position = check_points_in_circles(frame, results)
@@ -1787,8 +1827,11 @@ def update_image():
         if True: #elapsed_time > time_simulation_active:
             print(str(time_simulation_active) + " seconds have elapsed, stopping the update.")
             cap.release()
+            root.destroy()
             cv2.destroyAllWindows()
-            #root.destroy()
+            time.sleep(10)
+            gui.SimGUI()
+            gui.start()
             return # Exit the function to stop the loop
 
 
