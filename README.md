@@ -1,6 +1,8 @@
-BD 2023
 
 ## Biomechanics arm/body forces simulation program
+
+# This branch is currently a work in progress
+### Working on combining code
 
 The following packages are needed in order to run this in python:
 - numpy
