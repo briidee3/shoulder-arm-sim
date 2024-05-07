@@ -302,11 +302,21 @@ class SimGUI():
 
     # update numerical data in gui
     def update_data(self):
-        # update data
-        self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
+        
+        # elbow angles
         self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
-        self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
         self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
+        
+        # bicep forces
+        # only show numerical bicep force calculations if elbow angle > 90 degrees (otherwise, formula doesn't work)
+        if (float(self.calculated_data["right_elbow_angle"]) >= 90):    # right arm
+            self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
+        else:
+            self.right_bicep_var.set("N/A (angle below 90 deg)")
+        if (float(self.calculated_data["left_elbow_angle"]) >= 90):    # left arm
+            self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
+        else:
+            self.left_bicep_var.set("N/A (angle below 90 deg)")
 
         # update manual calibration
         self.manual_calibration = self.mediapipe_runtime.toggle_auto_calibrate
