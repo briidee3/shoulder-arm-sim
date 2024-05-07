@@ -31,11 +31,13 @@ import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 # model to use for mediapipe
 pose_landmarker = 'landmarkers/pose/pose_landmarker_full.task'
 hand_landmarker = 'landmarkers/hand/hand_landmarker.task'
+face_landmarker = 'landmarkers/face/face_landmarker.task'
 
 # check if windows; if so, use windows file pathing
 if os.name == 'nt':
     pose_landmarker = "landmarkers\\pose\\pose_landmarker_full.task"
     hand_landmarker = "landmarkers\\hand\\hand_landmarker.task"
+    face_landmarker = 'landmarkers\\face\\face_landmarker.task'
 
 
 # load and prep placeholder image for program initialization
@@ -70,7 +72,7 @@ class SimGUI():
         self.hbf_max_len = 1000             # max length for history of bicep force
 
         # initialize mediapipe thread
-        self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker, hand_landmarker)
+        self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker, hand_landmarker, face_landmarker)
         self.mediapipe_runtime.start()
 
         # allow entry in imperial (instead of metric)

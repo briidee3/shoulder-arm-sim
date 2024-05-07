@@ -760,20 +760,20 @@ class Extrapolate_forces():
             
             # DEBUG
             #if not is_right: # left elbow anchor => upper arm
-            segment = "<segment>"
-            match vertex_one:
-                case 0:
-                    segment = "\nLeft upper arm"
-                case 1:
-                    segment = "\nRight upper arm"
-                case 2:
-                    segment = "Left lower arm"
-                case 3:
-                    segment = "Right lower arm"
-                case _:
-                    segment = segment
+            #segment = "<segment>"
+            #match vertex_one:
+            #    case 0:
+            #        segment = "\nLeft upper arm"
+            #    case 1:
+            #        segment = "\nRight upper arm"
+            #    case 2:
+            #        segment = "Left lower arm"
+            #    case 3:
+            #        segment = "Right lower arm"
+            #    case _:
+            #        segment = segment
             
-            print("%s spherical coords: (%s, %s, %s)" % (segment, rho, theta, phi))
+            #print("%s spherical coords: (%s, %s, %s)" % (segment, rho, theta, phi))
 
             return [rho, theta, phi]
         except:

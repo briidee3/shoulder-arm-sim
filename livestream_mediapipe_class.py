@@ -68,6 +68,13 @@ HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
 HandLandmarkerResult = mp.tasks.vision.HandLandmarkerResult
 HandVisionRunningMode = mp.tasks.vision.RunningMode
 
+# FaceLandmarker task object callback reference
+FaceBaseOptions = mp.tasks.BaseOptions
+FaceLandmarker = mp.tasks.vision.FaceLandmarker
+FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
+FaceLandmarkerResult = mp.tasks.vision.FaceLandmarkerResult
+FaceVisionRunningMode = mp.tasks.vision.RunningMode
+
 
 
 ### CLASS
@@ -76,13 +83,14 @@ HandVisionRunningMode = mp.tasks.vision.RunningMode
 class Pose_detection(threading.Thread):
 
     # initialization
-    def __init__(self, pose_model_path, hand_model_path) -> None:
+    def __init__(self, pose_model_path, hand_model_path, face_model_path) -> None:
         # initialize thread
         threading.Thread.__init__(self)
         
         # allow model_path to be accessible to functions
         self.pose_model_path = pose_model_path
         self.hand_model_path = hand_model_path
+        self.face_model_path = face_model_path
 
         # allow setting of frame height and width
         self.height = HEIGHT
@@ -141,7 +149,10 @@ class Pose_detection(threading.Thread):
         }
 
         # output data from hand landmarker
-        self.hand_mp_out = np.zeros((2,4,3), dtype = "float32")
+        self.hand_mp_out = np.zeros((2,4,3), dtype = "float32") # four points for each hand
+
+        # output data from face landmarker
+        self.face_mp_out = np.zeros((2,2,3), dtype = "float16") # two points for both eyes
 
         # initialize extrapolation and body force calculation object
         #self.right_arm = extrapolation.Extrapolate_forces(is_right = True)  # right arm
@@ -151,8 +162,10 @@ class Pose_detection(threading.Thread):
         #self.initialize_display()                                       # initialize display input
         # initialization of image (updated asynchronously)
         self.annotated_image = np.zeros((self.height, self.width, 3), np.uint8)
-        # used as final annotated image for use by gui (after being annotated by both HandLandmarker and PoseLandmarker)
-        self.full_annotated_image = self.annotated_image
+        # used as hand annotated image for use by gui (after being annotated by both HandLandmarker and PoseLandmarker)
+        self.hand_annotated_image = self.annotated_image
+        # full annotated image after landmarking from all three models
+        self.full_annotated_image = self.hand_annotated_image
 
         # options for pose landmarker
         options = PoseLandmarkerOptions(
@@ -170,6 +183,17 @@ class Pose_detection(threading.Thread):
             result_callback = self.hand_draw_landmarks_on_frame
         )
         self.hand_detector = HandLandmarker.create_from_options(hand_options)    # load hand landmarker model for use in detection
+
+        # options for face landmarker
+        face_options = FaceLandmarkerOptions(
+            base_options = FaceBaseOptions(model_asset_path = self.face_model_path),
+            output_face_blendshapes = True,
+            output_facial_transformation_matrixes = True,
+            num_faces = 1,
+            running_mode = FaceVisionRunningMode.LIVE_STREAM,
+            result_callback = self.face_draw_landmarks_on_frame
+        )
+        self.face_detector = FaceLandmarker.create_from_options(face_options)
 
         print("Initialized Pose_detection()")
 
@@ -271,7 +295,7 @@ class Pose_detection(threading.Thread):
     def extrapolate_depth(self, mediapipe_output):
         try:
             # set the data for the current frame
-            self.ep.update_current_frame(mediapipe_output, self.hand_mp_out, self.frame_counter)    # update mediapipe data
+            self.ep.update_current_frame(mediapipe_output, self.hand_mp_out, self.face_mp_out, self.frame_counter)    # update mediapipe data
             # calculations that don't need to run each frame (hence run every "tick")
             #if not self.toggle_auto_calibrate and (self.frame_counter % self.tick_length == 0):    # now done in extrapolation.py each frame update
             #    self.ep.calc_conversion_ratio(real_height_metric = self.user_height)  # calculate conversion ratio (mediapipe units to meters)
@@ -411,8 +435,15 @@ class Pose_detection(threading.Thread):
                 
             #with self.annotated_image_lock:# update object version of annotated_image
             #if not self.annot_img_finish:   # used to prevent sync issues with pose landmarker
-            self.full_annotated_image = annotated_image
-                #self.annot_img_finish = True
+            self.hand_annotated_image = annotated_image
+
+
+            try:
+                # call hand landmarker callback function after finishing for pose landmarker
+                self.face_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
+            except:
+                print("livestream_mediapipe_class.py: ERROR handling face_detector in hand_draw_landmarks_on_frame()")
+
 
             # put together the hand data we're looking for
             it = 0                      # iterator for iterating thru data frame (i.e. hand_mp_out)
@@ -449,6 +480,62 @@ class Pose_detection(threading.Thread):
             print("\tException: %s" % str(e))
 
         return 1
+
+    # face landmarker callback function
+    def face_draw_landmarks_on_frame(self, detection_result: FaceLandmarkerResult, rgb_image: mp.Image, _):
+        try:
+            face_landmarks_list = detection_result.face_landmarks
+            # get annotated image after rubnning prev landmarkers
+            annotated_image = self.annotated_image
+            # used as temp store for data prior to passing to extrapolation.py
+            face_mp_out = np.zeros((2,2,3), dtype = "float16")
+
+            # loop thru face landmarks to visualize
+            for idx in range(len(face_landmarks_list)):
+                face_landmarks = face_landmarks_list[idx]
+                #print("DEBUG: Size of face_landmarks_list: %s\nSize of face_landmarks: %s" % (str(len(face_landmarks_list)), str(len(face_landmarks))))
+
+                # draw face landmarks
+                face_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+                face_landmarks_proto.landmark.extend([
+                    landmark_pb2.NormalizedLandmark(x = landmark.x, y = landmark.y, z = landmark.z) for landmark in face_landmarks
+                ])
+
+                solutions.drawing_utils.draw_landmarks(
+                    image = annotated_image,
+                    landmark_list = face_landmarks_proto,
+                    connections = mp.solutions.face_mesh.FACEMESH_IRISES,
+                    landmark_drawing_spec = None,
+                    # only draw the iris style, since that's all we're looking for (there's also "contours style" and "tesselation style")
+                    connection_drawing_spec = mp.solutions.drawing_styles.get_default_face_mesh_iris_connections_style()
+                )
+
+            # set annotated image for use in GUI
+            self.full_annotated_image = annotated_image
+
+
+            # put together the data we're looking for (only four points, to get width of each iris)
+            # done using two separate loops for sake of efficiency
+            it = 0  # iterator
+            # right eye
+            for i in (469, 471):    # left point of iris (469), right point of iris (471)
+                face_mp_out[1, it, 0] = face_landmarks_list[0][i].x
+                face_mp_out[1, it, 1] = face_landmarks_list[0][i].z
+                face_mp_out[1, it, 2] = face_landmarks_list[0][i].y
+                it += 1
+            it = 0  # reset iterator
+            # left eye
+            for i in (474, 476):    # left point of iris (474), right point of iris (476)
+                face_mp_out[0, it, 0] = face_landmarks_list[0][i].x
+                face_mp_out[0, it, 1] = face_landmarks_list[0][i].z
+                face_mp_out[0, it, 2] = face_landmarks_list[0][i].y
+
+            # update iris data all at once to prevent sync issues
+            self.face_mp_out = face_mp_out
+
+        except Exception as e:
+            print("livestream_mediapipe_class.py: ERROR in face_draw_landmarks_on_frame():\t%s" % str(e))
+
     
 
     ### HELPER FUNCTIONS
