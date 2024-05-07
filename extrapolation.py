@@ -159,6 +159,8 @@ class Extrapolate_forces():
         self.hand_mp_out = np.zeros((2,3,3), dtype = "float32")
         self.hand_check = np.zeros((2), dtype = "float32")              # used to check if hand data updated
         self.hand_orientation = np.zeros((2, 2), dtype = "float32")     # theta: hand normal and forearm - 90 deg, phi: hand normal and screen normal
+        # store mediapipe face landmarker iris data output
+        self.face_mp_out = np.zeros((2,2,3), dtype = "float16")
 
         # lock for mediapipe data
         self.mp_data_lock = mp_data_lock
@@ -242,11 +244,12 @@ class Extrapolate_forces():
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
-    def update_current_frame(self, mp_data_out, hand_mp_out, current_frame):
+    def update_current_frame(self, mp_data_out, hand_mp_out, face_mp_out, current_frame):
         try:
             # set data of current frame dataset
             self.mediapipe_data_output = mp_data_out
             self.hand_mp_out = hand_mp_out
+            self.face_mp_out = face_mp_out
             
             # reset dist_array
             self.dist_array = np.zeros(np.shape(self.dist_array))
