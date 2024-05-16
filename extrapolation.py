@@ -178,7 +178,7 @@ class Extrapolate_forces():
         # biases for bodypart lengths (calculated in countdown_calibrate), default to 1 for no bias
         self.bodypart_ratio_bias_array = np.ones((np.shape(self.bodypart_lengths)[0]), dtype = "float32")
 
-        # stores calculated data by frame
+        # stores calculated data by frame to output to other parts of the pipeline
         self.calculated_data = {
                 "right_bicep_force": "NaN",
                 "right_elbow_angle": "NaN",
@@ -187,6 +187,18 @@ class Extrapolate_forces():
                 "uarm_spher_coords": "NaN",
                 "farm_spher_coords": "NaN"
             }
+
+        # number of timesteps to use for rolling average
+        self.ra_num_steps = 10
+        # number of data points to track with the rolling average
+        self.ra_num_data = 8
+        # iterator for use keeping track of timestep order
+        self.ra_it = 0
+        # ndarray to hold output data pertaining to the most recent timesteps
+        self.ra_recent_data = np.zeros((self.ra_num_steps, self.ra_num_data), dtype = "float16")
+        # ndarray to hold the rolling average of calculations
+        self.ra_data = np.zeros((self.ra_num_data), dtype = "float16")
+
 
         self.cur_frame = 0   # used to keep track of current frame
 
@@ -252,7 +264,7 @@ class Extrapolate_forces():
             self.face_mp_out = face_mp_out
             
             # reset dist_array
-            self.dist_array = np.zeros(np.shape(self.dist_array))
+            self.dist_array = np.zeros(np.shape(self.dist_array), dtype = "float32")
 
             # update current frame number
             self.cur_frame = current_frame
@@ -275,10 +287,59 @@ class Extrapolate_forces():
             self.set_depth()
 
             # calculate bicep forces
-            self.calc_bicep_force()
+            bicep_calc_out = self.calc_bicep_force()    # get calculations, put in temp var bicep_calc_out
 
-        except:
-            print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
+            # calculate rolling average of output data
+            self.get_rolling_avg(bicep_calc_out)
+
+
+            # put together data to output
+            self.calculated_data["right_bicep_force"] = str("%0.2f" % bicep_calc_out[0])
+            self.calculated_data["right_elbow_angle"] = str("%0.2f" % bicep_calc_out[1])
+            self.calculated_data["left_bicep_force"] = str("%0.2f" % self.ra_data[2])#%icep_calc_out[2])
+            self.calculated_data["left_elbow_angle"] = str("%0.2f" % self.ra_data[3])#bicep_calc_out[3])
+
+            print("\nRolling avg: %s\nCurrent: %s\n" % (str(self.ra_data), str(bicep_calc_out + [
+                    self.hand_orientation[0, 0], self.hand_orientation[0, 1],   # left hand
+                    self.hand_orientation[1, 0], self.hand_orientation[1, 1]    # right hand
+                ])))
+            
+
+            # iterate rolling average iterator
+            self.ra_it += 1
+
+
+        except Exception as e:
+            print("extrapolation.py: ERROR in update_current_frame():\n\t%s" % str(e))
+
+    # get rolling average of most recent data
+    def get_rolling_avg(self, bicep_calculations):
+        try:
+            # index of oldest timestep in ra_recent_data, which will be overwritten
+            i = self.ra_it % self.ra_num_steps
+
+            # size of bicep calculations used for indexing 
+            j = len(bicep_calculations)
+            
+            # update first part of array to bicep calculations output
+            self.ra_recent_data[i][0:j] = bicep_calculations
+
+            # update next part of array to hand orientation calculations
+            #   side note: hand orientation calculations are called from the elbow angle calculations function
+            self.ra_recent_data[i][(j):(j + 4)] = [
+                    self.hand_orientation[0, 0], self.hand_orientation[0, 1],   # left hand
+                    self.hand_orientation[1, 0], self.hand_orientation[1, 1]    # right hand
+                ]
+
+            # calculate and update rolling average
+            if self.ra_it >= self.ra_num_data:      # check if ra_recent_data has been filled up yet/ready to use
+                # calculate average of past n timesteps, where n = self.ra_num_steps
+                self.ra_data = np.sum(self.ra_recent_data, 0) * (1 / self.ra_num_steps)
+
+        except Exception as e:
+            print("extrapolation.py: Exception thrown in `get_rolling_avg()`:\n\t%s" % str(e))
+
+
 
     # IMPORTANT: temporary bandaid fix for calibration
     #def calc_wingspan(self):
@@ -299,8 +360,6 @@ class Extrapolate_forces():
             self.dist_array[L_SHOULDER][R_SHOULDER] = self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
         except:
             print("extrapolation.py: ERROR in `calc_shoulder_width()`")
-
-
 
     ### HELPER FUNCTIONS:
 
@@ -865,21 +924,18 @@ class Extrapolate_forces():
                     left_elbow_angle = elbow_angle
                     left_bicep_force = force_bicep
 
-
-
-
-            # set/return data in dictionary format
-            self.calculated_data = {
-                "right_bicep_force": str("%0.2f" % right_bicep_force),
-                "right_elbow_angle": str("%0.2f" % np.rad2deg(right_elbow_angle)),
-                "left_bicep_force": str("%0.2f" % left_bicep_force),
-                "left_elbow_angle": str("%0.2f" % np.rad2deg(left_elbow_angle)),
-                "uarm_spher_coords": str(uarm_spher_coords),
-                "farm_spher_coords": str(farm_spher_coords)
-            }
             #print("%0.2f" % force_bicep)
+            
+            # update spherical coords data in output data object
+            self.calculated_data['farm_spher_coords'] = farm_spher_coords
+            self.calculated_data['uarm_spher_coords'] = uarm_spher_coords
 
-            return self.calculated_data
+            # return calculated data in the form of an array
+            return [
+                    right_bicep_force, np.rad2deg(right_elbow_angle), 
+                    left_bicep_force, np.rad2deg(left_elbow_angle)#,
+                    #uarm_spher_coords, farm_spher_coords
+                ]
         except:
             print("extrapolation.py: ERROR in `calc_bicep_force()`")
 
