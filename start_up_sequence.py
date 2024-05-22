@@ -31,8 +31,6 @@ from PIL import ImageTk
 
 import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 
-import sqlite3
-
 
 """
 ^^^
@@ -96,7 +94,7 @@ isGraphOn = True
 Enable Start Up Bypass
 \/ \/ \/ \/ \/ \/ \/ \/
 """
-BypassStartUp = False
+BypassStartUp = True
 """
 /\ /\ /\ /\ /\ /\ /\ /\ 
 Enable Start Up Bypass
@@ -200,7 +198,7 @@ depth_ratio = 0
 
 
 
-
+"""SQL
 
 def create_database():
     # Connect to SQLite database (or create it if it doesn't exist)
@@ -265,7 +263,7 @@ def create_database():
 create_database()
 
 
-
+"""
 
 
 
@@ -1314,7 +1312,6 @@ def data_update(image):
     distance_left = get_distance_left_eye_outer_to_ear()
     distance_shoulder = get_distance_right_shoulder_to_left_shoulder()
     distance_hip_shoulder = get_distance_right_hip_to_right_shoulder()
-    head_width = get_head_width()
     height_diff_shoulder_hip = get_height_diff_right_shoulder_to_right_hip()
     nose_eye_ear_angle = calculate_nose_eyeInR_earR()
     direction_num, direction_facing = calculate_direction(distance_right, distance_left)
@@ -1829,9 +1826,7 @@ def update_image():
             cap.release()
             root.destroy()
             cv2.destroyAllWindows()
-            time.sleep(10)
-            gui.SimGUI()
-            gui.start()
+            time.sleep(1)
             return # Exit the function to stop the loop
 
 

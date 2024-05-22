@@ -89,6 +89,17 @@ INDEX_TO_PINKY = 0.361
 WRIST_TO_THUMB = 0.213
 
 
+
+
+init_arms_up = 0
+init_arms_down = 0
+m_to_mpu_ratio = 0
+z_init = 0
+left_side_hip_shoulder_distance = 0
+shoulder_z = 0
+
+
+
 ## INDEX DICTIONARIES
 # for use converting vertex indices to segment index
 VERTEX_TO_SEGMENT = {
@@ -243,10 +254,71 @@ class Extrapolate_forces():
         # run initialization functions
         try:
             self.set_all_bodypart_lengths()
+            loaded_data = self.load_data_from_file()
+            print(loaded_data)
+            self.init_arms_up = loaded_data[3]
+            self.init_arms_down = loaded_data[26]
+            self.m_to_mpu_ratio = loaded_data[11]
+            self.z_init = 150
+            self.left_side_hip_shoulder_distance = loaded_data[2]
+            self.depth_ratio = loaded_data[45]
+            self.init_user_max_mpu = loaded_data[10]
+            self.init_left_shoulder_to_elbow_1 = loaded_data[8]
+            self.init_left_shoulder_to_elbow_2 = loaded_data[20]
+            self.init_left_shoulder_to_elbow_3 = loaded_data[31]
+            self.init_right_shoulder_to_elbow_1 = loaded_data[6]
+            self.init_right_shoulder_to_elbow_3 = loaded_data[29]
+            self.init_left_elbow_to_wrist_1 = loaded_data[9]
+            self.init_left_elbow_to_wrist_2 = loaded_data[21]
+            self.init_left_elbow_to_wrist_3 = loaded_data[32]
+            self.init_right_elbow_to_wrist_1 = loaded_data[7]
+            self.init_right_elbow_to_wrist_3 = loaded_data[30]
+            
         except:
             print("extrapolation.py: ERROR initializing bodypart lengths")
 
         print("extrapolation.py: Info: Initialized extrapolation.py")
+
+
+
+    def load_data_from_file(self):
+        # Read data from file
+        with open("measurements_data.txt", "r") as file:
+            data_str = file.read()
+        
+        data_list = data_str.split(",")
+        
+        data_list = [float(value) for value in data_list]
+        
+        return data_list
+
+
+    # Function to write variables to a file
+    def write_to_file(self, filename, var1, var2, var3, var4, var5, var6, var7, var8, var9):
+        with open(filename, 'a') as file:
+            file.write(f'Left Shoulder (x,y,z): {var1}\n')
+            file.write(f'Right Shoulder (x,y,z): {var2}\n')
+            file.write(f'Left Elbow (x,y,z): {var3}\n')
+            file.write(f'Right Elbow (x,y,z): {var4}\n')
+            file.write(f'Left Wrist (x,y,z): {var5}\n')
+            file.write(f'Right Wrist (x,y,z): {var6}\n')
+            file.write(f'Left Arm Angle (Degrees): {var7}\n')
+            file.write(f'Right Arm Angle (Degrees): {var8}\n')
+            file.write(f'Pitch Angle (Degrees): {var9}\n')
+            file.write('-' * 20 + '\n')
+            
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
@@ -562,6 +634,40 @@ class Extrapolate_forces():
             # calculate elbow angle for both arms
             self.calc_elbow_angle(right_side = False)    # left
             self.calc_elbow_angle(right_side = True)     # right
+            self.pitch = self.calculate_body_pitch(self.get_height_diff_right_shoulder_to_right_hip(), self.init_arms_up, self.init_arms_down)
+            print(self.pitch)
+            try:
+                """
+                self.shoulder_z = self.calculate_z_angle(self.z_init, self.left_side_hip_shoulder_distance, self.pitch)            
+                print("shoulder z: " + str(self.shoulder_z))
+                self.left_elbow_z = self.calculate_z(self.shoulder_z, self.init_left_shoulder_to_elbow_1, self.init_left_shoulder_to_elbow_3, self.get_distance_left_shoulder_to_left_elbow(), self.pitch)
+                print("left elbow: " + str(self.left_elbow_z))
+                self.right_elbow_z = self.calculate_z(self.shoulder_z, self.init_right_shoulder_to_elbow_1, self.init_right_shoulder_to_elbow_3, self.get_distance_right_shoulder_to_right_elbow(), self.pitch)
+                print("right elbow: " + str(self.right_elbow_z))
+                self.left_wrist_z = self.calculate_z(self.left_elbow_z, self.init_left_elbow_to_wrist_1, self.init_left_elbow_to_wrist_3, self.get_distance_left_elbow_to_left_wrist(), self.pitch)
+                print("left wrist: " + str(self.left_wrist_z))
+                self.right_wrist_z = self.calculate_z(self.right_elbow_z, self.init_right_elbow_to_wrist_1, self.init_right_elbow_to_wrist_3, self.get_distance_right_elbow_to_right_wrist(), self.pitch)
+                print("right wrist: " + str(self.right_wrist_z))
+                """
+                self.left_shoulder_xyz = self.get_left_shoulder_x_y_z()            
+                print("left shoulder xyz: " + str(self.left_shoulder_xyz))
+                self.right_shoulder_xyz = self.get_right_shoulder_x_y_z()            
+                print("right shoulder xyz: " + str(self.right_shoulder_xyz))
+                self.left_elbow_xyz = self.get_left_elbow_x_y_z()            
+                print("left elbow xyz: " + str(self.left_elbow_xyz))
+                self.right_elbow_xyz = self.get_right_elbow_x_y_z()            
+                print("right elbow xyz: " + str(self.right_elbow_xyz))
+                self.left_wrist_xyz = self.get_left_wrist_x_y_z()            
+                print("left wrist xyz: " + str(self.left_wrist_xyz))
+                self.right_wrist_xyz = self.get_right_wrist_x_y_z()            
+                print("right wrist xyz: " + str(self.right_wrist_xyz))
+                self.left_arm_angle = self.dot_prod_angle(self.left_wrist_xyz, self.left_elbow_xyz, self.left_shoulder_xyz)
+                print("left arm angle: " + str(self.left_arm_angle))
+                self.right_arm_angle = self.dot_prod_angle(self.right_wrist_xyz, self.right_elbow_xyz, self.right_shoulder_xyz)
+                print("right arm angle: " + str(self.right_arm_angle))
+                self.write_to_file('values.txt', self.left_shoulder_xyz, self.right_shoulder_xyz, self.left_elbow_xyz, self.right_elbow_xyz, self.left_wrist_xyz, self.right_wrist_xyz, self.left_arm_angle, self.right_arm_angle, self.pitch)
+            except Exception as e:
+                print({e})
         except:
             print("extrapolation.py: ERROR in set_depth()")
 
@@ -600,6 +706,566 @@ class Extrapolate_forces():
 
         except Exception as e:
             print("extrapolation.py: ERROR in `set_hand_depth()`: %s\n" % str(e))
+
+
+
+
+
+    def get_height_diff_right_shoulder_to_right_hip(self):
+        """
+        Get the Euclidean distance between the right shoulder and the right hip using MediaPipe Pose.
+        This considers both x and y coordinates for a 2D distance measurement.
+        """
+        distance = None
+        
+        try:
+            # Assuming self.mediapipe_data_output is an array where each index corresponds to a specific body landmark
+            right_shoulder = self.mediapipe_data_output[R_SHOULDER]    # Index 12 for right shoulder
+            right_hip = self.mediapipe_data_output[R_HIP]         # Index 24 for right hip
+
+            # Calculate the Euclidean distance using x and y coordinates
+            distance = np.sqrt((right_hip[0] - right_shoulder[0])**2 + (right_hip[1] - right_shoulder[1])**2)
+
+            return distance
+        except Exception as e:
+            print(f"Error calculating distance: {e}")
+            return None
+        
+
+
+    def get_height_diff_right_shoulder_to_right_hip(self):
+        """
+        Get the Euclidean distance between the right shoulder and the right hip using MediaPipe Pose.
+        This considers both x and y coordinates for a 2D distance measurement.
+        """
+        distance = None
+        
+        try:
+            # Assuming self.mediapipe_data_output is an array where each index corresponds to a specific body landmark
+            right_shoulder = self.mediapipe_data_output[R_SHOULDER]    # Index 12 for right shoulder
+            right_hip = self.mediapipe_data_output[R_HIP]         # Index 24 for right hip
+
+            # Calculate the Euclidean distance using x and y coordinates
+            distance = np.sqrt((right_hip[0] - right_shoulder[0])**2 + (right_hip[1] - right_shoulder[1])**2)
+
+            return distance
+        except Exception as e:
+            print(f"Error calculating distance: {e}")
+            return None
+        
+
+    def get_distance_left_shoulder_to_left_elbow(self):
+        """
+        Get the distance between the left shoulder and the left elbow using MediaPipe Pose.
+        """
+        distance = None
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+
+        try:
+            left_shoulder = self.mediapipe_data_output[L_SHOULDER]  
+            left_elbow = self.mediapipe_data_output[L_ELBOW]  
+
+            # Calculate the distance
+            distance = np.sqrt((left_shoulder[0] - left_elbow[0])**2 + (left_shoulder[1] - left_elbow[1])**2)
+
+            return distance
+        except:
+            return distance
+        
+    def get_distance_right_shoulder_to_right_elbow(self):
+        """
+        Get the distance between the right shoulder and the right elbow using MediaPipe Pose.
+        """
+        distance = None
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+
+        try:
+            right_shoulder = self.mediapipe_data_output[R_SHOULDER]  
+            right_elbow = self.mediapipe_data_output[R_ELBOW]  
+
+            # Calculate the distance
+            distance = np.sqrt((right_shoulder[0] - right_elbow[0])**2 + (right_shoulder[1] - right_elbow[1])**2)
+
+            return distance
+        except:
+            return distance
+    
+
+    def get_distance_left_elbow_to_left_wrist(self):
+        """
+        Get the distance between the left elbow and the left wrist using MediaPipe Pose.
+        """
+        distance = None
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+
+        try:
+            left_elbow = self.mediapipe_data_output[L_ELBOW]  
+            left_wrist = self.mediapipe_data_output[L_WRIST]  
+
+
+            # Calculate the distance
+            distance = np.sqrt((left_elbow[0] - left_wrist[0])**2 + (left_elbow[1] - left_wrist[1])**2)
+
+            return distance
+        except:
+            return distance
+        
+
+    def get_distance_right_elbow_to_right_wrist(self):
+        """
+        Get the distance between the right elbow and the right wrist using MediaPipe Pose.
+        """
+        distance = None
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+
+        try:
+            right_elbow = self.mediapipe_data_output[R_ELBOW]  
+            right_wrist = self.mediapipe_data_output[R_WRIST]  
+
+
+            # Calculate the distance
+            distance = np.sqrt((right_elbow[0] - right_wrist[0])**2 + (right_elbow[1] - right_wrist[1])**2)
+
+            return distance
+        except:
+            return distance
+
+
+
+
+
+
+
+
+
+    def get_left_shoulder_x_y_z(self):
+        global shoulder_z
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+        
+        #print("inisde left shoulder")
+
+
+        try:
+            left_shoulder_x = self.mediapipe_data_output[L_SHOULDER, 0] * self.m_to_mpu_ratio
+            left_shoulder_y = self.mediapipe_data_output[L_SHOULDER, 2] * self.m_to_mpu_ratio
+            left_shoulder_z = self.calculate_z_angle(self.z_init, self.left_side_hip_shoulder_distance, self.pitch)
+
+            shoulder_z = left_shoulder_z
+
+            # Calculate the distance
+            xyz = [left_shoulder_x, left_shoulder_y, left_shoulder_z]
+            return xyz
+        except Exception as e:
+            print(e)
+            return xyz
+        
+
+
+    def get_right_shoulder_x_y_z(self):
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+        
+        #print("inisde left shoulder")
+
+
+        try:
+            right_shoulder_x = self.mediapipe_data_output[R_SHOULDER, 0] * self.m_to_mpu_ratio
+            right_shoulder_y = self.mediapipe_data_output[R_SHOULDER, 2] * self.m_to_mpu_ratio
+            right_shoulder_z = self.calculate_z_angle(self.z_init, self.left_side_hip_shoulder_distance, self.pitch)
+            # Calculate the distance
+            xyz = [right_shoulder_x, right_shoulder_y, right_shoulder_z]
+            return xyz
+        except:
+            return xyz
+        
+
+
+        
+    def get_left_elbow_x_y_z(self):
+        global shoulder_z
+        global left_elbow_z
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+        
+        #print("inisde left shoulder")
+
+
+        try:
+            left_elbow_x = self.mediapipe_data_output[L_ELBOW, 0] * self.m_to_mpu_ratio
+            left_elbow_y = self.mediapipe_data_output[L_ELBOW, 2] * self.m_to_mpu_ratio
+            left_elbow_z =  self.calculate_z(shoulder_z, self.init_left_shoulder_to_elbow_1, self.init_left_shoulder_to_elbow_3, self.get_distance_left_shoulder_to_left_elbow(), self.pitch)
+            # Calculate the distance
+            xyz = [left_elbow_x, left_elbow_y, left_elbow_z]
+            return xyz
+        except:
+            return xyz
+        
+
+
+    def get_right_elbow_x_y_z(self):
+        global shoulder_z
+        global right_elbow_z
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+        
+        #print("inisde left shoulder")
+
+
+        try:
+            right_elbow_x = self.mediapipe_data_output[R_ELBOW, 0] * self.m_to_mpu_ratio
+            right_elbow_y = self.mediapipe_data_output[R_ELBOW, 2] * self.m_to_mpu_ratio
+            right_elbow_z = self.calculate_z(shoulder_z, self.init_right_shoulder_to_elbow_1, self.init_right_shoulder_to_elbow_3, self.get_distance_right_shoulder_to_right_elbow(), self.pitch)
+            # Calculate the distance
+            xyz = [right_elbow_x, right_elbow_y, right_elbow_z]
+            return xyz
+        except:
+            return xyz
+        
+
+
+    def get_left_wrist_x_y_z(self):
+        global left_elbow_z
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+        
+        #print("inisde left shoulder")
+
+
+        try:
+            left_wrist_x = self.mediapipe_data_output[L_WRIST, 0] * self.m_to_mpu_ratio
+            left_wrist_y = self.mediapipe_data_output[L_WRIST, 2] * self.m_to_mpu_ratio
+            left_wrist_z = self.calculate_z(left_elbow_z, self.init_left_elbow_to_wrist_1, self.init_left_elbow_to_wrist_3, self.get_distance_left_elbow_to_left_wrist(), self.pitch)
+            # Calculate the distance
+            xyz = [left_wrist_x, left_wrist_y, left_wrist_z]
+            return xyz
+        except:
+            return xyz
+        
+
+
+    def get_right_wrist_x_y_z(self):
+        global right_elbow_z
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+        
+        #print("inisde left shoulder")
+
+
+        try:
+            right_wrist_x = self.mediapipe_data_output[R_WRIST, 0] * self.m_to_mpu_ratio
+            right_wrist_y = self.mediapipe_data_output[R_WRIST, 2] * self.m_to_mpu_ratio
+            right_wrist_z = self.calculate_z(right_elbow_z, self.init_right_elbow_to_wrist_1, self.init_right_elbow_to_wrist_3, self.get_distance_right_elbow_to_right_wrist(), self.pitch)
+            # Calculate the distance
+            xyz = [right_wrist_x, right_wrist_y, right_wrist_z]
+            return xyz
+        except:
+            return xyz
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def calculate_angle(self, p1, p2, p3):
+        """
+        Calculate the angle between three points using the cosine rule. p1 is the vertex point.
+        """
+        v1 = np.array([p2[0] - p1[0], p2[1] - p1[1]])  # Vector from p1 to p2
+        v2 = np.array([p3[0] - p1[0], p3[1] - p1[1]])  # Vector from p1 to p3
+        dot_product = np.dot(v1, v2)
+        magnitude_v1 = np.linalg.norm(v1)
+        magnitude_v2 = np.linalg.norm(v2)
+        angle = np.arccos(dot_product / (magnitude_v1 * magnitude_v2))
+        return np.degrees(angle)  # Convert to degrees
+
+    def calculate_left_hip_shoulder_elbow_angle(self):
+        """
+        Calculates the angle at the left shoulder formed by the left hip and left elbow.
+        This function uses the indices predefined for left hip, left shoulder, and left elbow.
+        """
+        try:
+            if self.mediapipe_data_output.size > 0:  # Assuming data is available
+                left_hip = self.mediapipe_data_output[L_HIP]  # Index for left hip
+                left_shoulder = self.mediapipe_data_output[L_SHOULDER]  # Index for left shoulder
+                left_elbow = self.mediapipe_data_output[L_ELBOW]  # Index for left elbow
+
+                angle = self.calculate_angle(left_shoulder, left_hip, left_elbow)
+                return angle
+            return None
+        except Exception as e:
+            print(f"Error in calculate_left_hip_shoulder_elbow_angle: {e}")
+            return None
+
+
+    """
+    def calculate_body_pitch(height_diff_hip_shoulder, eye_ear_angle, init_eye_ear_angle):
+        
+        Calculate the body's pitch based on height difference between the right should and the right hip over the width of the head 
+        and the direction facing(up or down) to notate whether the user is leaning forward or backward.
+        
+
+        uncertainty_buffer = 10 #10 degrees
+        hipShoElb = calculate_left_hip_shoulder_elbow_angle()
+        max_height = init_height_diff_right_shoulder_to_right_hip3 + ((init_height_diff_right_shoulder_to_right_hip-init_height_diff_right_shoulder_to_right_hip3)*(hipShoElb)/90)
+
+
+
+
+
+        #print("height diff: " + str(height_diff_hip_shoulder) + ", max height: " + str(max_height) + ", arms down: " + str(init_height_diff_right_shoulder_to_right_hip3) + ", arms up: " + str(init_height_diff_right_shoulder_to_right_hip))
+        if height_diff_hip_shoulder > max_height:
+            ratio = 1  
+        elif (height_diff_hip_shoulder/max_height) < 0.1:
+            ratio = 0.1
+        else:
+            ratio = (height_diff_hip_shoulder/max_height)  
+        angle_in_radians = math.asin(ratio)
+        angle_in_degrees = math.degrees(angle_in_radians)
+
+        print("\n\nratio: " + str(ratio) + ", radians: " + str(angle_in_radians) + ", degrees: " + str(angle_in_degrees) + "\n\n")
+
+        return_val = round(90-(angle_in_degrees), 4)
+        return return_val if return_val > uncertainty_buffer else 0
+    """
+
+    def calculate_body_pitch(self, height_diff_hip_shoulder, init_height_diff_arms_down, init_height_diff_arms_up):
+        """
+        Calculate the body's pitch based on height difference between the right shoulder and the right hip
+        and adjust based on the angle formed by the left hip, left shoulder, and left elbow. This function
+        helps to determine whether the user is leaning forward or backward.
+        
+        :param height_diff_hip_shoulder: Current vertical distance between right hip and right shoulder.
+        :param init_height_diff_arms_down: Initial vertical distance when arms are down.
+        :param init_height_diff_arms_up: Initial vertical distance when arms are up.
+        :return: Adjusted pitch angle or 0 if within uncertainty buffer.
+        """
+        uncertainty_buffer = 10  # Degrees of uncertainty buffer
+        hip_shoulder_elbow_angle = self.calculate_left_hip_shoulder_elbow_angle()  # Using class method
+
+        # Calculate the maximum expected height difference based on arm angle
+        if hip_shoulder_elbow_angle is not None:
+            max_height = init_height_diff_arms_down + ((init_height_diff_arms_up - init_height_diff_arms_down) * (hip_shoulder_elbow_angle / 90))
+            ratio = min(max(height_diff_hip_shoulder / max_height, 0.1), 1)  # Clamp the ratio between 0.1 and 1
+        else:
+            print("Error: Unable to calculate hip-shoulder-elbow angle.")
+            return 0
+
+        # Calculate angle in radians and then convert to degrees
+        angle_in_radians = math.asin(ratio)
+        angle_in_degrees = math.degrees(angle_in_radians)
+
+        # Debug output
+        print(f"\n\nratio: {ratio}, radians: {angle_in_radians}, degrees: {angle_in_degrees}\n\n")
+
+        # Calculate return value and apply uncertainty buffer
+        return_val = round(90 - angle_in_degrees, 4)
+        return return_val if return_val > uncertainty_buffer else 0
+
+
+
+
+
+
+    def calculate_z_angle(self, z_init, max_length, angle):
+        #only used for shoulder
+        self.z = 0
+        try:
+            self.forward_lean = (angle/90)  
+            self.angle_in_radians = math.asin(self.forward_lean)
+            self.angle_in_degrees = math.degrees(self.angle_in_radians)
+
+            print("z_init: " + str(z_init) + ", max_length: " + str(max_length*self.m_to_mpu_ratio) + ", angle: " + str(angle) + ", 90-angle/90: " + str((90-angle)/90) + ", z - : " + str(((max_length*self.m_to_mpu_ratio)*((90-angle)/90))))
+            self.z = z_init - ((max_length*self.m_to_mpu_ratio)*((90-angle)/90))
+            return self.z
+        except:
+            return self.z
+        
+
+
+
+    
+    def calculate_z(self, z_init, max_length, max_length3, actual_length, pitch):
+        z = 0
+
+        self.forward_lean = (pitch/90)  
+        self.pitch_in_radians = math.asin(self.forward_lean)
+        self.pitch_in_degrees = math.degrees(self.pitch_in_radians)
+
+
+
+        hip_shoulder_elbow_angle = self.calculate_left_hip_shoulder_elbow_angle()
+        max_len1 = max_length*self.m_to_mpu_ratio
+        max_len3 = max_length3*self.m_to_mpu_ratio
+        max_len = max_len1
+        act_len = actual_length*self.m_to_mpu_ratio
+        act_len_prime = act_len - (self.depth_ratio*(self.left_side_hip_shoulder_distance*abs(self.pitch_in_degrees/90))) - ((max_len3-max_len1)*abs((90-hip_shoulder_elbow_angle)/90))
+
+        if act_len_prime >= max_len: 
+            act_len_prime = max_len
+            print("z_init: " + str(z_init) + ", max_length: " + str(max_len) + ", actual_length: " + str(act_len) + ", actual_length_prime: " + str(act_len_prime) + ", max mpu: " + str(self.init_user_max_mpu) + ", z = zinit + " + str(np.sqrt((max_len)**2 - (act_len)**2)) + ", z = " + str(z))
+        
+        z = z_init - (-self.depth_ratio*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(self.depth_ratio**2)*(max_len**2)))/(1+(self.depth_ratio**2))
+        print("\n\n z = z_init + (-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) / 1 - k2 \n" + 
+            str(z) + " = " + str(z_init) + " + (" + str(-self.depth_ratio) + " * " + str(act_len_prime) + " + sqrt(" + str(-(act_len_prime**2)) + " + " + str((max_len**2)) + " + " + 
+            str((self.depth_ratio**2)) + " * " + str((max_len**2)) + " )) / 1 - " + str(self.depth_ratio**2) + "\n\n" +
+            "(-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) = " + str( (-self.depth_ratio*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(self.depth_ratio**2)*(max_len**2)))) +
+            "\n 1 - k2 = " + str((1+(self.depth_ratio**2))))
+
+        return z
+    
+    """
+    def calculate_z(self, z_init, max_length, max_length3, actual_length, pitch):
+        z = 0
+
+        self.forward_lean = (pitch/90)  
+        self.pitch_in_radians = math.asin(self.forward_lean)
+        self.pitch_in_degrees = math.degrees(self.pitch_in_radians)
+
+
+
+        hip_shoulder_elbow_angle = self.calculate_left_hip_shoulder_elbow_angle()
+        max_len1 = max_length*self.m_to_mpu_ratio
+        max_len3 = max_length3*self.m_to_mpu_ratio
+        max_len = max_len1
+        act_len = actual_length*self.m_to_mpu_ratio
+        act_len_prime = act_len - (self.depth_ratio*(self.left_side_hip_shoulder_distance*abs(self.pitch_in_degrees/90))) - ((max_len3-max_len1)*abs((90-hip_shoulder_elbow_angle)/90))
+
+
+    
+        #For K - below
+    
+        fv2 = self.init_left_elbow_to_wrist_2 * self.m_to_mpu_ratio
+        fv1 = self.init_left_elbow_to_wrist_1 * self.m_to_mpu_ratio
+        uv1 = self.init_left_shoulder_to_elbow_1 * self.m_to_mpu_ratio
+        uv2 = self.init_left_shoulder_to_elbow_2 * self.m_to_mpu_ratio
+        r = self.m_to_mpu_ratio
+
+        numerator = fv2 - fv1
+        print("------------------------------------------------\n step 2: " + str(self.init_left_elbow_to_wrist_2) + "step 1: " + str(self.init_left_elbow_to_wrist_1) +"\n---------------------------------------")
+        print("uv1**2: " + str(uv1**2) + "\n(uv2 * (fv1 / fv2))**2: " + str((uv2 * (fv1 / fv2))**2))
+        denominator = np.sqrt(uv1**2 - (uv2 * (fv1 / fv2))**2)
+        k = numerator / denominator
+
+
+
+        #k = np.sqrt((self.init_left_shoulder_to_elbow_1**2 - (self.init_left_shoulder_to_elbow_2 * self.m_to_mpu_ratio * (self.init_left_elbow_to_wrist_1 / self.init_left_elbow_to_wrist_2))**2))
+
+
+        if act_len_prime >= max_len: 
+            act_len_prime = max_len
+            print("z_init: " + str(z_init) + ", max_length: " + str(max_len) + ", actual_length: " + str(act_len) + ", actual_length_prime: " + str(act_len_prime) + ", max mpu: " + str(self.init_user_max_mpu) + ", z = zinit + " + str(np.sqrt((max_len)**2 - (act_len)**2)) + ", z = " + str(z))
+        
+        z = z_init - (-k*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(k**2)*(max_len**2)))/(1+(k**2))
+        print("\n\n z = z_init + (-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) / 1 - k2 \n" + 
+            str(z) + " = " + str(z_init) + " + (" + str(-k) + " * " + str(act_len_prime) + " + sqrt(" + str(-(act_len_prime**2)) + " + " + str((max_len**2)) + " + " + 
+            str((k**2)) + " * " + str((max_len**2)) + " )) / 1 - " + str(k**2) + "\n\n" +
+            "(-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) = " + str( (-k*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(k**2)*(max_len**2)))) +
+            "\n 1 - k2 = " + str((1+(k**2))))
+
+        return z
+    """
+
+    
+
+    def dot_prod_angle(self, matrixA, matrixB, matrixC):
+        aTimesB = 0
+        #vectorA = [matrixB[0] - matrixA[0], matrixB[1] - matrixA[1], matrixB[2] - matrixA[2]]
+        #vectorB = [matrixC[0] - matrixB[0], matrixC[1] - matrixB[1], matrixC[2] - matrixB[2]]
+        aTimesB = (((matrixB[0]-matrixA[0])*(matrixC[0]-matrixB[0]))+((matrixB[1]-matrixA[1])*(matrixC[1]-matrixB[1]))+((matrixB[2]-matrixA[2])*(matrixC[2]-matrixB[2])))
+        aMag = np.sqrt(((matrixB[0]-matrixA[0])**2) + ((matrixB[1]-matrixA[1])**2) + ((matrixB[2]-matrixA[2])**2))
+        bMag = np.sqrt(((matrixC[0]-matrixB[0])**2) + ((matrixC[1]-matrixB[1])**2) + ((matrixC[2]-matrixB[2])**2))
+        theta = np.arccos(aTimesB/(aMag*bMag))
+        
+
+        val = theta * (180/np.pi)
+        #print(str(val))
+        return val
+    
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

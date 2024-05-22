@@ -25,9 +25,6 @@ from PIL import ImageTk
 
 import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 
-import sqlite3
-
-import start_up_sequence
 
 
 ### OPTIONS
@@ -277,16 +274,7 @@ class SimGUI():
 
 
 
-    def load_data_from_file(self):
-        # Read data from file
-        with open("measurements_data.txt", "r") as file:
-            data_str = file.read()
-        
-        data_list = data_str.split(",")
-        
-        data_list = [float(value) for value in data_list]
-        
-        return data_list
+    
 
     
 
@@ -367,8 +355,7 @@ class SimGUI():
     def start(self):
         # start updater loops
         #self.fetch_data()
-        loaded_data = self.load_data_from_file()
-        print(loaded_data)
+        
         self.update_display()                               # update display
         self.update_data()                                  # update numerical data
         #self.mediapipe_runtime.run()
