@@ -1355,7 +1355,7 @@ def update_labels():
 
 
 
-
+"""
 def draw_guide_overlay_1(frame, results):
     global initial_circle_positions
     radius = 15
@@ -1413,10 +1413,82 @@ def draw_guide_overlay_1(frame, results):
         cv2.circle(overlay, pos, radius, (0, 255, 0), 2)
 
     return overlay
+"""
 
-def check_points_in_circles(frame, results):
+
+import cv2
+import numpy as np
+
+def draw_guide_overlay_1(frame, results):
     global initial_circle_positions
-    radius = 15
+    radius = 15  # This will determine the height of the rectangles
+    overlay = frame.copy()
+    frame_height, frame_width, _ = frame.shape
+
+    if results.pose_landmarks and not initial_circle_positions:
+        # Get the necessary landmarks
+        landmarks = results.pose_landmarks.landmark
+        left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER]
+        right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+
+        left_shoulder_x = left_shoulder.x * frame_width
+        left_shoulder_y = left_shoulder.y * frame_height
+        right_shoulder_x = right_shoulder.x * frame_width
+        right_shoulder_y = right_shoulder.y * frame_height
+        left_elbow_x = left_shoulder_x - (right_shoulder_x - left_shoulder_x) * 0.85
+        left_elbow_y = left_shoulder_y
+        right_elbow_x = right_shoulder_x + (right_shoulder_x - left_shoulder_x) * 0.85
+        right_elbow_y = left_shoulder_y
+        left_wrist_x = left_shoulder_x - (right_shoulder_x - left_shoulder_x) * 1.65
+        left_wrist_y = left_shoulder_y
+        right_wrist_x = right_shoulder_x + (right_shoulder_x - left_shoulder_x) * 1.65
+        right_wrist_y = left_shoulder_y
+
+        # Calculate positions for circles
+        left_shoulder_pos = np.array([left_shoulder_x, left_shoulder_y])
+        right_shoulder_pos = np.array([right_shoulder_x, right_shoulder_y])
+        
+        avg_shoulder_y = int((left_shoulder_pos[1] + right_shoulder_pos[1]) / 2)
+
+        left_elbow_pos = np.array([left_elbow_x, left_elbow_y])
+        right_elbow_pos = np.array([right_elbow_x, right_elbow_y])
+
+        left_wrist_pos = np.array([left_wrist_x, left_wrist_y])
+        right_wrist_pos = np.array([right_wrist_x, right_wrist_y])
+
+        # Initialize the rectangle positions
+        initial_circle_positions = {
+            'left_shoulder': (int(left_shoulder_pos[0]), avg_shoulder_y),
+            'right_shoulder': (int(right_shoulder_pos[0]), avg_shoulder_y),
+            'left_elbow': (int(left_elbow_pos[0]), avg_shoulder_y),
+            'right_elbow': (int(right_elbow_pos[0]), avg_shoulder_y),
+            'left_wrist': (int(left_wrist_pos[0]), avg_shoulder_y),
+            'right_wrist': (int(right_wrist_pos[0]), avg_shoulder_y)
+        }
+
+    # Draw the horizontal rectangles at the initialized positions
+    colors = {
+        'left_shoulder': (255, 0, 255),  # Purple
+        'right_shoulder': (255, 0, 255),  # Purple
+        'left_elbow': (0, 0, 255),  # Red
+        'right_elbow': (0, 0, 255),  # Red
+        'left_wrist': (255, 0, 0),  # Blue
+        'right_wrist': (255, 0, 0)  # Blue
+    }
+
+    for key, (x_pos, y_pos) in initial_circle_positions.items():
+        color = colors[key]
+        cv2.rectangle(overlay, (int(x_pos - 2.5 * radius), int(y_pos - radius)), (int(x_pos + 2.5 * radius), int(y_pos + radius)), color, cv2.FILLED)
+
+    return overlay
+
+
+
+
+
+def check_points_in_rectangles(frame, results):
+    global initial_circle_positions
+    radius = 15  # This will determine the size of the rectangles
     points_in_position = {'left_shoulder': False, 'right_shoulder': False,
                           'left_elbow': False, 'right_elbow': False,
                           'left_wrist': False, 'right_wrist': False}
@@ -1439,14 +1511,17 @@ def check_points_in_circles(frame, results):
         left_wrist_pos = np.array([left_wrist.x * frame_width, left_wrist.y * frame_height])
         right_wrist_pos = np.array([right_wrist.x * frame_width, right_wrist.y * frame_height])
 
-        # Check if points are in the circles
-        for label, pos, circle_pos in zip(['left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist'],
+        # Check if points are in the rectangles
+        for label, pos, rect_pos in zip(['left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist'],
                                           [left_shoulder_pos, right_shoulder_pos, left_elbow_pos, right_elbow_pos, left_wrist_pos, right_wrist_pos],
                                           initial_circle_positions.values()):
-            if np.linalg.norm(pos - np.array(circle_pos)) <= radius:
-                points_in_position[label] = True
+            x_pos, y_pos = rect_pos
+            if 'shoulder' in label:
+                if (x_pos - 2.5 * radius <= pos[0] <= x_pos + 2.5 * radius) and (y_pos - radius <= pos[1] <= y_pos + radius):
+                    points_in_position[label] = True
             else:
-                points_in_position[label] = False
+                if (x_pos - radius <= pos[0] <= x_pos + radius) and (y_pos - 2.5 * radius <= pos[1] <= y_pos + 2.5 * radius):
+                    points_in_position[label] = True
 
     return points_in_position
 
@@ -1459,6 +1534,7 @@ def check_points_in_circles(frame, results):
 
 
 
+"""
 def draw_guide_overlay_2(frame, results):
     global initial_circle_positions
     radius = 15
@@ -1516,9 +1592,75 @@ def draw_guide_overlay_2(frame, results):
         cv2.circle(overlay, pos, radius, (0, 255, 0), 2)
 
     return overlay
+"""
+
+
+def draw_guide_overlay_2(frame, results):
+    global initial_circle_positions
+    radius = 15
+    overlay = frame.copy()
+    frame_height, frame_width, _ = frame.shape
+
+    if results.pose_landmarks and not initial_circle_positions:
+        # Get the necessary landmarks
+        landmarks = results.pose_landmarks.landmark
+        left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER]
+        right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+
+        left_shoulder_x = left_shoulder.x * frame_width
+        left_shoulder_y = left_shoulder.y * frame_height
+        right_shoulder_x = right_shoulder.x * frame_width
+        right_shoulder_y = right_shoulder.y * frame_height
+        left_elbow_x = left_shoulder_x - (right_shoulder_x - left_shoulder_x) * 0.2
+        left_elbow_y = left_shoulder_y
+        right_elbow_x = right_shoulder_x + (right_shoulder_x - left_shoulder_x) * 0.2
+        right_elbow_y = left_shoulder_y
+        left_wrist_x = left_shoulder_x - (right_shoulder_x - left_shoulder_x) * 0.2
+        left_wrist_y = left_shoulder_y + (right_shoulder_x - left_shoulder_x) * 0.8
+        right_wrist_x = right_shoulder_x + (right_shoulder_x - left_shoulder_x) * 0.2
+        right_wrist_y = left_shoulder_y + (right_shoulder_x - left_shoulder_x) * 0.8
+
+        # Calculate positions for rectangles
+        left_shoulder_pos = np.array([left_shoulder_x, left_shoulder_y])
+        right_shoulder_pos = np.array([right_shoulder_x, right_shoulder_y])
+        
+        avg_shoulder_y = int((left_shoulder_pos[1] + right_shoulder_pos[1]) / 2)
+
+        left_elbow_pos = np.array([left_elbow_x, left_elbow_y])
+        right_elbow_pos = np.array([right_elbow_x, right_elbow_y])
+
+        left_wrist_pos = np.array([left_wrist_x, left_wrist_y])
+        right_wrist_pos = np.array([right_wrist_x, right_wrist_y])
+
+        # Initialize the rectangle positions
+        initial_circle_positions = {
+            'left_shoulder': (int(left_shoulder_pos[0]), avg_shoulder_y),
+            'right_shoulder': (int(right_shoulder_pos[0]), avg_shoulder_y),
+            'left_elbow': (int(left_elbow_pos[0]), int(left_elbow_pos[1])),
+            'right_elbow': (int(right_elbow_pos[0]), int(right_elbow_pos[1])),
+            'left_wrist': (int(left_wrist_pos[0]), int(left_wrist_pos[1])),
+            'right_wrist': (int(right_wrist_pos[0]), int(right_wrist_pos[1]))
+        }
+
+    # Draw the vertical rectangles at the initialized positions
+    colors = {
+        'left_shoulder': (255, 0, 255),  # Purple
+        'right_shoulder': (255, 0, 255),  # Purple
+        'left_elbow': (0, 0, 255),  # Red
+        'right_elbow': (0, 0, 255),  # Red
+        'left_wrist': (255, 0, 0),  # Blue
+        'right_wrist': (255, 0, 0)  # Blue
+    }
+
+    for key, (x_pos, y_pos) in initial_circle_positions.items():
+        color = colors[key]
+        cv2.rectangle(overlay, (x_pos - radius, int(y_pos - 2.5 * radius)), (x_pos + radius, int(y_pos + 2.5 * radius)), color, cv2.FILLED)
+
+    return overlay
 
 
 
+"""
 def draw_guide_overlay_3(frame, results):
     global initial_circle_positions
     radius = 15
@@ -1576,6 +1718,75 @@ def draw_guide_overlay_3(frame, results):
         cv2.circle(overlay, pos, radius, (0, 255, 0), 2)
 
     return overlay
+"""
+import cv2
+import numpy as np
+
+def draw_guide_overlay_3(frame, results):
+    global initial_circle_positions
+    radius = 15  # This will determine the width of the rectangles
+    overlay = frame.copy()
+    frame_height, frame_width, _ = frame.shape
+
+    if results.pose_landmarks and not initial_circle_positions:
+        # Get the necessary landmarks
+        landmarks = results.pose_landmarks.landmark
+        left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER]
+        right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+
+        left_shoulder_x = left_shoulder.x * frame_width
+        left_shoulder_y = left_shoulder.y * frame_height
+        right_shoulder_x = right_shoulder.x * frame_width
+        right_shoulder_y = right_shoulder.y * frame_height
+        left_elbow_x = left_shoulder_x - (right_shoulder_x - left_shoulder_x) * 0.215
+        left_elbow_y = left_shoulder_y - (right_shoulder_x - left_shoulder_x) * 0.9
+        right_elbow_x = right_shoulder_x + (right_shoulder_x - left_shoulder_x) * 0.215
+        right_elbow_y = left_shoulder_y - (right_shoulder_x - left_shoulder_x) * 0.9
+        left_wrist_x = left_shoulder_x - (right_shoulder_x - left_shoulder_x) * 0.15
+        left_wrist_y = left_shoulder_y - (right_shoulder_x - left_shoulder_x) * 1.75
+        right_wrist_x = right_shoulder_x + (right_shoulder_x - left_shoulder_x) * 0.15
+        right_wrist_y = left_shoulder_y - (right_shoulder_x - left_shoulder_x) * 1.75
+
+        # Calculate positions for rectangles
+        left_shoulder_pos = np.array([left_shoulder_x, left_shoulder_y])
+        right_shoulder_pos = np.array([right_shoulder_x, right_shoulder_y])
+        
+        avg_shoulder_y = int((left_shoulder_pos[1] + right_shoulder_pos[1]) / 2)
+
+        left_elbow_pos = np.array([left_elbow_x, left_elbow_y])
+        right_elbow_pos = np.array([right_elbow_x, right_elbow_y])
+
+        left_wrist_pos = np.array([left_wrist_x, left_wrist_y])
+        right_wrist_pos = np.array([right_wrist_x, right_wrist_y])
+
+        # Initialize the rectangle positions
+        initial_circle_positions = {
+            'left_shoulder': (int(left_shoulder_pos[0]), int(left_shoulder_pos[1])),
+            'right_shoulder': (int(right_shoulder_pos[0]), int(right_shoulder_pos[1])),
+            'left_elbow': (int(left_elbow_pos[0]), int(left_elbow_pos[1])),
+            'right_elbow': (int(right_elbow_pos[0]), int(right_elbow_pos[1])),
+            'left_wrist': (int(left_wrist_pos[0]), int(left_wrist_pos[1])),
+            'right_wrist': (int(right_wrist_pos[0]), int(right_wrist_pos[1]))
+        }
+
+    # Draw the vertical rectangles at the initialized positions
+    colors = {
+        'left_shoulder': (255, 0, 255),  # Purple
+        'right_shoulder': (255, 0, 255),  # Purple
+        'left_elbow': (0, 0, 255),  # Red
+        'right_elbow': (0, 0, 255),  # Red
+        'left_wrist': (255, 0, 0),  # Blue
+        'right_wrist': (255, 0, 0)  # Blue
+    }
+
+    for key, (x_pos, y_pos) in initial_circle_positions.items():
+        color = colors[key]
+        cv2.rectangle(overlay, (int(x_pos - radius), int(y_pos - 2.5 * radius)), (int(x_pos + radius), int(y_pos + 2.5 * radius)), color, cv2.FILLED)
+
+    return overlay
+
+
+
 
 
 def format_point_name(point):
@@ -1691,11 +1902,13 @@ def data_collection():
 
 
 
+# Global variables to track timing
+start_time = 0
+required_duration = 5  # duration in seconds
+countdown_started = False
+
 def update_image():
-    global last_update_time, twoStepDone, current_stage, initial_circle_positions, img_instruct_label, instruction_image_label, start_time
-
-
-
+    global last_update_time, twoStepDone, current_stage, initial_circle_positions, img_instruct_label, instruction_image_label, start_time, countdown_started
 
     ret, frame = cap.read()
     if not ret:
@@ -1706,130 +1919,129 @@ def update_image():
     image.flags.writeable = True
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-
-
-
-
-    """
-    cap.release()
-    root.destroy()
-    cv2.destroyAllWindows()
-    time.sleep(10)
-    simgui1 = gui.SimGUI()
-    simgui1.start()
-    """
-
-    #data_collection()
     if current_stage == 'overlay_1':
         overlay = draw_guide_overlay_1(frame, results)
-        points_in_position = check_points_in_circles(frame, results)
+        points_in_position = check_points_in_rectangles(frame, results)
 
         # Clear the existing text
         vid_instruct_text.config(state=tk.NORMAL)
         vid_instruct_text.delete('1.0', tk.END)
 
-         # Insert new status text with colors
+        # Insert new status text with colors
         for point, status in points_in_position.items():
             formatted_point = format_point_name(point)
             color = 'green' if status else 'purple' if 'Wrist' in formatted_point else 'red' if 'Elbow' in formatted_point else 'blue'
             vid_instruct_text.insert(tk.END, f"{formatted_point} is in Position: {status}\n", color)
 
-        vid_instruct_text.config(state=tk.DISABLED)
-
-
-
         if all(points_in_position.values()):
-            init_data_update(image)
-            initial_circle_positions = {}  # Reset for the next overlay
-            current_stage = 'overlay_2'
-            
-            
+            if not countdown_started:
+                start_time = time.time()  # Start the timer
+                countdown_started = True
+            elapsed_time = time.time() - start_time
+            remaining_time = required_duration - elapsed_time
+            vid_instruct_text.insert(tk.END, f"Hold still for {remaining_time:.1f} more seconds...", 'black')
+            if elapsed_time >= required_duration:
+                init_data_update(image)
+                initial_circle_positions = {}  # Reset for the next overlay
+                current_stage = 'overlay_2'
+                start_time = 0  # Reset the timer for the next stage
+                countdown_started = False
+        else:
+            start_time = 0  # Reset the timer if the user moves out of position
+            countdown_started = False
+
+        vid_instruct_text.config(state=tk.DISABLED)
 
     elif current_stage == 'overlay_2':
         overlay = draw_guide_overlay_2(frame, results)
-        points_in_position = check_points_in_circles(frame, results)
-        
-        
+        points_in_position = check_points_in_rectangles(frame, results)
+
         # Clear the existing text
         vid_instruct_text.config(state=tk.NORMAL)
         vid_instruct_text.delete('1.0', tk.END)
 
-         # Insert new status text with colors
+        # Insert new status text with colors
         for point, status in points_in_position.items():
             formatted_point = format_point_name(point)
             color = 'green' if status else 'purple' if 'Wrist' in formatted_point else 'red' if 'Elbow' in formatted_point else 'blue'
             vid_instruct_text.insert(tk.END, f"{formatted_point} is in Position: {status}\n", color)
 
-        vid_instruct_text.config(state=tk.DISABLED)
-
-
-
-
-
-
         if all(points_in_position.values()):
-            init2_data_update(image)
-            find_depth_ratio()
-            initial_circle_positions = {}  # Reset for the next overlay
-            current_stage = 'overlay_3'
-            
+            if not countdown_started:
+                start_time = time.time()  # Start the timer
+                countdown_started = True
+            elapsed_time = time.time() - start_time
+            remaining_time = required_duration - elapsed_time
+            vid_instruct_text.insert(tk.END, f"Hold still for {remaining_time:.1f} more seconds...", 'black')
+            if elapsed_time >= required_duration:
+                init2_data_update(image)
+                find_depth_ratio()
+                initial_circle_positions = {}  # Reset for the next overlay
+                current_stage = 'overlay_3'
+                start_time = 0  # Reset the timer for the next stage
+                countdown_started = False
+        else:
+            start_time = 0  # Reset the timer if the user moves out of position
+            countdown_started = False
+
+        vid_instruct_text.config(state=tk.DISABLED)
 
     elif current_stage == 'overlay_3':
         overlay = draw_guide_overlay_3(frame, results)
-        points_in_position = check_points_in_circles(frame, results)
+        points_in_position = check_points_in_rectangles(frame, results)
 
-        
         # Clear the existing text
         vid_instruct_text.config(state=tk.NORMAL)
         vid_instruct_text.delete('1.0', tk.END)
 
-         # Insert new status text with colors
+        # Insert new status text with colors
         for point, status in points_in_position.items():
             formatted_point = format_point_name(point)
             color = 'green' if status else 'purple' if 'Wrist' in formatted_point else 'red' if 'Elbow' in formatted_point else 'blue'
             vid_instruct_text.insert(tk.END, f"{formatted_point} is in Position: {status}\n", color)
 
-        vid_instruct_text.config(state=tk.DISABLED)
-
-
-
-
         if all(points_in_position.values()):
-            init3_data_update(image)
-            instruct_label.config(text="Simulation Started")
-            vid_instruct_text.config(state=tk.NORMAL)
-            vid_instruct_text.delete('1.0', tk.END)
-            vid_instruct_text.insert(tk.END, "Simulation in Progress", 'black')
-            vid_instruct_text.config(state=tk.DISABLED,height=1)
-            print("im being ran&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-            twoStepDone = True
-            packTwoSteps()
-            current_stage = 'data_update'
+            if not countdown_started:
+                start_time = time.time()  # Start the timer
+                countdown_started = True
+            elapsed_time = time.time() - start_time
+            remaining_time = required_duration - elapsed_time
+            vid_instruct_text.insert(tk.END, f"Hold still for {remaining_time:.1f} more seconds...", 'black')
+            if elapsed_time >= required_duration:
+                init3_data_update(image)
+                instruct_label.config(text="Simulation Started")
+                vid_instruct_text.config(state=tk.NORMAL)
+                vid_instruct_text.delete('1.0', tk.END)
+                vid_instruct_text.insert(tk.END, "Simulation in Progress", 'black')
+                vid_instruct_text.config(state=tk.DISABLED, height=1)
+                print("im being ran&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+                twoStepDone = True
+                packTwoSteps()
+                current_stage = 'data_update'
+                start_time = 0  # Reset the timer for the next stage
+                countdown_started = False
+        else:
+            start_time = 0  # Reset the timer if the user moves out of position
+            countdown_started = False
+
+        vid_instruct_text.config(state=tk.DISABLED)
 
     elif current_stage == 'data_update' and twoStepDone:
         overlay = None  # Clear overlay for the data update phase
         data_collection()
 
-
         if start_time == 0:
-            # Clear the existing text
-
             start_time = time.time()
 
-        # Calculate the elapsed time since the start
         elapsed_time = time.time() - start_time
 
-
-
-        if True: #elapsed_time > time_simulation_active:
+        if elapsed_time > time_simulation_active:
             print(str(time_simulation_active) + " seconds have elapsed, stopping the update.")
             cap.release()
             root.destroy()
             cv2.destroyAllWindows()
             time.sleep(1)
-            return # Exit the function to stop the loop
-
-
+            return  # Exit the function to stop the loop
 
     if overlay is not None:
         image = cv2.addWeighted(overlay, 0.6, frame, 1 - 0.6, 0)
@@ -1843,9 +2055,6 @@ def update_image():
     if twoStepDone:
         if isGraphOn:
             plot_graph()
-
-    
-
 
     root.after(10, update_image)
 
@@ -2053,7 +2262,7 @@ vid_instruct_label.pack(side=tk.TOP, fill='both', expand=True, padx=10, pady=10)
 """
 vid_instruct_text = tk.Text(video_frame, width=40, height=10, font=("Helvetica", 14))
 vid_instruct_text.pack(side=tk.TOP, fill='both', expand=True, padx=10, pady=0)
-vid_instruct_text.config(state=tk.DISABLED, height=6)  # Make it read-only
+vid_instruct_text.config(state=tk.DISABLED, height=7)  # Make it read-only
 
 
 vid_instruct_text.tag_configure('blue', foreground='blue')
