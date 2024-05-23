@@ -94,7 +94,7 @@ isGraphOn = True
 Enable Start Up Bypass
 \/ \/ \/ \/ \/ \/ \/ \/
 """
-BypassStartUp = True
+BypassStartUp = False
 """
 /\ /\ /\ /\ /\ /\ /\ /\ 
 Enable Start Up Bypass
@@ -2029,6 +2029,7 @@ def update_image():
     elif current_stage == 'data_update' and twoStepDone:
         overlay = None  # Clear overlay for the data update phase
         data_collection()
+        time_simulation_active = -1
 
         if start_time == 0:
             start_time = time.time()
@@ -2053,9 +2054,10 @@ def update_image():
     video_label.config(image=image_tk)
     video_label.image = image_tk
     if twoStepDone:
+        """
         if isGraphOn:
             plot_graph()
-
+        """
     root.after(10, update_image)
 
 
@@ -2099,8 +2101,10 @@ def on_settings_submit():
     global time_to_get_in_position, time_simulation_active
 
     time_to_get_in_position = int(time_to_get_position_var.get())
-    time_simulation_active = int(time_simulation_var.get())
-    print(f"Time to Get in Position: {time_to_get_in_position} seconds, Time Simulation Active: {time_simulation_active} seconds")
+    #time_simulation_active = int(time_simulation_var.get())
+    #print(f"Time to Get in Position: {time_to_get_in_position} seconds, Time Simulation Active: {time_simulation_active} seconds")
+    print(f"Time to Get in Position: {time_to_get_in_position} seconds")
+
 
     # Hide the current settings frame and show the countdown frame
     settings_frame.pack_forget()
@@ -2130,6 +2134,7 @@ time_to_get_position_dropdown = ttk.Combobox(settings_frame, textvariable=time_t
                                              values=[5, 10, 20, 30, 60])
 time_to_get_position_dropdown.pack(padx=10, pady=5)
 
+"""
 # Time Simulation Active Dropdown
 time_simulation_var = tk.StringVar()
 time_simulation_label = ttk.Label(settings_frame, text="Time Simulation Active(sec):")
@@ -2137,6 +2142,7 @@ time_simulation_label.pack(padx=10, pady=5)
 time_simulation_dropdown = ttk.Combobox(settings_frame, textvariable=time_simulation_var,
                                         values=[30, 60, 120, 300, 1200])
 time_simulation_dropdown.pack(padx=10, pady=5)
+"""
 
 # Settings Submit Button
 settings_submit_button = ttk.Button(settings_frame, text="Submit", command=on_settings_submit)
@@ -2152,7 +2158,7 @@ def on_submit():
         user_depth = float(depth_entry.get())
         weightAdded = float(weight_holding_entry.get())
         developer_mode = dev_mode_var.get() == 1
-        isGraphOn = graph_on_var.get() == 1
+        #isGraphOn = graph_on_var.get() == 1
         print(f"User Weight: {user_weight} kg, User Height: {user_height} cm, User Depth: {user_depth} cm, Weight Holding: {weightAdded} kg")
         show_settings()  # Show the settings frame instead of destroying the window
 
@@ -2208,9 +2214,11 @@ dev_mode_var = tk.IntVar()
 dev_mode_check = ttk.Checkbutton(right_column, text="Developer Mode", variable=dev_mode_var)
 dev_mode_check.pack(padx=10, pady=5)
 
+"""
 graph_on_var = tk.IntVar()
 graph_on_check = ttk.Checkbutton(right_column, text="Enable Graph", variable=graph_on_var)
 graph_on_check.pack(padx=10, pady=5)
+"""
 
 submit_button = ttk.Button(right_column, text="Next", command=on_submit)
 submit_button.pack(side=tk.BOTTOM, padx=10, pady=10)
@@ -2350,9 +2358,11 @@ def packTwoSteps():
     data_frame.pack(side=tk.RIGHT, fill='both', expand=False, padx=20, pady=10)  # Apply padx and pady here
     data_frame.pack_propagate(False)  # Prevent the frame from resizing to fit its content
     data_frame.config(width=400, height=600)  # Set the width and height of the frame
+    """
     if isGraphOn:
         graph_frame.pack(side=tk.BOTTOM, fill='both', expand=False, padx=10, pady=10)
         graph_frame.config(width=400, height=300)  # Set the width and height of the frame
+    """
     canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
     if developer_mode:
         direction_facing_label.pack(anchor=tk.W)
