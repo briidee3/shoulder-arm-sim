@@ -326,7 +326,7 @@ class Pose_detection(threading.Thread):
         try:
             pose_landmarks_list = detection_result.pose_landmarks
             annotated_image = np.copy(rgb_image.numpy_view())
-            mediapipe_out = np.ndarray((10, 3))
+            mediapipe_out = np.ndarray((10, 3), dtype = "float32")
 
             # loop thru detected poses to visualize
             for idx in range(len(pose_landmarks_list)):

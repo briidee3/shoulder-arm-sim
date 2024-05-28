@@ -154,7 +154,7 @@ class Extrapolate_forces():
         self.biacromial_scale = 0.23            # temporarily set to middle of male (0.234) to female (0.227) range for testing
 
         # ndarray to store mediapipe data output, even if from other process(es)
-        self.mediapipe_data_output = np.zeros((10, 3), dtype = "float64")
+        self.mediapipe_data_output = np.zeros((10, 3), dtype = "float32")
         # ndarray to store mediapipe hand data output
         self.hand_mp_out = np.zeros((2,3,3), dtype = "float32")
         self.hand_check = np.zeros((2), dtype = "float32")              # used to check if hand data updated
@@ -167,8 +167,8 @@ class Extrapolate_forces():
 
         # used for storing distance data (to prevent unnecessary recalculations)
         # consider changing to float32 or float16
-        self.dist_array = np.zeros((10, 10), dtype = "float64")         # indexed by two body part names/indices
-        self.max_array = np.zeros((10, 10), dtype = "float64")          # used for storing max distance data
+        self.dist_array = np.zeros((10, 10), dtype = "float32")         # indexed by two body part names/indices
+        self.max_array = np.zeros((10, 10), dtype = "float32")          # used for storing max distance data
         self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
         # store elbow angle in memory so it can be calculated right after depth for the given frame is calculated (to prevent syncing issues)
         self.elbow_angles = np.zeros((2), dtype = "float32")
@@ -296,7 +296,7 @@ class Extrapolate_forces():
             # put together data to output
             self.calculated_data["right_bicep_force"] = str("%0.2f" % bicep_calc_out[0])
             self.calculated_data["right_elbow_angle"] = str("%0.2f" % bicep_calc_out[1])
-            self.calculated_data["left_bicep_force"] = str("%0.2f" % self.ra_data[2])#%icep_calc_out[2])
+            self.calculated_data["left_bicep_force"] = str("%0.2f" % self.ra_data[2])#bicep_calc_out[2])
             self.calculated_data["left_elbow_angle"] = str("%0.2f" % self.ra_data[3])#bicep_calc_out[3])
 
             print("\nRolling avg: %s\nCurrent: %s\n" % (str(self.ra_data), str(bicep_calc_out + [
@@ -548,7 +548,7 @@ class Extrapolate_forces():
     
     # reset max_array data to essentially reset the application (no longer used in calibration)
     #def reset_calibration(self):
-    #    self.max_array = np.zeros((8,8), dtype = "float64") # reset max distances
+    #    self.max_array = np.zeros((8,8), dtype = "float32") # reset max distances
     #    self.sim_to_real_conversion_factor = 1
         
 
