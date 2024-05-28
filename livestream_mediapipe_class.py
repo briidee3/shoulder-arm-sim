@@ -438,11 +438,12 @@ class Pose_detection(threading.Thread):
             self.hand_annotated_image = annotated_image
 
 
-            try:
+            #try:
                 # call hand landmarker callback function after finishing for pose landmarker
-                self.face_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
-            except:
-                print("livestream_mediapipe_class.py: ERROR handling face_detector in hand_draw_landmarks_on_frame()")
+            #    self.face_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
+            #except:
+            #    print("livestream_mediapipe_class.py: ERROR handling face_detector in hand_draw_landmarks_on_frame()")
+            self.full_annotated_image = annotated_image  # only use this if not using face_detector
 
 
             # put together the hand data we're looking for
