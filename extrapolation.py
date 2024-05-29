@@ -188,6 +188,7 @@ class Extrapolate_forces():
                 "farm_spher_coords": "NaN"
             }
 
+
         # number of timesteps to use for rolling average
         self.ra_num_steps = 10
         # number of data points to track with the rolling average
@@ -299,10 +300,10 @@ class Extrapolate_forces():
             self.calculated_data["left_bicep_force"] = str("%0.2f" % self.ra_data[2])#bicep_calc_out[2])
             self.calculated_data["left_elbow_angle"] = str("%0.2f" % self.ra_data[3])#bicep_calc_out[3])
 
-            print("\nRolling avg: %s\nCurrent: %s\n" % (str(self.ra_data), str(bicep_calc_out + [
-                    self.hand_orientation[0, 0], self.hand_orientation[0, 1],   # left hand
-                    self.hand_orientation[1, 0], self.hand_orientation[1, 1]    # right hand
-                ])))
+            #print("\nRolling avg: %s\nCurrent: %s\n" % (str(self.ra_data), str(bicep_calc_out + [
+            #        self.hand_orientation[0, 0], self.hand_orientation[0, 1],   # left hand
+            #        self.hand_orientation[1, 0], self.hand_orientation[1, 1]    # right hand
+            #    ])))
             
 
             # iterate rolling average iterator
@@ -807,37 +808,60 @@ class Extrapolate_forces():
             vector = self.mediapipe_data_output[vertex_two] - self.mediapipe_data_output[vertex_one]
 
             # use up vector as polar axis
-            z_axis = (0, 0, 1)
+            #z_axis = (0, 0, 1)
             x_axis = ((-1)**(int(is_right)), 0, 0)  # x axis is -1 if is_right is True (i.e. (-1)^(1)), or 1 if False (i.e. (-1)^(0))
 
+            vector /= np.linalg.norm(vector)    # turn to unit vector
+
             rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
+
+            # using atan2 to get angle between polar axis (z axis) and current body segment
+            #phi = np.arctan2(np.linalg.norm(np.cross(z_axis, vector)), np.dot(z_axis, vector))
+
             #theta = np.arccos(vector[1] / rho)
             # calculate theta; right now, this only has a range of 180 degrees in front of the anchor (i.e. vertex_two).abs
             #   to fix this, check if vertex is in front of or behind other vertex; if behind, multiply by -1 to get full range (i.e. 0 to -pi and 0 to pi)
-            theta = np.abs(np.arctan2(vector[2], (x_axis[0] * vector[0])) / 2)
+            theta = np.arctan2(vector[2], vector[0])
 
-            vector /= np.linalg.norm(vector)    # turn to unit vector
-            # using atan2 to get angle between polar axis and current body segment
-            phi = np.arctan2(np.linalg.norm(np.cross(z_axis, vector)), np.dot(z_axis, vector)) - (np.pi/2)
+            
+            # calculate theta after calculating phi; 
+            # now getting difference in angle between phi (as a unit vector) and the unit vector itself
+            # doing this since atan2 gets angle between in 3D coords, we want it in 2D coords with as few calculations as possible
+            #u_phi = (np.cos(phi), 0, np.sin(phi))   # already a unit vector, so no need to divide by the norm
+            #theta = np.arctan2(np.linalg.norm(np.cross(u_phi, vector)), np.dot(u_phi, vector))
+            # this one doesn't work because going directly between the two vectors (as is done here) avoids the arc
+            # representing the angle we're actually looking for; it takes the shortest path, not the path we're looking for
+
+            # calculate theta by discarding the z component of vector and getting the angle between the remaining vector and x-axis
+            #vector = (vector[0], vector[1], 0)
+            #vector /= np.linalg.norm(vector)    # get new unit vector
+            #theta = np.arctan2(np.linalg.norm(np.cross(x_axis, vector)), np.dot(x_axis, vector))
+
+            # with help from https://gamedev.stackexchange.com/questions/87305/how-do-i-convert-from-cartesian-to-spherical-coordinates#87307
+            # since we're using the z-axis as the polar axis and the x-axis as the reference axis for theta,
+            # we can actually do this fairly simply as follows:
+            #theta = np.arctan2(vector[1], vector[0])
+            phi = np.arctan2(np.sqrt(vector[0]**2 + vector[1]**2), vector[2])
+
             
             # DEBUG
             #if not is_right: # left elbow anchor => upper arm
-            #segment = "<segment>"
-            #match vertex_one:
-            #    case 0:
-            #        segment = "\nLeft upper arm"
-            #    case 1:
-            #        segment = "\nRight upper arm"
-            #    case 2:
-            #        segment = "Left lower arm"
-            #    case 3:
-            #        segment = "Right lower arm"
-            #    case _:
-            #        segment = segment
+            segment = "<segment>"
+            match vertex_one:
+                case 0:
+                    segment = "\nLeft upper arm"
+                case 1:
+                    segment = "\nRight upper arm"
+                case 2:
+                    segment = "Left lower arm"
+                case 3:
+                    segment = "Right lower arm"
+                case _:
+                    segment = segment
             
-            #print("%s spherical coords: (%s, %s, %s)" % (segment, rho, theta, phi))
+            print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(theta), np.rad2deg(phi)))
 
-            return [rho, theta, phi]
+            return [rho, theta, (phi - (np.pi/2))]  # subtract 90 deg from phi for use in forces calculations
         except:
             print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
 
