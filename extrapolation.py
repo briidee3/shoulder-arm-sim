@@ -681,7 +681,7 @@ class Extrapolate_forces():
 
 
 
-    ### FORCES CALCULATIONS
+    ### ANGLES CALCULATIONS
 
     # calculate elbow angle
     def calc_elbow_angle(self, right_side = False):
@@ -809,7 +809,7 @@ class Extrapolate_forces():
 
             # use up vector as polar axis
             #z_axis = (0, 0, 1)
-            x_axis = ((-1)**(int(is_right)), 0, 0)  # x axis is -1 if is_right is True (i.e. (-1)^(1)), or 1 if False (i.e. (-1)^(0))
+            #x_axis = ((-1)**(int(is_right)), 0, 0)  # x axis is -1 if is_right is True (i.e. (-1)^(1)), or 1 if False (i.e. (-1)^(0))
 
             vector /= np.linalg.norm(vector)    # turn to unit vector
 
@@ -821,8 +821,11 @@ class Extrapolate_forces():
             #theta = np.arccos(vector[1] / rho)
             # calculate theta; right now, this only has a range of 180 degrees in front of the anchor (i.e. vertex_two).abs
             #   to fix this, check if vertex is in front of or behind other vertex; if behind, multiply by -1 to get full range (i.e. 0 to -pi and 0 to pi)
-            theta = np.arctan2(vector[2], vector[0])
+            theta = np.arctan2(vector[1], vector[0])
 
+            # check if theta should be reversed
+            if vector[1] <= 0:  # check if y (depth) coordinate is less than 0 to check if pointing forwards or backwards
+                theta = 2 * np.pi - theta
             
             # calculate theta after calculating phi; 
             # now getting difference in angle between phi (as a unit vector) and the unit vector itself
