@@ -683,6 +683,7 @@ class Extrapolate_forces():
                 ## calculate theta for the hand relative to its direction
                 # ref axis is cross between wrist to middle knuckle and screen normal, and should always be coplanar w/ the zx plane
                 ref_axis = np.cross(w_to_m, (0, 1, 0))
+                ref_axis /= np.linalg.norm(ref_axis)
                 # perpendicular component of the hand normal w/ respect to the wrist to middle knuckle vector as the polar axis
                 hand_perp_comp = hand_normal - np.dot(( np.dot(hand_normal, w_to_m) / np.dot(w_to_m, w_to_m) ), w_to_m)
                 # angle between perpendicular component and reference axis
@@ -718,7 +719,7 @@ class Extrapolate_forces():
                 #DEBUG
                 if is_right:
                     print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
-                else:
+                if not is_right:
                     print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
@@ -793,6 +794,7 @@ class Extrapolate_forces():
             
             # using arctan2
             cross_ua_fa = np.cross(vector_a, vector_b)
+            cross_ua_fa /= np.linalg.norm(cross_ua_fa)
             self.elbow_angles[(int)(right_side)] = np.arctan2(np.linalg.norm(cross_ua_fa), np.dot(vector_b, vector_a))
 
 
