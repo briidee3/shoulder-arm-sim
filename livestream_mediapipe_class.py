@@ -149,7 +149,7 @@ class Pose_detection(threading.Thread):
         }
 
         # output data from hand landmarker
-        self.hand_mp_out = np.zeros((2,4,3), dtype = "float32") # four points for each hand
+        self.hand_mp_out = np.zeros((2,5,3), dtype = "float32") # four points for each hand
 
         # output data from face landmarker
         self.face_mp_out = np.zeros((2,2,3), dtype = "float16") # two points for both eyes
@@ -410,7 +410,7 @@ class Pose_detection(threading.Thread):
             # get annotated_image after running draw_landmarks_on_frame for PoseLandmarker, use it as a base
             annotated_image = self.annotated_image #np.copy(rgb_image.numpy_view())
             # hold data for current hand data frame
-            hand_mp_out = np.zeros((2,4,3), dtype = "float32")       # actual landmarker data (which hand, num vertices, num dimensions)
+            hand_mp_out = np.zeros((2,5,3), dtype = "float32")       # actual landmarker data (which hand, num vertices, num dimensions)
 
         
             # loop thru detected hand poses to visualize
@@ -438,6 +438,7 @@ class Pose_detection(threading.Thread):
             self.hand_annotated_image = annotated_image
 
 
+            # uncomment these lines to enable FaceLandmarker
             #try:
                 # call hand landmarker callback function after finishing for pose landmarker
             #    self.face_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
@@ -449,7 +450,7 @@ class Pose_detection(threading.Thread):
             # put together the hand data we're looking for
             it = 0                      # iterator for iterating thru data frame (i.e. hand_mp_out)
             for i in handedness_list:       # do for each hand
-                for j in (0, 5, 17, 1):     # get the parts of the hand we're looking for (wrist, index base, pinky base, thumb base)
+                for j in (0, 5, 17, 1, 9):     # get the parts of the hand we're looking for (wrist, index knuckle, pinky knuckle, thumb knuckle, middle knuckle)
                     # get which hand
                     hand = i[0].index       # from mediapipe, left hand is 1, right is 0
 
