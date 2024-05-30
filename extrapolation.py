@@ -156,7 +156,7 @@ class Extrapolate_forces():
         # ndarray to store mediapipe data output, even if from other process(es)
         self.mediapipe_data_output = np.zeros((10, 3), dtype = "float32")
         # ndarray to store mediapipe hand data output
-        self.hand_mp_out = np.zeros((2,3,3), dtype = "float32")
+        self.hand_mp_out = np.zeros((2,5,3), dtype = "float32")
         self.hand_check = np.zeros((2), dtype = "float32")              # used to check if hand data updated
         self.hand_orientation = np.zeros((2, 2), dtype = "float32")     # theta: hand normal and forearm - 90 deg, phi: hand normal and screen normal
         # store mediapipe face landmarker iris data output
@@ -631,34 +631,43 @@ class Extrapolate_forces():
             if not (hand_check == self.hand_check[i]):
                 w_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 0, :]  # wrist to index vector
                 w_to_p = self.hand_mp_out[i, 2, :] - self.hand_mp_out[i, 0, :]  # wrist to pinky vector
+                w_to_m = self.hand_mp_out[i, 4, :] - self.hand_mp_out[i, 0, :]  # wrist to middle vector
                 #p_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 2, :]  # pinky to index vector
                 #screen_normal = np.zeros((3), dtype = "float32")                # normal of screen
                 #screen_normal[:] = (0, (-(-1)**int(is_right)), 0)
+                
+                # normalize vectors
+                w_to_i /= np.linalg.norm(w_to_i)
+                w_to_p /= np.linalg.norm(w_to_p)
+                w_to_m /= np.linalg.norm(w_to_m)
 
                 # get normal of hand data (cross product between 0,5 vector and 0,17 vector) unit vector
                 hand_normal = np.cross(w_to_i, w_to_p)
                 hand_normal /= np.linalg.norm(hand_normal)
 
-                # normal between forearm and normal between upper arm and forearm
-                normal_fa_ua_fa = np.cross(forearm, cross_ua_fa)    # points towards body
 
-                # perpendicular component of hand normal relative to forearm
-                #   used to get theta for the hand
-                hand_normal_perp = hand_normal - np.dot((np.dot(hand_normal, forearm) / np.dot(forearm, forearm)), forearm)
-
+                # phi (hand normal to forearm - 90 degrees)
+                phi = np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm)) - (np.pi/2)
 
                 # get angle between using atan2
                 # can't use the same method used in calc_spher_coords since this uses a different frame of reference,
                 #   that being the use of the forearm as the polar axis, and the other axes defined with the plane defined by
                 #   the three points that are the shoulder, the elbow, and the wrist
-
-                # phi (hand normal to forearm - 90 degrees)
-                phi = np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm)) - (np.pi/2)
                 
                 # theta (hand normal to arm normal)
                 # in this case, the hand shouldn't be able to require more than 180 degrees of movement, as turning the hand more than 90 degrees relative
                 #   to the normal of the arm plane would likely result in injury
-                theta = np.arctan2(np.linalg.norm(np.cross(normal_fa_ua_fa, hand_normal_perp)), np.dot(normal_fa_ua_fa, hand_normal_perp))
+                # currently appears to be non-functional
+                #   might be because of coordinate system differences between that used in this project and that used by numpy by default
+                # normal between forearm and normal between upper arm and forearm
+                #normal_fa_ua_fa = np.cross(forearm, cross_ua_fa)    # points towards body
+                #normal_fa_ua_fa /= np.linalg.norm(normal_fa_ua_fa)
+                # perpendicular component of hand normal relative to forearm
+                #   used to get theta for the hand
+                #hand_normal_perp = hand_normal - np.dot((np.dot(hand_normal, forearm) / np.dot(forearm, forearm)), forearm)
+                #hand_normal_perp /= np.linalg.norm(hand_normal_perp)
+                # calc theta
+                #theta = np.arctan2(np.linalg.norm(np.cross(normal_fa_ua_fa, hand_normal_perp)), np.dot(normal_fa_ua_fa, hand_normal_perp))
 
                 # theta (hand normal to screen normal)
                 # in this case, the hand requires more than 180 degrees of movement, since it's not relative to the arm plane
@@ -669,6 +678,22 @@ class Extrapolate_forces():
                 #if np.abs(np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm))) > (np.pi / 2):
                 #    theta = -theta
 
+
+                ## calculate theta for the hand relative to its direction
+                # ref axis is cross between wrist to middle knuckle and screen normal, and should always be coplanar w/ the zx plane
+                ref_axis = np.cross(w_to_m, (0, 1, 0))  
+                # perpendicular component of the hand normal w/ respect to the wrist to middle knuckle vector as the polar axis
+                hand_perp_comp = hand_normal - np.dot(( np.dot(hand_normal, w_to_m) / np.dot(w_to_m, w_to_m) ), w_to_m)
+                # angle between perpendicular component and reference axis
+                #   theta should equal 0 when hand normal is in line w the reference axis (i.e. toward body when arm is in L shape)
+                #   and should equal pi (180 deg) when facing away from body (when arm in L shape)
+                theta = np.arctan2(np.linalg.norm(np.cross(hand_perp_comp, ref_axis)), np.dot(hand_perp_comp, ref_axis))
+                # check if palm is facing away from camera
+                #   done by checking if angle between screen normal and hand normal > 90 degrees
+                if (np.arctan2(np.linalg.norm(np.cross((0, 1, 0), hand_normal)), hand_normal[1]) < (np.pi / 2)):#np.dot(hand_normal, (0, 1, 0)))):
+                    theta = 2*np.pi - theta    # if palm facing away from camera, subtract from full 360 deg rotation to get actual theta
+
+
                 
                 # don't set new values if output of np.arctan2 is "nan" (i.e. "undefined", or rather, dealing with infinity)
                 if not (phi == np.nan):
@@ -678,7 +703,8 @@ class Extrapolate_forces():
             
                 if not is_right:
                     #DEBUG
-                    print("\nAngle between hand and forearm: \tTheta: %s\t Phi: %s\n" % (np.rad2deg(theta), phi))#(np.rad2deg(self.hand_orientation[i, 0]), np.rad2deg(self.hand_orientation[i, 1])))
+                    print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
+                    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
