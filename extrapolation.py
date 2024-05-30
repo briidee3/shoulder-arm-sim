@@ -706,10 +706,10 @@ class Extrapolate_forces():
                 if not (theta == np.nan):
                     self.hand_orientation[i, 0] = theta
             
-                if not is_right:
+                #if not is_right:
                     #DEBUG
-                    print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
-                    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
+                #    print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
+                #    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
@@ -867,7 +867,7 @@ class Extrapolate_forces():
 
             # use up vector as polar axis
             #z_axis = (0, 0, 1)
-            #x_axis = ((-1)**(int(is_right)), 0, 0)  # x axis is -1 if is_right is True (i.e. (-1)^(1)), or 1 if False (i.e. (-1)^(0))
+            x_axis = ((-1)**(int(is_right)), 0, 0)  # x axis is -1 if is_right is True (i.e. (-1)^(1)), or 1 if False (i.e. (-1)^(0))
 
             vector /= np.linalg.norm(vector)    # turn to unit vector
 
@@ -879,11 +879,12 @@ class Extrapolate_forces():
             #theta = np.arccos(vector[1] / rho)
             # calculate theta; right now, this only has a range of 180 degrees in front of the anchor (i.e. vertex_two).abs
             #   to fix this, check if vertex is in front of or behind other vertex; if behind, multiply by -1 to get full range (i.e. 0 to -pi and 0 to pi)
-            theta = np.arctan2(vector[1], vector[0])    # using extrapolated depth (y) and x to get theta
+           # theta = np.arctan2(vector[1], vector[0])    # using extrapolated depth (y) and x to get theta
+            theta = np.arctan2(np.linalg.norm(np.cross(vector, x_axis)), np.dot(vector, x_axis))
 
             # check if theta should be reversed
-            if vector[1] <= 0:  # check if y (depth) coordinate is less than 0 to check if pointing forwards or backwards
-                theta = 2 * np.pi - theta
+            #if vector[1] <= 0:  # check if y (depth) coordinate is less than 0 to check if pointing forwards or backwards
+            #    theta = 2 * np.pi - theta
             
             # calculate theta after calculating phi; 
             # now getting difference in angle between phi (as a unit vector) and the unit vector itself
@@ -920,7 +921,7 @@ class Extrapolate_forces():
                 case _:
                     segment = segment
             
-            #print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(theta), np.rad2deg(phi)))
+            print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(theta), np.rad2deg(phi)))
 
             return [rho, theta, (phi - (np.pi/2))]  # subtract 90 deg from phi for use in forces calculations
         except:
