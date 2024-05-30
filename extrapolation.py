@@ -659,19 +659,20 @@ class Extrapolate_forces():
                 #   to the normal of the arm plane would likely result in injury
                 # currently appears to be non-functional
                 #   might be because of coordinate system differences between that used in this project and that used by numpy by default
+                # swap coord systems (swap y and x)
+               # forearm = (forearm[0], forearm[2], forearm[1])
+               # cross_ua_fa = (cross_ua_fa[0], cross_ua_fa[2], cross_ua_fa[1])
+               # hand_normal = (hand_normal[0], hand_normal[2], hand_normal[1])
                 # normal between forearm and normal between upper arm and forearm
-                #normal_fa_ua_fa = np.cross(forearm, cross_ua_fa)    # points towards body
-                #normal_fa_ua_fa /= np.linalg.norm(normal_fa_ua_fa)
+               # normal_fa_ua_fa = np.cross(forearm, cross_ua_fa)    # points towards body
+               # normal_fa_ua_fa /= np.linalg.norm(normal_fa_ua_fa)
                 # perpendicular component of hand normal relative to forearm
                 #   used to get theta for the hand
-                #hand_normal_perp = hand_normal - np.dot((np.dot(hand_normal, forearm) / np.dot(forearm, forearm)), forearm)
-                #hand_normal_perp /= np.linalg.norm(hand_normal_perp)
+               # hand_normal_perp = hand_normal - np.dot((np.dot(hand_normal, forearm) / np.dot(forearm, forearm)), forearm)
+               # hand_normal_perp /= np.linalg.norm(hand_normal_perp)
                 # calc theta
-                #theta = np.arctan2(np.linalg.norm(np.cross(normal_fa_ua_fa, hand_normal_perp)), np.dot(normal_fa_ua_fa, hand_normal_perp))
+               # theta = np.arctan2(np.linalg.norm(np.cross(normal_fa_ua_fa, hand_normal_perp)), np.dot(normal_fa_ua_fa, hand_normal_perp))
 
-                # theta (hand normal to screen normal)
-                # in this case, the hand requires more than 180 degrees of movement, since it's not relative to the arm plane
-                #theta = np.arctan2(hand_normal[1], hand_normal[0])
                 
                 # check if palm facing away from camera
                 #   done by checking if angle between hand normal and screen normal > 90 degrees; if so, hand is pointing away from screen
