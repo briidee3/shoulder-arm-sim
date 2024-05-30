@@ -682,19 +682,27 @@ class Extrapolate_forces():
 
                 ## calculate theta for the hand relative to its direction
                 # ref axis is cross between wrist to middle knuckle and screen normal, and should always be coplanar w/ the zx plane
-                ref_axis = np.cross(w_to_m, (0, 1, 0))  
+                ref_axis = np.cross(w_to_m, (0, 1, 0))
                 # perpendicular component of the hand normal w/ respect to the wrist to middle knuckle vector as the polar axis
                 hand_perp_comp = hand_normal - np.dot(( np.dot(hand_normal, w_to_m) / np.dot(w_to_m, w_to_m) ), w_to_m)
                 # angle between perpendicular component and reference axis
                 #   theta should equal 0 when hand normal is in line w the reference axis (i.e. toward body when arm is in L shape)
                 #   and should equal pi (180 deg) when facing away from body (when arm in L shape)
-                theta = np.arctan2(np.linalg.norm(np.cross(hand_perp_comp, ref_axis)), np.dot(hand_perp_comp, ref_axis))
+                if is_right:    # handle differences between right hand and left hand
+                    # if is right hand, reverse the order of the cross product to get the reverse of the resultant vector, 
+                    #   since the right hand system is essentially a reflection of the left hand system
+                    theta = np.arctan2(np.linalg.norm(np.cross(ref_axis, hand_perp_comp)), np.dot(hand_perp_comp, ref_axis))
+                else:
+                    theta = np.arctan2(np.linalg.norm(np.cross(hand_perp_comp, ref_axis)), np.dot(hand_perp_comp, ref_axis))
                 # check if palm is facing away from camera
                 #   done by checking if angle between screen normal and hand normal > 90 degrees
                 #if (np.arctan2(np.linalg.norm(np.cross(hand_normal, (0, 1, 0))), hand_normal[1]) > (np.pi / 2)):#np.dot(hand_normal, (0, 1, 0)))):
                 if (hand_normal[1] > 0):    # this can be used instead of that on the prev line; effectively can be used for same thing in less calculations
                     theta = 2*np.pi - theta    # if palm facing away from camera, subtract from full 360 deg rotation to get actual theta
-
+                # correction/offset for right hand, to make it the effectively the same as left, just reflected
+                if is_right:
+                #    theta = (theta + (np.pi / 2)) % 2*np.pi
+                    theta = 2*np.pi - theta
 
                 
                 # don't set new values if output of np.arctan2 is "nan" (i.e. "undefined", or rather, dealing with infinity)
@@ -707,9 +715,11 @@ class Extrapolate_forces():
                     self.hand_orientation[i, 0] = theta
             
                 #if not is_right:
-                    #DEBUG
-                #    print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
-                #    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
+                #DEBUG
+                if is_right:
+                    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
+                else:
+                    print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
@@ -921,7 +931,7 @@ class Extrapolate_forces():
                 case _:
                     segment = segment
             
-            print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(theta), np.rad2deg(phi)))
+            #print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(theta), np.rad2deg(phi)))
 
             return [rho, theta, (phi - (np.pi/2))]  # subtract 90 deg from phi for use in forces calculations
         except:
