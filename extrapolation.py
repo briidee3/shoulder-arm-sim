@@ -691,12 +691,16 @@ class Extrapolate_forces():
                 theta = np.arctan2(np.linalg.norm(np.cross(hand_perp_comp, ref_axis)), np.dot(hand_perp_comp, ref_axis))
                 # check if palm is facing away from camera
                 #   done by checking if angle between screen normal and hand normal > 90 degrees
-                if (np.arctan2(np.linalg.norm(np.cross((0, 1, 0), hand_normal)), hand_normal[1]) < (np.pi / 2)):#np.dot(hand_normal, (0, 1, 0)))):
+                #if (np.arctan2(np.linalg.norm(np.cross(hand_normal, (0, 1, 0))), hand_normal[1]) > (np.pi / 2)):#np.dot(hand_normal, (0, 1, 0)))):
+                if (hand_normal[1] > 0):    # this can be used instead of that on the prev line; effectively can be used for same thing in less calculations
                     theta = 2*np.pi - theta    # if palm facing away from camera, subtract from full 360 deg rotation to get actual theta
 
 
                 
                 # don't set new values if output of np.arctan2 is "nan" (i.e. "undefined", or rather, dealing with infinity)
+                #   these values can pop up sometimes (i.e. edge cases), for example when using arctan to try to find a 90 degree angle.
+                #   doing things this way means we don't have to deal with several more if statements, thus higher operational efficiency
+                #   with minimal loss, as these would be edge cases, especially considering the stochasticity of the system involved.
                 if not (phi == np.nan):
                     self.hand_orientation[i, 1] = phi
                 if not (theta == np.nan):
@@ -857,6 +861,9 @@ class Extrapolate_forces():
         try:
             # get vector from given vertices/points
             vector = self.mediapipe_data_output[vertex_two] - self.mediapipe_data_output[vertex_one]
+
+            # swap coord systems (numpy coord system and ours swap the z and y axes)
+            #vector = (vector[0], vector[2], vector[1])
 
             # use up vector as polar axis
             #z_axis = (0, 0, 1)
