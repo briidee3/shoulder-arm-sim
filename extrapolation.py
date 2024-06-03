@@ -384,10 +384,15 @@ class Extrapolate_forces():
         except:
             print("extrapolation.py: ERROR converting real units to sim units")
 
-    # return calculated data (for use by other classes)
+    # return calculated data (for use by other classes) (arms)
     def get_calculated_data(self):
         # returns the currently stored calculated data
         return self.calculated_data
+
+    # return hand orientation data/calculations
+    def get_hand_data(self):
+        # returns the currently stored hand orientation data
+        return self.hand_orientation
 
 
 
