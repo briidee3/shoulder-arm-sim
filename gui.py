@@ -26,7 +26,7 @@ from PIL import ImageTk
 import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 
 # for use recording to excel doc
-import time
+from datetime import datetime
 from openpyxl import Workbook
 
 
@@ -471,13 +471,73 @@ class SimGUI():
 
 
     ### EXCEL DATA RECORDING FUNCTIONS
+
+    # start recording data
     def xl_start_rec(self):
-        return 0
+        if not self.xl_is_recording:
+            # set status to recording
+            self.xl_is_recording = True
+            # set time to end recording
+            self.xl_end_time = datetime.now().timestamp() + self.xl_trial_length
+            # set current row to base row before trial starts
+            self.xl_cur_row = 2
+            # label current set of data being recorded
+            self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = self.xl_cur_trial_var.get()
+            # update current trial number
+            self.xl_cur_trial_var.set(str( int(self.xl_cur_trial_var.get()) + 1 ))
+            # update status in gui
+            self.xl_status_var.set("Recording data...")
+        else:
+            self.xl_status_var.set("Please wait for current run to end...")
+
+    # record current frame of desired data
+    def record_to_excel(self, desired_data):
+        # used to reset xl_cur_col after recording data
+        init_col = self.xl_cur_col
+
+        # go to next row
+        self.xl_cur_row += 1
+
+        # iterate thru each of the desired data
+        for data in desired_data:
+            # record current data
+            self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = data
+            # go to next column for recording next data
+            self.xl_cur_col += 1
+
+        # reset column to initial column
+        self.xl_cur_col = init_col
+
+    # update function to be called each frame when xl_is_recording is True
+    def update_excel(self, desired_data):
+        # check if recording before proceeding
+        if self.xl_is_recording:
+            # check if time is up
+            if (datetime.now().timestamp() < self.xl_end_time):
+                self.record_to_excel(desired_data)
+            # end recording otherwise
+            else:
+                self.xl_is_recording = False
+                # go to next free column
+                self.xl_cur_col += len(desired_data)
+                # update gui status
+                self.xl_status_var.set("Done!")
+        # update gui status after a few seconds
+        else:
+            # check if it's been a few seconds
+            if (datetime.now().timestamp() < (self.xl_end_time + 5)):
+                # set status back to original status
+                self.xl_status_var.set("Press the \"Start\" button to begin")
+                
 
 
 
     # handle end of runtime
     def __del__(self, e = ""):
+        # save excel document if any data was recorded
+        if self.xl_cur_end_time:      # if xl_cur_end_time isn't 0, then it was used during this run time
+            self.workbook.save(filename = self.xl_filename)
+
         # stop gui
         self.root.destroy()
 
