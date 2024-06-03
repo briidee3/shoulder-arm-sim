@@ -349,7 +349,7 @@ class SimGUI():
         ret, frame = self.mediapipe_runtime.get_cur_frame()
         frame = cv2.cvtColor(cv2.flip(frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
 
-        if ret:                                             # only update if frame is presenty
+        if ret:                                             # only update if frame is present
             self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(frame))
             self.image_label.configure(image = self.image_label.photo)
             self.calculated_data = self.mediapipe_runtime.ep.get_calculated_data()
@@ -387,6 +387,11 @@ class SimGUI():
         # optional live plot updater
         if self.auto_update_graph:
             self.update_scatterplot()
+
+        # handle excel recording output
+        # desired data to be recorded in excel document
+        desired_data = self.hand_data[0]        # made as a variable for sake of clarification
+        self.update_excel(desired_data)
 
         # call next update cycle
         self.gui.after(self.update_interval, self.update_data)
@@ -517,7 +522,7 @@ class SimGUI():
 
     # update function to be called each frame when xl_is_recording is True
     def update_excel(self, desired_data):
-        # check if recording before proceeding
+        # check if is recording
         if self.xl_is_recording:
             # check if time is up
             if (datetime.now().timestamp() < self.xl_end_time):
@@ -529,12 +534,11 @@ class SimGUI():
                 self.xl_cur_col += len(desired_data)
                 # update gui status
                 self.xl_status_var.set("Done!")
-        # update gui status after a few seconds
-        else:
-            # check if it's been a few seconds
-            if (datetime.now().timestamp() < (self.xl_end_time + 5)):
-                # set status back to original status
-                self.xl_status_var.set("Press \"Start\" to begin")
+            
+        # update gui status after a few seconds upon completion
+        elif (datetime.now().timestamp() > (self.xl_end_time + 5)):
+            # set status back to original status
+            self.xl_status_var.set("Press \"Start\" to begin")
                 
 
 
