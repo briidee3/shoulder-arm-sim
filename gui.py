@@ -25,6 +25,10 @@ from PIL import ImageTk
 
 import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 
+# for use recording to excel doc
+import time
+from openpyxl import Workbook
+
 
 ### OPTIONS
 
@@ -83,6 +87,26 @@ class SimGUI():
 
         # toggle manual conversion/calibration ratio/factor
         self.manual_calibration = False
+
+
+        ### EXCEL DATA RECORDING
+
+        # name of excel file
+        self.xl_filename = "testing.xlsx"
+        # current column of spreadsheet
+        self.xl_cur_col = 0
+        # current row of spreadsheet
+        self.xl_cur_row = 2             # starting at 2 to give some breathing room
+        # whether or not data is being recorded
+        self.xl_is_recording = False
+        # time at which current recording should end
+        self.xl_cur_end_time = 0
+        # length (in seconds) of recording trials
+        self.xl_trial_length = 30
+
+        # initialize excel spreadsheet
+        self.workbook = Workbook()
+        self.xl_spreadsheet = workbook.active
 
 
         ### GUI SETUP
@@ -201,6 +225,28 @@ class SimGUI():
         # button to submit height and weight and ball mass
         self.submit_hw = Button(self.user_input, text = "Submit", command = self.hw_submit)
         self.submit_hw.grid(row = 4, column = 1)
+
+        
+        ## excel data output: button to start recording data to excel document, as well as status of recording
+        # grid section for excel
+        self.xl_input = LabelFrame(self.user_input, text = "Record desired data to excel: ")
+        self.xl_input.grid(row = 5, column = 0)
+        # status of recording
+        self.xl_status_var = StringVar()
+        self.xl_status_var.set("Press the \"Start\" button to begin")
+        # current trial number
+        self.xl_cur_trial_var = StringVar()
+        self.xl_cur_trial_var.set("1")
+        # button to start recording
+        self.xl_start_rec_button = Button(self.xl_input, text = "Start", command = self.xl_start_rec)
+        # current trial number
+        self.xl_cur_trial = Label(self.xl_input, textvariable = self.xl_cur_trial_var, height = 1, width = int(self.settings_width / 2), relief = GROOVE)
+        # current status of recording
+        self.xl_status = Label(self.xl_input, textvariable = self.xl_status_var, height = 1, width = self.settings_width, relief = GROOVE)
+        # grid the excel gui elements
+        self.xl_start_rec_button.grid(row = 0, column = 0)
+        self.xl_cur_trial.grid(row = 0, column = 1)
+        self.xl_status.grid(row = 1, column = 0)
 
 
 
