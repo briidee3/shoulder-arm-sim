@@ -106,7 +106,7 @@ class SimGUI():
 
         # initialize excel spreadsheet
         self.workbook = Workbook()
-        self.xl_spreadsheet = workbook.active
+        self.xl_spreadsheet = self.workbook.active
 
 
         ### GUI SETUP
@@ -330,6 +330,9 @@ class SimGUI():
         # handle program close
         self.root.protocol("WM_DELETE_WINDOW", self.__del__)
 
+        # allow closing program by pressing escape
+        self.root.bind("<Escape>", lambda event: self.__del__(event))
+
         # start the display
         self.root.mainloop()
 
@@ -467,9 +470,14 @@ class SimGUI():
         self.mediapipe_runtime.set_image_hw(self.height, self.width)
 
 
+    ### EXCEL DATA RECORDING FUNCTIONS
+    def xl_start_rec(self):
+        return 0
+
+
 
     # handle end of runtime
-    def __del__(self):
+    def __del__(self, e = ""):
         # stop gui
         self.root.destroy()
 
