@@ -546,7 +546,7 @@ class SimGUI():
     # handle end of runtime
     def __del__(self, e = ""):
         # save excel document if any data was recorded
-        if self.xl_cur_end_time:      # if xl_cur_end_time isn't 0, then it was used during this run time
+        if int(self.xl_cur_trial_var.get()) > 1:
             self.workbook.save(filename = self.xl_filename)
 
         # stop gui
