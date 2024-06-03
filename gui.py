@@ -60,7 +60,7 @@ class SimGUI():
         # variable for dynamic width of settings
         self.settings_width = 20
 
-        # set up dictionary to read from for gui display of data
+        # set up dictionary to read from for gui display of data (bicep force data and elbow angles)
         self.calculated_data = {
             "right_bicep_force": "NaN",
             "right_elbow_angle": "NaN",
@@ -69,6 +69,9 @@ class SimGUI():
             "uarm_spher_coords": "NaN",#["NaN", "NaN", "NaN"],
             "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
         }
+
+        # dict for containing hand data
+        self.hand_data = np.zeros((2, 2), dtype = "float32")     # [left[theta, phi], right[theta, phi]]
 
         # store past bicep force calculations
         self.history_bicep_force = np.ndarray((1), dtype = "float32")
@@ -350,6 +353,7 @@ class SimGUI():
             self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(frame))
             self.image_label.configure(image = self.image_label.photo)
             self.calculated_data = self.mediapipe_runtime.ep.get_calculated_data()
+            self.hand_data = self.mediapipe_runtime.ep.get_hand_data()
 
         # call next update cycle
         self.root.after(self.delay, self.update_display)    # update approximately 60 times per second
