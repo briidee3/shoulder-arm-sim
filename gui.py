@@ -405,7 +405,7 @@ class SimGUI():
 
         self.mediapipe_runtime.ep.set_conversion_ratio(ratio)
 
-    # set bsf 
+    # set biacromial (i.e. shoulder width) scale factor
     def set_bsf(self, bsf_data):
         bsf = float(bsf_data)
 
