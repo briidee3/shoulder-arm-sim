@@ -525,7 +525,7 @@ class SimGUI():
         # check if is recording
         if self.xl_is_recording:
             # check if time is up
-            if (datetime.now().timestamp() < self.xl_end_time):
+            if (datetime.now().timestamp() < self.xl_cur_end_time):
                 self.record_to_excel(desired_data)
             # end recording otherwise
             else:
@@ -536,7 +536,7 @@ class SimGUI():
                 self.xl_status_var.set("Done!")
             
         # update gui status after a few seconds upon completion
-        elif (datetime.now().timestamp() > (self.xl_end_time + 5)):
+        elif (datetime.now().timestamp() > (self.xl_cur_end_time + 5)):
             # set status back to original status
             self.xl_status_var.set("Press \"Start\" to begin")
                 
