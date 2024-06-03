@@ -94,7 +94,7 @@ class SimGUI():
         # name of excel file
         self.xl_filename = "testing.xlsx"
         # current column of spreadsheet
-        self.xl_cur_col = 0
+        self.xl_cur_col = 1
         # current row of spreadsheet
         self.xl_cur_row = 2             # starting at 2 to give some breathing room
         # whether or not data is being recorded
@@ -229,30 +229,33 @@ class SimGUI():
         
         ## excel data output: button to start recording data to excel document, as well as status of recording
         # grid section for excel
-        self.xl_input = LabelFrame(self.user_input, text = "Record desired data to excel: ")
-        self.xl_input.grid(row = 5, column = 0)
+        self.xl_input = LabelFrame(self.data, text = "Record desired data to excel: ")
+        self.xl_input.grid(row = 2, column = 0)
         # status of recording
         self.xl_status_var = StringVar()
-        self.xl_status_var.set("Press the \"Start\" button to begin")
+        self.xl_status_var.set("Press \"Start\" to begin")
         # current trial number
         self.xl_cur_trial_var = StringVar()
         self.xl_cur_trial_var.set("1")
         # button to start recording
         self.xl_start_rec_button = Button(self.xl_input, text = "Start", command = self.xl_start_rec)
         # current trial number
-        self.xl_cur_trial = Label(self.xl_input, textvariable = self.xl_cur_trial_var, height = 1, width = int(self.settings_width / 2), relief = GROOVE)
+        self.xl_cur_trial = Label(self.xl_input, textvariable = self.xl_cur_trial_var, height = 1, width = int(self.settings_width / 2))
+        # label for current trial
+        self.xl_cur_trial_label = Label(self.xl_input, text = "Current trial: ", height = 1, width = int(self.settings_width / 2))
         # current status of recording
-        self.xl_status = Label(self.xl_input, textvariable = self.xl_status_var, height = 1, width = self.settings_width, relief = GROOVE)
+        self.xl_status = Label(self.xl_input, textvariable = self.xl_status_var, height = 1, width = self.settings_width)
         # grid the excel gui elements
-        self.xl_start_rec_button.grid(row = 0, column = 0)
-        self.xl_cur_trial.grid(row = 0, column = 1)
-        self.xl_status.grid(row = 1, column = 0)
+        self.xl_status.grid(row = 0)
+        self.xl_start_rec_button.grid(row = 1, column = 1)
+        self.xl_cur_trial_label.grid(row = 2, column = 0)
+        self.xl_cur_trial.grid(row = 2, column = 1)
 
 
 
         # grid section for data output
         self.data_output = LabelFrame(self.data, text = "Data output:")
-        self.data_output.grid(row = 2, column = 0)
+        self.data_output.grid(row = 3, column = 0)
 
         # RIGHT ARM:
         self.do_right = LabelFrame(self.data_output, text = "Right arm:")
@@ -488,7 +491,7 @@ class SimGUI():
             # update status in gui
             self.xl_status_var.set("Recording data...")
         else:
-            self.xl_status_var.set("Please wait for current run to end...")
+            self.xl_status_var.set("Please wait for trial to end...")
 
     # record current frame of desired data
     def record_to_excel(self, desired_data):
@@ -527,7 +530,7 @@ class SimGUI():
             # check if it's been a few seconds
             if (datetime.now().timestamp() < (self.xl_end_time + 5)):
                 # set status back to original status
-                self.xl_status_var.set("Press the \"Start\" button to begin")
+                self.xl_status_var.set("Press \"Start\" to begin")
                 
 
 
