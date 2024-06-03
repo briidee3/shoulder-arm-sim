@@ -490,7 +490,7 @@ class SimGUI():
             # set status to recording
             self.xl_is_recording = True
             # set time to end recording
-            self.xl_end_time = datetime.now().timestamp() + self.xl_trial_length
+            self.xl_cur_end_time = datetime.now().timestamp() + self.xl_trial_length
             # set current row to base row before trial starts
             self.xl_cur_row = 2
             # label current set of data being recorded
