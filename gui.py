@@ -71,7 +71,7 @@ class SimGUI():
         }
 
         # dict for containing hand data
-        self.hand_data = np.zeros((2, 2), dtype = "float32")     # [left[theta, phi], right[theta, phi]]
+        self.hand_data = np.zeros((2, 2), dtype = "float32")     # [left[epsilon, phi], right[epsilon, phi]]
 
         # store past bicep force calculations
         self.history_bicep_force = np.ndarray((1), dtype = "float32")
