@@ -687,7 +687,10 @@ class Extrapolate_forces():
 
                 ## calculate theta for the hand relative to where the hand is pointing and the screen normal
                 # ref axis is cross between wrist to middle knuckle and screen normal, and should always be coplanar w/ the zx plane
-                ref_axis = np.cross(w_to_m, (0, 1, 0))
+                ref_axis = np.cross((0, 1, 0), w_to_m)
+                # actually, to get it relative to the plane of which both parts of the arm are coplanar, we should just need to
+                #   replace the screen normal with the normal of that plane:
+               # ref_axis = np.cross(cross_ua_fa, w_to_m)    # doesn't work?
                 ref_axis /= np.linalg.norm(ref_axis)
                 # perpendicular component of the hand normal w/ respect to the wrist to middle knuckle vector as the polar axis
                 hand_perp_comp = hand_normal - np.dot(( np.dot(hand_normal, w_to_m) / np.dot(w_to_m, w_to_m) ), w_to_m)
@@ -722,10 +725,11 @@ class Extrapolate_forces():
             
                 #if not is_right:
                 #DEBUG
-                if is_right:
-                    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
+                #if is_right:
+                #    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
                 if not is_right:
                     print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
+                    #print(ref_axis)
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
@@ -770,7 +774,7 @@ class Extrapolate_forces():
             #elbow = self.mediapipe_data_output[(2 + (int)(right_side))]
             #wrist = self.mediapipe_data_output[(4 + (int)(right_side))]
 
-            # get unit vectors representing upper and lower arm
+            # get unit vectors representing upper and lower arm (pointing away from elbow)
             vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]    # upper arm
             vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]    # lower arm
             vector_a = vector_a / np.linalg.norm(vector_a)  # turn into unit vector
