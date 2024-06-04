@@ -685,7 +685,7 @@ class Extrapolate_forces():
                 #    theta = -theta
 
 
-                ## calculate theta for the hand relative to its direction
+                ## calculate theta for the hand relative to where the hand is pointing and the screen normal
                 # ref axis is cross between wrist to middle knuckle and screen normal, and should always be coplanar w/ the zx plane
                 ref_axis = np.cross(w_to_m, (0, 1, 0))
                 ref_axis /= np.linalg.norm(ref_axis)
