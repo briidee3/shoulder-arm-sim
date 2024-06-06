@@ -700,18 +700,25 @@ class Extrapolate_forces():
                 if is_right:    # handle differences between right hand and left hand
                     # if is right hand, reverse the order of the cross product to get the reverse of the resultant vector, 
                     #   since the right hand system is essentially a reflection of the left hand system
-                    phi = np.arctan2(np.linalg.norm(np.cross(ref_axis, hand_perp_comp)), np.dot(hand_perp_comp, ref_axis))
+                    phi = 2*np.pi - np.arctan2(np.linalg.norm(np.cross(ref_axis, hand_perp_comp)), np.dot(hand_perp_comp, ref_axis))
+                   # phi = 2*np.pi - phi
                 else:
                     phi = np.arctan2(np.linalg.norm(np.cross(hand_perp_comp, ref_axis)), np.dot(hand_perp_comp, ref_axis))
                 # check if palm is facing away from camera
                 #   done by checking if angle between screen normal and hand normal > 90 degrees
                 #if (np.arctan2(np.linalg.norm(np.cross(hand_normal, (0, 1, 0))), hand_normal[1]) > (np.pi / 2)):#np.dot(hand_normal, (0, 1, 0)))):
-                if (hand_normal[1] > 0):    # this can be used instead of that on the prev line; effectively can be used for same thing in less calculations
+                # checking the sign of a coordinate can be used for checking if the angle between a given vector and the coordinate axis is greater or lesser than 90 degrees, which is what's done here
+                if (hand_normal[1] > 0):
                     phi = 2*np.pi - phi    # if palm facing away from camera, subtract from full 360 deg rotation to get actual phi
+                # check if hand is pointing down (not hand normal, but the hand itself).
+                #   this is done separate from the previous check so that both may be done, rather than only one, for any given frame.
+               # if (w_to_p[2] < 0):
+               #     phi = 2*np.pi - phi
+
                 # correction/offset for right hand, to make it the effectively the same as left, just reflected
-                if is_right:
+               # if is_right:
                 #    phi = (phi + (np.pi / 2)) % 2*np.pi
-                    phi = 2*np.pi - phi
+               #     phi = 2*np.pi - phi
 
                 
                 # don't set new values if output of np.arctan2 is "nan" (i.e. "undefined", or rather, dealing with infinity)
@@ -725,8 +732,8 @@ class Extrapolate_forces():
             
                 #if not is_right:
                 #DEBUG
-                #if is_right:
-                #    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
+                if is_right:
+                    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
                 if not is_right:
                     print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
                     #print(ref_axis)
@@ -871,9 +878,9 @@ class Extrapolate_forces():
             
             # DEBUG
     #        if vertex_one == 2: # left elbow
-    #            print("Forearm spherical coords: (%s, %s, %s)" % (rho, phi, theta))
+    #            print("Forearm spherical coords: (%s, %s, %s)" % (rho, theta, phi))
 
-    #        return [rho, phi, theta]
+    #        return [rho, theta, phi]
     #    except:
     #        print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
 
@@ -944,7 +951,7 @@ class Extrapolate_forces():
             
             #print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(phi), np.rad2deg(theta)))
 
-            return [rho, phi, (theta - (np.pi/2))]  # subtract 90 deg from theta for use in forces calculations
+            return [rho, (theta - (np.pi/2)), phi]  # subtract 90 deg from theta for use in forces calculations
         except:
             print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
 
