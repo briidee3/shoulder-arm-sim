@@ -733,9 +733,9 @@ class Extrapolate_forces():
                 #if not is_right:
                 #DEBUG
                 #if is_right:
-                #    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
+                #    print("\nAngle between hand and forearm (right): \tPhi: %s\tTheta: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
                 if not is_right:
-                    print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
+                    print("\nAngle between hand and forearm (left): \tPhi: %s\tTheta: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
                     #print(ref_axis)
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
