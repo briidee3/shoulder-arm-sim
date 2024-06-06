@@ -713,8 +713,8 @@ class Extrapolate_forces():
                     phi = 2*np.pi - phi    # if palm facing away from camera, subtract from full 360 deg rotation to get actual phi
                 # check if hand is pointing down (not hand normal, but the hand itself).
                 #   this is done separate from the previous check so that both may be done, rather than only one, for any given frame.
-                if (w_to_m[2] > 0):
-                    phi = (phi + np.pi) % (2*np.pi)
+               # if (w_to_m[2] > 0):
+               #     phi = (phi + np.pi) % (2*np.pi)
 
                 # correction/offset for right hand, to make it the effectively the same as left, just reflected
                # if is_right:
