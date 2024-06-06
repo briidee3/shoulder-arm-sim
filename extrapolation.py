@@ -712,8 +712,8 @@ class Extrapolate_forces():
                     phi = 2*np.pi - phi    # if palm facing away from camera, subtract from full 360 deg rotation to get actual phi
                 # check if hand is pointing down (not hand normal, but the hand itself).
                 #   this is done separate from the previous check so that both may be done, rather than only one, for any given frame.
-               # if (w_to_p[2] < 0):
-               #     phi = 2*np.pi - phi
+                if (w_to_p[2] > 0):
+                    phi = (phi + np.pi) % (2*np.pi)
 
                 # correction/offset for right hand, to make it the effectively the same as left, just reflected
                # if is_right:
@@ -732,8 +732,8 @@ class Extrapolate_forces():
             
                 #if not is_right:
                 #DEBUG
-                if is_right:
-                    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
+                #if is_right:
+                #    print("\nAngle between hand and forearm (right): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[1, 0]), np.rad2deg(self.hand_orientation[1, 1])))
                 if not is_right:
                     print("\nAngle between hand and forearm (left): \tTheta: %s\t Phi: %s\n" % (np.rad2deg(self.hand_orientation[0, 0]), np.rad2deg(self.hand_orientation[0, 1])))
                     #print(ref_axis)
