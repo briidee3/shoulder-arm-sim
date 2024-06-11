@@ -399,7 +399,7 @@ class SimGUI():
             self.update_scatterplot()
 
         # handle excel recording after data is updated
-        self.xl_update(self.desired_data)
+        self.xl_update()
 
         # call next update cycle
         self.gui.after(self.update_interval, self.update_data)
@@ -494,97 +494,109 @@ class SimGUI():
 
     # start recording data
     def xl_start_rec(self):
-        if not self.xl_is_recording:
-            # set status to recording
-            self.xl_is_recording = True
-            # set time to end recording
-            self.xl_cur_end_time = datetime.now().timestamp() + self.xl_trial_length
-            # set current row to base row before trial starts
-            self.xl_cur_row = self.xl_start_row
-            # label current set of data being recorded
-            self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = self.xl_cur_trial_var.get()
-            # update status in gui
-            self.xl_status_var.set("Recording data...")
-        else:
-            self.xl_status_var.set("Please wait for trial to end...")
+        try:
+            if not self.xl_is_recording:
+                # set status to recording
+                self.xl_is_recording = True
+                # set time to end recording
+                self.xl_cur_end_time = datetime.now().timestamp() + self.xl_trial_length
+                # set current row to base row before trial starts
+                self.xl_cur_row = self.xl_start_row
+                # label current set of data being recorded
+                self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = self.xl_cur_trial_var.get()
+                # update status in gui
+                self.xl_status_var.set("Recording data...")
+            else:
+                self.xl_status_var.set("Please wait for trial to end...")
+        except Exception as e:
+            print("gui.py: Exception thrown in `xl_start_rec()`")
 
     # record current frame of desired data
     def xl_record_to_sheet(self):
-        # used to reset xl_cur_col after recording data
-        init_col = self.xl_cur_col
+        try:
+            # used to reset xl_cur_col after recording data
+            init_col = self.xl_cur_col
 
-        # go to next row
-        self.xl_cur_row += 1
+            # go to next row
+            self.xl_cur_row += 1
 
-        # iterate thru each of the desired data
-        for data in self.xl_desired_data:
-            # record current data
-            self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = data
-            # go to next column for recording next data
-            self.xl_cur_col += 1
+            # iterate thru each of the desired data
+            for data in self.xl_desired_data:
+                # record current data
+                self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = data
+                # go to next column for recording next data
+                self.xl_cur_col += 1
 
-        # reset column to initial column
-        self.xl_cur_col = init_col
+            # reset column to initial column
+            self.xl_cur_col = init_col
+        except Exception as e:
+            print("gui.py: Exception thrown in `xl_record_to_sheet()`")
 
     # update function to be called each frame when xl_is_recording is True
     def xl_update(self):
-        # check if is recording
-        if self.xl_is_recording:
-            # check if time is up
-            if (datetime.now().timestamp() < self.xl_cur_end_time):
-                self.xl_record_to_sheet()
-            # end recording otherwise
-            else:
-                self.xl_is_recording = False
-                # run calculations for the current run
-                self.xl_calc_err()
-                # update current trial number
-                self.xl_cur_trial_var.set(str( int(self.xl_cur_trial_var.get()) + 1 ))
-                # go to next free column
-                self.xl_cur_col += len(self.xl_desired_data)
-                # update gui status
-                self.xl_status_var.set("Done!")
-            
-        # update gui status after a few seconds upon completion
-        elif (datetime.now().timestamp() > (self.xl_cur_end_time + 5)):
-            # set status back to original status
-            self.xl_status_var.set("Press \"Start\" to begin")
-    
+        try:
+            # check if is recording
+            if self.xl_is_recording:
+                # check if time is up
+                if (datetime.now().timestamp() < self.xl_cur_end_time):
+                    self.xl_record_to_sheet()
+                # end recording otherwise
+                else:
+                    self.xl_is_recording = False
+                    # run calculations for the current run
+                    self.xl_calc_err()
+                    # update current trial number
+                    self.xl_cur_trial_var.set(str( int(self.xl_cur_trial_var.get()) + 1 ))
+                    # go to next free column
+                    self.xl_cur_col += len(self.xl_desired_data)
+                    # update gui status
+                    self.xl_status_var.set("Done!")
+                
+            # update gui status after a few seconds upon completion
+            elif (datetime.now().timestamp() > (self.xl_cur_end_time + 5)):
+                # set status back to original status
+                self.xl_status_var.set("Press \"Start\" to begin")
+        except Exception as e:
+            print("gui.py: Exception thrown in `xl_update()`")
+        
     # handle calculations at end of current excel recording run
     def xl_calc_err(self):
-        # temp store for current column
-        init_col = self.xl_cur_col
+        try:
+            # temp store for current column
+            init_col = self.xl_cur_col
 
-        # go thru for each of the desired data
-        for i in range(0, len(self.xl_desired_data)):
-            # current column index
-            cur_col = init_col + i
-            # length of current column
-            cur_col_len = len(self.xl_spreadsheet[cur_col])
-            # number of elements in column
-            cur_len = cur_col_len - self.xl_start_row
+            # go thru for each of the desired data
+            for i in range(0, len(self.xl_desired_data)):
+                # current column index
+                cur_col = init_col + i
+                # length of current column
+                cur_col_len = len(self.xl_spreadsheet[cur_col])
+                # number of elements in column
+                cur_len = cur_col_len - self.xl_start_row
 
-            # get sum of current column
-            cur_sum = sum(self.xl_spreadsheet.cell(row = r, column = cur_col).value for r in range(self.xl_start_row, cur_col_len)) 
-            # get average
-            cur_avg = cur_sum / cur_len
-            # get sum of squares
-            #   must be done separately from cur_sum, since it uses cur_avg, which uses cur_sum
-            cur_sos = sum( ( (self.xl_spreadsheet.cell(row = r, column = cur_col).value - cur_avg) ** 2 ) for r in range(self.xl_start_row, cur_col_len))
-            # get variance
-            cur_var = cur_sos / cur_len
-            # get standard deviation
-            cur_stddev = np.sqrt(cur_var)
-            # get standard error
-            cur_stderr = cur_stddev / np.sqrt(cur_len)
+                # get sum of current column
+                cur_sum = sum(self.xl_spreadsheet.cell(row = r, column = cur_col).value for r in range(self.xl_start_row, cur_col_len)) 
+                # get average
+                cur_avg = cur_sum / cur_len
+                # get sum of squares
+                #   must be done separately from cur_sum, since it uses cur_avg, which uses cur_sum
+                cur_sos = sum( ( (self.xl_spreadsheet.cell(row = r, column = cur_col).value - cur_avg) ** 2 ) for r in range(self.xl_start_row, cur_col_len))
+                # get variance
+                cur_var = cur_sos / cur_len
+                # get standard deviation
+                cur_stddev = np.sqrt(cur_var)
+                # get standard error
+                cur_stderr = cur_stddev / np.sqrt(cur_len)
 
-            # DEBUG
-            print("\nSum: %s\nAvg: %s\nStd dev: %s\nStd err: %s\n" % (cur_sum, cur_avg, cur_stddev, cur_stderr))
-            
-            # record in spreadsheet
-            self.xl_spreadsheet.cell(row = 1, column = cur_col).value = cur_avg
-            self.xl_spreadsheet.cell(row = 2, column = cur_col).value = cur_stddev
-            self.xl_spreadsheet.cell(row = 3, column = cur_col).value = cur_stderr
+                # DEBUG
+                print("\nSum: %s\nAvg: %s\nStd dev: %s\nStd err: %s\n" % (cur_sum, cur_avg, cur_stddev, cur_stderr))
+                
+                # record in spreadsheet
+                self.xl_spreadsheet.cell(row = 1, column = cur_col).value = cur_avg
+                self.xl_spreadsheet.cell(row = 2, column = cur_col).value = cur_stddev
+                self.xl_spreadsheet.cell(row = 3, column = cur_col).value = cur_stderr
+        except Exception as e:
+            print("gui.py: Exception thrown in `xl_calc_err()`")
 
 
 
