@@ -517,7 +517,7 @@ class SimGUI():
         self.xl_cur_row += 1
 
         # iterate thru each of the desired data
-        for data in self.desired_data:
+        for data in self.xl_desired_data:
             # record current data
             self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = data
             # go to next column for recording next data
@@ -541,7 +541,7 @@ class SimGUI():
                 # update current trial number
                 self.xl_cur_trial_var.set(str( int(self.xl_cur_trial_var.get()) + 1 ))
                 # go to next free column
-                self.xl_cur_col += len(self.desired_data)
+                self.xl_cur_col += len(self.xl_desired_data)
                 # update gui status
                 self.xl_status_var.set("Done!")
             
@@ -556,7 +556,7 @@ class SimGUI():
         init_col = self.xl_cur_col
 
         # go thru for each of the desired data
-        for i in range(0, len(self.desired_data)):
+        for i in range(0, len(self.xl_desired_data)):
             # current column index
             cur_col = init_col + i
             # length of current column
