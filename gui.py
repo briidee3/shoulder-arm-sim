@@ -393,7 +393,7 @@ class SimGUI():
         # handle excel recording output
         # desired data to be recorded in excel document
         desired_data = self.hand_data[0]        # made as a variable for sake of clarification
-        self.update_excel(desired_data)
+        self.xl_update(desired_data)
 
         # call next update cycle
         self.gui.after(self.update_interval, self.update_data)
@@ -503,7 +503,7 @@ class SimGUI():
             self.xl_status_var.set("Please wait for trial to end...")
 
     # record current frame of desired data
-    def record_to_excel(self, desired_data):
+    def xl_record_to_sheet(self, desired_data):
         # used to reset xl_cur_col after recording data
         init_col = self.xl_cur_col
 
@@ -521,12 +521,12 @@ class SimGUI():
         self.xl_cur_col = init_col
 
     # update function to be called each frame when xl_is_recording is True
-    def update_excel(self, desired_data):
+    def xl_update(self, desired_data):
         # check if is recording
         if self.xl_is_recording:
             # check if time is up
             if (datetime.now().timestamp() < self.xl_cur_end_time):
-                self.record_to_excel(desired_data)
+                self.xl_record_to_sheet(desired_data)
             # end recording otherwise
             else:
                 self.xl_is_recording = False
@@ -541,6 +541,9 @@ class SimGUI():
         elif (datetime.now().timestamp() > (self.xl_cur_end_time + 5)):
             # set status back to original status
             self.xl_status_var.set("Press \"Start\" to begin")
+    
+    # handle end of excel recording run
+    def 
                 
 
 
