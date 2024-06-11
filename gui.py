@@ -116,6 +116,11 @@ class SimGUI():
         self.workbook = Workbook()
         self.xl_spreadsheet = self.workbook.active
 
+        # set description for first few rows
+        self.xl_spreadsheet.cell(row = 1, column = 0).value = "Avg: "
+        self.xl_spreadsheet.cell(row = 2, column = 0).value = "Std dev: "
+        self.xl_spreadsheet.cell(row = 3, column = 0).value = "Std err: "
+
 
         ### GUI SETUP
 
@@ -531,6 +536,8 @@ class SimGUI():
             # end recording otherwise
             else:
                 self.xl_is_recording = False
+                # run calculations for the current run
+                self.xl_calc_err()
                 # update current trial number
                 self.xl_cur_trial_var.set(str( int(self.xl_cur_trial_var.get()) + 1 ))
                 # go to next free column
@@ -544,9 +551,40 @@ class SimGUI():
             self.xl_status_var.set("Press \"Start\" to begin")
     
     # handle calculations at end of current excel recording run
-   # def xl_calc_err(self):
+    def xl_calc_err(self):
+        # temp store for current column
+        init_col = self.xl_cur_col
+
         # go thru for each of the desired data
-   #     for 
+        for i in range(0, len(self.desired_data)):
+            # current column index
+            cur_col = init_col + i
+            # length of current column
+            cur_col_len = len(self.xl_spreadsheet[cur_col])
+            # number of elements in column
+            cur_len = cur_col_len - self.xl_start_row
+
+            # get sum of current column
+            cur_sum = sum(self.xl_spreadsheet.cell(row = r, column = cur_col).value for r in range(self.xl_start_row, cur_col_len)) 
+            # get average
+            cur_avg = cur_sum / cur_len
+            # get sum of squares
+            #   must be done separately from cur_sum, since it uses cur_avg, which uses cur_sum
+            cur_sos = sum( ( (self.xl_spreadsheet.cell(row = r, column = cur_col).value - cur_avg) ** 2 ) for r in range(self.xl_start_row, cur_col_len))
+            # get variance
+            cur_var = cur_sos / cur_len
+            # get standard deviation
+            cur_stddev = np.sqrt(cur_var)
+            # get standard error
+            cur_stderr = cur_stddev / np.sqrt(cur_len)
+
+            # DEBUG
+            print("\nSum: %s\nAvg: %s\nStd dev: %s\nStd err: %s\n" % (cur_sum, cur_avg, cur_stddev, cur_stderr))
+            
+            # record in spreadsheet
+            self.xl_spreadsheet.cell(row = 1, column = cur_col).value = cur_avg
+            self.xl_spreadsheet.cell(row = 2, column = cur_col).value = cur_stddev
+            self.xl_spreadsheet.cell(row = 3, column = cur_col).value = cur_stderr
 
 
 
