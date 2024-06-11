@@ -95,17 +95,19 @@ class SimGUI():
         ### EXCEL DATA RECORDING
 
         # name of excel file
-        self.xl_filename = "testing.xlsx"
+        self.xl_filename = "angles_p-up.xlsx"
+        # start row of spreadsheet
+        self.xl_start_row = 5   # starting at 5 to give room for things like avg, std dev, and std err
         # current column of spreadsheet
         self.xl_cur_col = 1
         # current row of spreadsheet
-        self.xl_cur_row = 2             # starting at 2 to give some breathing room
+        self.xl_cur_row = 5
         # whether or not data is being recorded
         self.xl_is_recording = False
         # time at which current recording should end
         self.xl_cur_end_time = 0
         # length (in seconds) of recording trials
-        self.xl_trial_length = 30
+        self.xl_trial_length = 10
 
         # initialize excel spreadsheet
         self.workbook = Workbook()
@@ -492,7 +494,7 @@ class SimGUI():
             # set time to end recording
             self.xl_cur_end_time = datetime.now().timestamp() + self.xl_trial_length
             # set current row to base row before trial starts
-            self.xl_cur_row = 2
+            self.xl_cur_row = self.xl_start_row
             # label current set of data being recorded
             self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = self.xl_cur_trial_var.get()
             # update current trial number
