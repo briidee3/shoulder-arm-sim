@@ -96,6 +96,9 @@ class SimGUI():
 
         # name of excel file
         self.xl_filename = "angles_p-up.xlsx"
+        # data to record
+        self.xl_desired_data = self.hand_data[0, 0]     # phi for left hand
+
         # start row of spreadsheet
         self.xl_start_row = 5   # starting at 5 to give room for things like avg, std dev, and std err
         # current column of spreadsheet
@@ -390,11 +393,8 @@ class SimGUI():
         if self.auto_update_graph:
             self.update_scatterplot()
 
-        # handle excel recording output
-        # desired data to be recorded in excel document
-        #   made as a variable for readability
-        desired_data = self.hand_data[0]        # left hand orientation data
-        self.xl_update(desired_data)
+        # handle excel recording after data is updated
+        self.xl_update(self.desired_data)
 
         # call next update cycle
         self.gui.after(self.update_interval, self.update_data)
@@ -504,7 +504,7 @@ class SimGUI():
             self.xl_status_var.set("Please wait for trial to end...")
 
     # record current frame of desired data
-    def xl_record_to_sheet(self, desired_data):
+    def xl_record_to_sheet(self):
         # used to reset xl_cur_col after recording data
         init_col = self.xl_cur_col
 
@@ -512,7 +512,7 @@ class SimGUI():
         self.xl_cur_row += 1
 
         # iterate thru each of the desired data
-        for data in desired_data:
+        for data in self.desired_data:
             # record current data
             self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = data
             # go to next column for recording next data
@@ -522,19 +522,19 @@ class SimGUI():
         self.xl_cur_col = init_col
 
     # update function to be called each frame when xl_is_recording is True
-    def xl_update(self, desired_data):
+    def xl_update(self):
         # check if is recording
         if self.xl_is_recording:
             # check if time is up
             if (datetime.now().timestamp() < self.xl_cur_end_time):
-                self.xl_record_to_sheet(desired_data)
+                self.xl_record_to_sheet()
             # end recording otherwise
             else:
                 self.xl_is_recording = False
                 # update current trial number
                 self.xl_cur_trial_var.set(str( int(self.xl_cur_trial_var.get()) + 1 ))
                 # go to next free column
-                self.xl_cur_col += len(desired_data)
+                self.xl_cur_col += len(self.desired_data)
                 # update gui status
                 self.xl_status_var.set("Done!")
             
