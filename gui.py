@@ -97,7 +97,7 @@ class SimGUI():
         # name of excel file
         self.xl_filename = "angles_p-up.xlsx"
         # data to record
-        self.xl_desired_data = self.hand_data[0, 0]     # phi for left hand
+        self.xl_desired_data = [self.hand_data[0, 0]]     # phi for left hand
 
         # start row of spreadsheet
         self.xl_start_row = 5   # starting at 5 to give room for things like avg, std dev, and std err
@@ -509,7 +509,7 @@ class SimGUI():
             else:
                 self.xl_status_var.set("Please wait for trial to end...")
         except Exception as e:
-            print("gui.py: Exception thrown in `xl_start_rec()`")
+            print("gui.py: Exception thrown in `xl_start_rec()`\n\t%s" % str(e))
 
     # record current frame of desired data
     def xl_record_to_sheet(self):
@@ -530,7 +530,7 @@ class SimGUI():
             # reset column to initial column
             self.xl_cur_col = init_col
         except Exception as e:
-            print("gui.py: Exception thrown in `xl_record_to_sheet()`")
+            print("gui.py: Exception thrown in `xl_record_to_sheet()`\n\t%s" % str(e))
 
     # update function to be called each frame when xl_is_recording is True
     def xl_update(self):
@@ -557,7 +557,7 @@ class SimGUI():
                 # set status back to original status
                 self.xl_status_var.set("Press \"Start\" to begin")
         except Exception as e:
-            print("gui.py: Exception thrown in `xl_update()`")
+            print("gui.py: Exception thrown in `xl_update()`\n\t%s" % str(e))
         
     # handle calculations at end of current excel recording run
     def xl_calc_err(self):
@@ -596,7 +596,7 @@ class SimGUI():
                 self.xl_spreadsheet.cell(row = 2, column = cur_col).value = cur_stddev
                 self.xl_spreadsheet.cell(row = 3, column = cur_col).value = cur_stderr
         except Exception as e:
-            print("gui.py: Exception thrown in `xl_calc_err()`")
+            print("gui.py: Exception thrown in `xl_calc_err()`\n\t%s" % str(e))
 
 
 
