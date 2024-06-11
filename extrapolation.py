@@ -739,9 +739,9 @@ class Extrapolate_forces():
                 #   doing things this way means we don't have to deal with several more if statements, thus higher operational efficiency
                 #   with minimal loss, as these would be edge cases, especially considering the stochasticity of the system involved.
                 if not (theta == np.nan):
-                    self.hand_orientation[i, 1] = theta
+                    self.hand_orientation[i, 1] = np.rad2deg(theta)
                 if not (phi == np.nan):
-                    self.hand_orientation[i, 0] = phi
+                    self.hand_orientation[i, 0] = np.rad2deg(phi)
             
                 #if not is_right:
                 #DEBUG
