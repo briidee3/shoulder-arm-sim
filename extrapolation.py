@@ -636,6 +636,7 @@ class Extrapolate_forces():
             if not (hand_check == self.hand_check[i]):
                 w_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 0, :]  # wrist to index vector
                 w_to_p = self.hand_mp_out[i, 2, :] - self.hand_mp_out[i, 0, :]  # wrist to pinky vector
+               # w_to_r = self.hand_mp_out[i, 3, :] - self.hand_mp_out[i, 0, :]  # wrist to ring vector
                 w_to_m = self.hand_mp_out[i, 4, :] - self.hand_mp_out[i, 0, :]  # wrist to middle vector
                 #p_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 2, :]  # pinky to index vector
                 #screen_normal = np.zeros((3), dtype = "float32")                # normal of screen
@@ -644,11 +645,22 @@ class Extrapolate_forces():
                 # normalize vectors
                 w_to_i /= np.linalg.norm(w_to_i)
                 w_to_p /= np.linalg.norm(w_to_p)
+               # w_to_r /= np.linalg.norm(w_to_r)
                 w_to_m /= np.linalg.norm(w_to_m)
 
-                # get normal of hand data (cross product between 0,5 vector and 0,17 vector) unit vector
-                hand_normal = np.cross(w_to_i, w_to_p)
+                # get normal of hand data as a unit vector
+                hand_normal = np.cross(w_to_i, w_to_m)      # wrist to index and wrist to middle
                 hand_normal /= np.linalg.norm(hand_normal)
+                # new (test) method: getting average of two hand data normals
+                #   little to no noticeable difference; may come back to later
+               # hand_normal_a = np.cross(w_to_i, w_to_r)        # wrist to index and wrist to ring
+               # hand_normal_b = np.cross(w_to_m, w_to_p)        # wrist to middle, wrist to pinky
+                # only normalizing in last step prevents some calculations, but it's likely more accurate to normalize before the last step
+               # hand_normal_a /= np.linalg.norm(hand_normal_a)
+               # hand_normal_b /= np.linalg.norm(hand_normal_b)
+                # set hand normal to be the average of vectors hand_normal_a and hand_normal_b
+               # hand_normal = [ np.average((hand_normal_a[i], hand_normal_b[i])) for i in range(0, 3) ]
+               # hand_normal /= np.linalg.norm(hand_normal)
 
 
                 # theta (hand normal to forearm - 90 degrees)
