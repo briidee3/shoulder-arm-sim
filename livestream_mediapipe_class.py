@@ -450,7 +450,7 @@ class Pose_detection(threading.Thread):
             # put together the hand data we're looking for
             it = 0                      # iterator for iterating thru data frame (i.e. hand_mp_out)
             for i in handedness_list:       # do for each hand
-                for j in (0, 5, 17, 1, 9):     # get the parts of the hand we're looking for (wrist, index knuckle, pinky knuckle, thumb knuckle, middle knuckle)
+                for j in (0, 5, 17, 13, 9):     # get the parts of the hand we're looking for (wrist, index knuckle, pinky knuckle, ring knuckle, middle knuckle)
                     # get which hand
                     hand = i[0].index       # from mediapipe, left hand is 1, right is 0
 
