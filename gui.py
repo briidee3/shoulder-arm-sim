@@ -497,8 +497,6 @@ class SimGUI():
             self.xl_cur_row = self.xl_start_row
             # label current set of data being recorded
             self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = self.xl_cur_trial_var.get()
-            # update current trial number
-            self.xl_cur_trial_var.set(str( int(self.xl_cur_trial_var.get()) + 1 ))
             # update status in gui
             self.xl_status_var.set("Recording data...")
         else:
@@ -532,6 +530,8 @@ class SimGUI():
             # end recording otherwise
             else:
                 self.xl_is_recording = False
+                # update current trial number
+                self.xl_cur_trial_var.set(str( int(self.xl_cur_trial_var.get()) + 1 ))
                 # go to next free column
                 self.xl_cur_col += len(desired_data)
                 # update gui status
