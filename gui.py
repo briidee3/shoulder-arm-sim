@@ -102,7 +102,7 @@ class SimGUI():
         # start row of spreadsheet
         self.xl_start_row = 5   # starting at 5 to give room for things like avg, std dev, and std err
         # current column of spreadsheet
-        self.xl_cur_col = 1
+        self.xl_cur_col = 2
         # current row of spreadsheet
         self.xl_cur_row = 5
         # whether or not data is being recorded
@@ -117,9 +117,9 @@ class SimGUI():
         self.xl_spreadsheet = self.workbook.active
 
         # set description for first few rows
-        self.xl_spreadsheet.cell(row = 1, column = 0).value = "Avg: "
-        self.xl_spreadsheet.cell(row = 2, column = 0).value = "Std dev: "
-        self.xl_spreadsheet.cell(row = 3, column = 0).value = "Std err: "
+        self.xl_spreadsheet.cell(row = 1, column = 1).value = "Avg: "
+        self.xl_spreadsheet.cell(row = 2, column = 1).value = "Std dev: "
+        self.xl_spreadsheet.cell(row = 3, column = 1).value = "Std err: "
 
 
         ### GUI SETUP
