@@ -392,7 +392,8 @@ class SimGUI():
 
         # handle excel recording output
         # desired data to be recorded in excel document
-        desired_data = self.hand_data[0]        # made as a variable for sake of clarification
+        #   made as a variable for readability
+        desired_data = self.hand_data[0]        # left hand orientation data
         self.xl_update(desired_data)
 
         # call next update cycle
@@ -542,9 +543,10 @@ class SimGUI():
             # set status back to original status
             self.xl_status_var.set("Press \"Start\" to begin")
     
-    # handle end of excel recording run
-    def 
-                
+    # handle calculations at end of current excel recording run
+   # def xl_calc_err(self):
+        # go thru for each of the desired data
+   #     for 
 
 
 
