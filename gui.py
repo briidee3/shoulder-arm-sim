@@ -28,6 +28,7 @@ import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 # for use recording to excel doc
 from datetime import datetime
 from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 
 
 ### OPTIONS
@@ -97,6 +98,8 @@ class SimGUI():
         # name of excel file
         self.xl_filename = "angles_p-up.xlsx"
         # data to record
+        #   must be an array
+        #   make sure to update in `update_data()`
         self.xl_desired_data = [self.hand_data[0, 0]]     # phi for left hand
 
         # start row of spreadsheet
@@ -399,6 +402,7 @@ class SimGUI():
             self.update_scatterplot()
 
         # handle excel recording after data is updated
+        self.xl_desired_data = [self.hand_data[0, 0]]  # left hand phi     # update desired_data
         self.xl_update()
 
         # call next update cycle
@@ -570,17 +574,17 @@ class SimGUI():
                 # current column index
                 cur_col = init_col + i
                 # length of current column
-                cur_col_len = len(self.xl_spreadsheet[cur_col])
+                cur_col_len = len(self.xl_spreadsheet[get_column_letter(cur_col)])
                 # number of elements in column
                 cur_len = cur_col_len - self.xl_start_row
 
                 # get sum of current column
-                cur_sum = sum(self.xl_spreadsheet.cell(row = r, column = cur_col).value for r in range(self.xl_start_row, cur_col_len)) 
+                cur_sum = sum(self.xl_spreadsheet.cell(row = r, column = cur_col).value for r in range(self.xl_start_row + 1, cur_col_len)) 
                 # get average
                 cur_avg = cur_sum / cur_len
                 # get sum of squares
                 #   must be done separately from cur_sum, since it uses cur_avg, which uses cur_sum
-                cur_sos = sum( ( (self.xl_spreadsheet.cell(row = r, column = cur_col).value - cur_avg) ** 2 ) for r in range(self.xl_start_row, cur_col_len))
+                cur_sos = sum( ( (self.xl_spreadsheet.cell(row = r, column = cur_col).value - cur_avg) ** 2 ) for r in range(self.xl_start_row + 1, cur_col_len))
                 # get variance
                 cur_var = cur_sos / cur_len
                 # get standard deviation
