@@ -301,7 +301,7 @@ class Extrapolate_forces():
 
     """
     # Function to write variables to a file
-    def write_to_file(self, filename, var00, var0, var1, var2, var3, var4, var5, var6, var777, var77, var7, var8, var9, var10, var11):
+    def write_to_file(self, filename, var00, var0, var1, var2, var3, var4, var5, var6, var777, var77, var7, var8, var9, var10, var11, var12, var13, var14, var15):
         with open(filename, 'a') as file:
             file.write(f'Left Hip (x,y,z): {var00}\n')
             file.write(f'Right Hip (x,y,z): {var0}\n')
@@ -311,21 +311,26 @@ class Extrapolate_forces():
             file.write(f'Right Elbow (x,y,z): {var4}\n')
             file.write(f'Left Wrist (x,y,z): {var5}\n')
             file.write(f'Right Wrist (x,y,z): {var6}\n')
+            file.write(f'Left Bicep (x,y,z): {var14}\n')
+            file.write(f'Right Bicep (x,y,z): {var15}\n')
+            
             file.write(f'Left Shoulder Angle (Degrees): {var777}\n')
             file.write(f'Right Shoulder Angle (Degrees): {var77}\n')
             file.write(f'Left Arm Angle (Degrees): {var7}\n')
             file.write(f'Right Arm Angle (Degrees): {var8}\n')
             file.write(f'Pitch Angle (Degrees): {var9}\n')
-            file.write(f'Left Arm Force (Degrees): {var10}\n')
-            file.write(f'Right Arm Force (Degrees): {var11}\n')
+            file.write(f'Left Arm Force: {var10}\n')
+            file.write(f'Right Arm Force: {var11}\n')
+            file.write(f'Left Arm Force Not In Plane: {var12}\n')
+            file.write(f'Right Arm Force  Not In Plane: {var13}\n')
             file.write('-' * 20 + '\n')
     """
 
          # Function to write variables to a file
-    def write_to_file(self, filename, var00, var0, var1, var2, var3, var4, var5, var6, var777, var77, var7, var8, var9, var10, var11):
+    def write_to_file(self, filename, var00, var0, var1, var2, var3, var4, var5, var6, var777, var77, var7, var8, var9, var10, var11, var12, var13, var14, var15):
         with open(filename, 'a') as file:
             file.write(f'{var7}\n')
-            
+    #"""       
 
 
 
@@ -705,10 +710,10 @@ class Extrapolate_forces():
                 self.right_shoulder_angle = self.dot_prod_angle(self.right_elbow_xyz, self.right_shoulder_xyz, self.right_hip_xyz)
                 print("right shoulder angle: " + str(self.right_shoulder_angle))
                 
-                self.left_arm_force = self.calculate_arm_force(self.left_shoulder_angle, self.left_arm_angle, self.weight_added)
+                self.left_arm_force = self.calculate_arm_force_in_plane(self.left_shoulder_angle, self.left_arm_angle, self.weight_added)
                 print("left arm force: " + str(self.left_arm_force))
 
-                self.right_arm_force = self.calculate_arm_force(self.right_shoulder_angle, self.right_arm_angle, self.weight_added)
+                self.right_arm_force = self.calculate_arm_force_in_plane(self.right_shoulder_angle, self.right_arm_angle, self.weight_added)
                 print("right arm force: " + str(self.right_arm_force))
 
 
@@ -727,11 +732,10 @@ class Extrapolate_forces():
                 self.right_arm_force_not_in_plane = self.calculate_arm_force_not_in_plane(self.right_arm_force_intermediate, self.right_bicep_xyz[0], self.right_bicep_xyz[1], self.right_bicep_xyz[2],
                                                                                          self.right_elbow_xyz[0], self.right_elbow_xyz[2], self.right_shoulder_xyz[0], self.right_shoulder_xyz[1], 
                                                                                          self.right_shoulder_xyz[2])
-
-
                 
                 self.write_to_file('values.txt', self.left_hip_xyz, self.right_hip_xyz, self.left_shoulder_xyz, self.right_shoulder_xyz, self.left_elbow_xyz, self.right_elbow_xyz, self.left_wrist_xyz, 
-                                   self.left_shoulder_angle, self.right_shoulder_angle, self.right_wrist_xyz, self.left_arm_angle, self.right_arm_angle, self.pitch, self.left_arm_force, self.right_arm_force)
+                                   self.left_shoulder_angle, self.right_shoulder_angle, self.right_wrist_xyz, self.left_arm_angle, self.right_arm_angle, self.pitch, self.left_arm_force, self.right_arm_force, 
+                                   self.left_arm_force_not_in_plane, self.right_arm_force_not_in_plane, self.left_bicep_xyz, self.right_bicep_xyz)
 
                 self.plot_bicep_forces(self.left_arm_force, self.left_arm_angle)
 
@@ -1331,7 +1335,7 @@ class Extrapolate_forces():
         return z
     
     """
-    
+    """
     def calculate_z(self, z_init, max_length, max_length3, actual_length, pitch):
         z = 0
 
@@ -1384,7 +1388,7 @@ class Extrapolate_forces():
         return z
     #"""
 
-    def calculate_z_new(self, z_init, max_length, max_length3, actual_length, pitch):
+    def calculate_z(self, z_init, max_length, max_length3, actual_length, pitch):
         z = 0
 
         self.forward_lean = (pitch/90)  
