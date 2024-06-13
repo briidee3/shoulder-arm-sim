@@ -259,7 +259,6 @@ class Extrapolate_forces():
             self.init_arms_up = loaded_data[3]
             self.init_arms_down = loaded_data[26]
             self.m_to_mpu_ratio = loaded_data[11]
-            self.z_init = 150
             self.left_side_hip_shoulder_distance = loaded_data[2]
             self.depth_ratio = loaded_data[45]
             self.init_user_max_mpu = loaded_data[10]
@@ -273,6 +272,14 @@ class Extrapolate_forces():
             self.init_left_elbow_to_wrist_3 = loaded_data[32]
             self.init_right_elbow_to_wrist_1 = loaded_data[7]
             self.init_right_elbow_to_wrist_3 = loaded_data[30]
+            self.user_height_raw = loaded_data[46]
+            self.forearm = loaded_data[47] 
+            self.upperarm = loaded_data[48]
+            self.cfg = loaded_data[49]
+            self.b = loaded_data[50]
+            self.weightForearm = loaded_data[51]
+            self.z_init = loaded_data[52]
+            self.weight_added = loaded_data[53]
             
         except:
             print("extrapolation.py: ERROR initializing bodypart lengths")
@@ -292,20 +299,32 @@ class Extrapolate_forces():
         
         return data_list
 
-
+    """
     # Function to write variables to a file
-    def write_to_file(self, filename, var1, var2, var3, var4, var5, var6, var7, var8, var9):
+    def write_to_file(self, filename, var00, var0, var1, var2, var3, var4, var5, var6, var777, var77, var7, var8, var9, var10, var11):
         with open(filename, 'a') as file:
+            file.write(f'Left Hip (x,y,z): {var00}\n')
+            file.write(f'Right Hip (x,y,z): {var0}\n')
             file.write(f'Left Shoulder (x,y,z): {var1}\n')
             file.write(f'Right Shoulder (x,y,z): {var2}\n')
             file.write(f'Left Elbow (x,y,z): {var3}\n')
             file.write(f'Right Elbow (x,y,z): {var4}\n')
             file.write(f'Left Wrist (x,y,z): {var5}\n')
             file.write(f'Right Wrist (x,y,z): {var6}\n')
+            file.write(f'Left Shoulder Angle (Degrees): {var777}\n')
+            file.write(f'Right Shoulder Angle (Degrees): {var77}\n')
             file.write(f'Left Arm Angle (Degrees): {var7}\n')
             file.write(f'Right Arm Angle (Degrees): {var8}\n')
             file.write(f'Pitch Angle (Degrees): {var9}\n')
+            file.write(f'Left Arm Force (Degrees): {var10}\n')
+            file.write(f'Right Arm Force (Degrees): {var11}\n')
             file.write('-' * 20 + '\n')
+    """
+
+         # Function to write variables to a file
+    def write_to_file(self, filename, var00, var0, var1, var2, var3, var4, var5, var6, var777, var77, var7, var8, var9, var10, var11):
+        with open(filename, 'a') as file:
+            file.write(f'{var7}\n')
             
 
 
@@ -355,7 +374,7 @@ class Extrapolate_forces():
             self.calc_hand_orientation()
 
             # calculate bicep forces
-            self.calc_bicep_force()
+            #self.calc_bicep_force()
 
         except:
             print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
@@ -661,11 +680,73 @@ class Extrapolate_forces():
                 print("left wrist xyz: " + str(self.left_wrist_xyz))
                 self.right_wrist_xyz = self.get_right_wrist_x_y_z()            
                 print("right wrist xyz: " + str(self.right_wrist_xyz))
+                self.left_hip_xyz = self.get_left_hip_x_y_z()            
+                print("left hip xyz: " + str(self.left_hip_xyz))
+                self.right_hip_xyz = self.get_right_hip_x_y_z()            
+                print("right hip xyz: " + str(self.right_hip_xyz))
+
+                self.left_bicep_xyz = self.get_left_bicep_x_y_z()            
+                print("left bicep xyz: " + str(self.left_bicep_xyz))
+                self.right_bicep_xyz = self.get_right_bicep_x_y_z()            
+                print("right bicep xyz: " + str(self.right_bicep_xyz))
+
+
+
+
+
+                
                 self.left_arm_angle = self.dot_prod_angle(self.left_wrist_xyz, self.left_elbow_xyz, self.left_shoulder_xyz)
                 print("left arm angle: " + str(self.left_arm_angle))
                 self.right_arm_angle = self.dot_prod_angle(self.right_wrist_xyz, self.right_elbow_xyz, self.right_shoulder_xyz)
                 print("right arm angle: " + str(self.right_arm_angle))
-                self.write_to_file('values.txt', self.left_shoulder_xyz, self.right_shoulder_xyz, self.left_elbow_xyz, self.right_elbow_xyz, self.left_wrist_xyz, self.right_wrist_xyz, self.left_arm_angle, self.right_arm_angle, self.pitch)
+                
+                self.left_shoulder_angle = self.dot_prod_angle(self.left_elbow_xyz, self.left_shoulder_xyz, self.left_hip_xyz)
+                print("left shoulder angle: " + str(self.left_shoulder_angle))
+                self.right_shoulder_angle = self.dot_prod_angle(self.right_elbow_xyz, self.right_shoulder_xyz, self.right_hip_xyz)
+                print("right shoulder angle: " + str(self.right_shoulder_angle))
+                
+                self.left_arm_force = self.calculate_arm_force(self.left_shoulder_angle, self.left_arm_angle, self.weight_added)
+                print("left arm force: " + str(self.left_arm_force))
+
+                self.right_arm_force = self.calculate_arm_force(self.right_shoulder_angle, self.right_arm_angle, self.weight_added)
+                print("right arm force: " + str(self.right_arm_force))
+
+
+                self.left_arm_force_intermediate = self.calculate_arm_force_intermediate(self.left_shoulder_angle, self.left_arm_angle, self.weight_added, self.left_bicep_xyz[0],
+                                                                                         self.left_bicep_xyz[2], self.left_elbow_xyz[0], self.left_elbow_xyz[1], self.left_elbow_xyz[2],
+                                                                                         self.left_shoulder_xyz[0], self.left_shoulder_xyz[1], self.left_shoulder_xyz[2])
+                
+                self.right_arm_force_intermediate = self.calculate_arm_force_intermediate(self.right_shoulder_angle, self.right_arm_angle, self.weight_added, self.right_bicep_xyz[0],
+                                                                                         self.right_bicep_xyz[2], self.right_elbow_xyz[0], self.right_elbow_xyz[1], self.right_elbow_xyz[2],
+                                                                                         self.right_shoulder_xyz[0], self.right_shoulder_xyz[1], self.right_shoulder_xyz[2])
+
+                self.left_arm_force_not_in_plane = self.calculate_arm_force_not_in_plane(self.left_arm_force_intermediate, self.left_bicep_xyz[0], self.left_bicep_xyz[1], self.left_bicep_xyz[2],
+                                                                                         self.left_elbow_xyz[0], self.left_elbow_xyz[2], self.left_shoulder_xyz[0], self.left_shoulder_xyz[1], 
+                                                                                         self.left_shoulder_xyz[2])
+
+                self.right_arm_force_not_in_plane = self.calculate_arm_force_not_in_plane(self.right_arm_force_intermediate, self.right_bicep_xyz[0], self.right_bicep_xyz[1], self.right_bicep_xyz[2],
+                                                                                         self.right_elbow_xyz[0], self.right_elbow_xyz[2], self.right_shoulder_xyz[0], self.right_shoulder_xyz[1], 
+                                                                                         self.right_shoulder_xyz[2])
+
+
+                
+                self.write_to_file('values.txt', self.left_hip_xyz, self.right_hip_xyz, self.left_shoulder_xyz, self.right_shoulder_xyz, self.left_elbow_xyz, self.right_elbow_xyz, self.left_wrist_xyz, 
+                                   self.left_shoulder_angle, self.right_shoulder_angle, self.right_wrist_xyz, self.left_arm_angle, self.right_arm_angle, self.pitch, self.left_arm_force, self.right_arm_force)
+
+                self.plot_bicep_forces(self.left_arm_force, self.left_arm_angle)
+
+                # set/return data in dictionary format
+                self.calculated_data = {
+                    "right_bicep_force": str("%0.2f" % self.right_arm_force),
+                    "right_elbow_angle": str("%0.2f" % np.rad2deg(self.right_arm_angle)),
+                    "left_bicep_force": str("%0.2f" % self.left_arm_force),
+                    "left_elbow_angle": str("%0.2f" % np.rad2deg(self.left_arm_angle)),
+                    "uarm_spher_coords": str(0),
+                    "farm_spher_coords": str(0)
+                }
+
+
+
             except Exception as e:
                 print({e})
         except:
@@ -908,7 +989,7 @@ class Extrapolate_forces():
         
     def get_left_elbow_x_y_z(self):
         global shoulder_z
-        global left_elbow_z
+        global left_elbow_z, left_elbow_y, left_elbow_x
         xyz = [0,0,0]
         
         """
@@ -933,7 +1014,7 @@ class Extrapolate_forces():
 
     def get_right_elbow_x_y_z(self):
         global shoulder_z
-        global right_elbow_z
+        global right_elbow_z, right_elbow_y, right_elbow_x
         xyz = [0,0,0]
         
         """
@@ -957,7 +1038,8 @@ class Extrapolate_forces():
 
 
     def get_left_wrist_x_y_z(self):
-        global left_elbow_z
+        global left_elbow_z 
+        global left_wrist_z, left_wrist_y, left_wrist_x
         xyz = [0,0,0]
         
         """
@@ -981,7 +1063,8 @@ class Extrapolate_forces():
 
 
     def get_right_wrist_x_y_z(self):
-        global right_elbow_z
+        global right_elbow_z 
+        global right_wrist_z, right_wrist_y, right_wrist_x
         xyz = [0,0,0]
         
         """
@@ -1001,6 +1084,90 @@ class Extrapolate_forces():
             return xyz
         except:
             return xyz
+        
+
+
+
+    def get_left_hip_x_y_z(self):
+        global left_hip_z
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+
+        try:
+            left_hip_x = self.mediapipe_data_output[L_HIP, 0] * self.m_to_mpu_ratio
+            left_hip_y = self.mediapipe_data_output[L_HIP, 2] * self.m_to_mpu_ratio
+            left_hip_z = self.z_init
+            
+            # Calculate the distance
+            xyz = [left_hip_x,left_hip_y,left_hip_z]
+            return xyz
+        except:
+            return xyz
+        
+
+    def get_right_hip_x_y_z(self):
+        global right_hip_z
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+
+        try:
+            right_hip_x = self.mediapipe_data_output[R_HIP, 0] * self.m_to_mpu_ratio
+            right_hip_y = self.mediapipe_data_output[R_HIP, 2] * self.m_to_mpu_ratio
+            right_hip_z = self.z_init
+            
+            # Calculate the distance
+            xyz = [right_hip_x,right_hip_y,right_hip_z]
+            return xyz
+        except:
+            return xyz
+        
+    def get_left_bicep_x_y_z(self):
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+
+        try:
+            left_bicep_x = left_elbow_x + 0.11 * (left_wrist_x - left_elbow_x)
+            left_bicep_y = left_elbow_y + 0.11 * (left_wrist_y - left_elbow_y)
+            left_bicep_z = left_elbow_z + 0.11 * (left_wrist_z - left_elbow_z)
+            
+            # Calculate the distance
+            xyz = [left_bicep_x,left_bicep_y,left_bicep_z]
+            return xyz
+        except:
+            return xyz
+        
+    def get_right_bicep_x_y_z(self):
+        global right_bicep_x, right_bicep_y, right_bicep_z
+        xyz = [0,0,0]
+        
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        results = pose.process(image_rgb)
+        """
+
+        try:
+            right_bicep_x = right_elbow_x + 0.11 * (right_wrist_x - right_elbow_x)
+            right_bicep_y = right_elbow_y + 0.11 * (right_wrist_y - right_elbow_y)
+            right_bicep_z = right_elbow_z + 0.11 * (right_wrist_z - right_elbow_z)
+            
+            # Calculate the distance
+            xyz = [right_bicep_x,right_bicep_y,right_bicep_z]
+            return xyz
+        except:
+            return xyz
+
 
 
 
@@ -1132,6 +1299,38 @@ class Extrapolate_forces():
 
 
 
+    """
+    def calculate_z(self, z_init, max_length, max_length3, actual_length, pitch):
+        z = 0
+
+        self.forward_lean = (pitch/90)  
+        self.pitch_in_radians = math.asin(self.forward_lean)
+        self.pitch_in_degrees = math.degrees(self.pitch_in_radians)
+
+
+
+        hip_shoulder_elbow_angle = self.calculate_left_hip_shoulder_elbow_angle()
+        max_len1 = max_length*self.m_to_mpu_ratio
+        max_len3 = max_length3*self.m_to_mpu_ratio
+        max_len = max_len1
+        act_len = actual_length*self.m_to_mpu_ratio
+        act_len_prime = act_len - (self.depth_ratio*(self.left_side_hip_shoulder_distance*abs(self.pitch_in_degrees/90))) - ((max_len3-max_len1)*abs((90-hip_shoulder_elbow_angle)/90))
+        
+
+        if act_len_prime >= max_len: 
+            act_len_prime = max_len
+            print("z_init: " + str(z_init) + ", max_length: " + str(max_len) + ", actual_length: " + str(act_len) + ", actual_length_prime: " + str(act_len_prime) + ", max mpu: " + str(self.init_user_max_mpu) + ", z = zinit + " + str(np.sqrt((max_len)**2 - (act_len)**2)) + ", z = " + str(z))
+        
+        z = z_init - (-self.depth_ratio*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(self.depth_ratio**2)*(max_len**2)))/(1+(self.depth_ratio**2))
+        print("\n\n z = z_init + (-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) / 1 - k2 \n" + 
+            str(z) + " = " + str(z_init) + " + (" + str(-self.depth_ratio) + " * " + str(act_len_prime) + " + sqrt(" + str(-(act_len_prime**2)) + " + " + str((max_len**2)) + " + " + 
+            str((self.depth_ratio**2)) + " * " + str((max_len**2)) + " )) / 1 - " + str(self.depth_ratio**2) + "\n\n" +
+            "(-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) = " + str( (-self.depth_ratio*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(self.depth_ratio**2)*(max_len**2)))) +
+            "\n 1 - k2 = " + str((1+(self.depth_ratio**2))))
+
+        return z
+    
+    """
     
     def calculate_z(self, z_init, max_length, max_length3, actual_length, pitch):
         z = 0
@@ -1149,21 +1348,43 @@ class Extrapolate_forces():
         act_len = actual_length*self.m_to_mpu_ratio
         act_len_prime = act_len - (self.depth_ratio*(self.left_side_hip_shoulder_distance*abs(self.pitch_in_degrees/90))) - ((max_len3-max_len1)*abs((90-hip_shoulder_elbow_angle)/90))
 
+
+    
+        #For K - below
+    
+        fv2 = self.init_left_elbow_to_wrist_2
+        fv1 = self.init_left_elbow_to_wrist_1
+        uv2 = self.init_left_shoulder_to_elbow_2
+        r = self.m_to_mpu_ratio # this is the problem
+        u = self.user_height_raw * 0.173
+        
+
+        numerator = fv2 - fv1
+        print("------------------------------------------------\n fv1: " + str(fv1) + " fv2: " + str(fv2) + " u: " + str(u) + " uv2: " + str(uv2) + " r: " + str(r) + "\n---------------------------------------")
+        print("uv1**2: " + str(u**2) + "\n (uv2 * r * (fv1 / fv2))**2: " + str((uv2 * r * (fv1 / fv2))**2))
+        denominator = np.sqrt(u**2 - (uv2 * r * (fv1 / fv2))**2)
+        k = numerator / denominator
+
+
+
+        #k = np.sqrt((self.init_left_shoulder_to_elbow_1**2 - (self.init_left_shoulder_to_elbow_2 * self.m_to_mpu_ratio * (self.init_left_elbow_to_wrist_1 / self.init_left_elbow_to_wrist_2))**2))
+
+
         if act_len_prime >= max_len: 
             act_len_prime = max_len
             print("z_init: " + str(z_init) + ", max_length: " + str(max_len) + ", actual_length: " + str(act_len) + ", actual_length_prime: " + str(act_len_prime) + ", max mpu: " + str(self.init_user_max_mpu) + ", z = zinit + " + str(np.sqrt((max_len)**2 - (act_len)**2)) + ", z = " + str(z))
         
-        z = z_init - (-self.depth_ratio*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(self.depth_ratio**2)*(max_len**2)))/(1+(self.depth_ratio**2))
+        z = z_init - (-k*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(k**2)*(max_len**2)))/(1+(k**2))
         print("\n\n z = z_init + (-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) / 1 - k2 \n" + 
-            str(z) + " = " + str(z_init) + " + (" + str(-self.depth_ratio) + " * " + str(act_len_prime) + " + sqrt(" + str(-(act_len_prime**2)) + " + " + str((max_len**2)) + " + " + 
-            str((self.depth_ratio**2)) + " * " + str((max_len**2)) + " )) / 1 - " + str(self.depth_ratio**2) + "\n\n" +
-            "(-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) = " + str( (-self.depth_ratio*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(self.depth_ratio**2)*(max_len**2)))) +
-            "\n 1 - k2 = " + str((1+(self.depth_ratio**2))))
+            str(z) + " = " + str(z_init) + " + (" + str(-k) + " * " + str(act_len_prime) + " + sqrt(" + str(-(act_len_prime**2)) + " + " + str((max_len**2)) + " + " + 
+            str((k**2)) + " * " + str((max_len**2)) + " )) / 1 - " + str(k**2) + "\n\n" +
+            "(-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) = " + str( (-k*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(k**2)*(max_len**2)))) +
+            "\n 1 - k2 = " + str((1+(k**2))))
 
         return z
-    
-    """
-    def calculate_z(self, z_init, max_length, max_length3, actual_length, pitch):
+    #"""
+
+    def calculate_z_new(self, z_init, max_length, max_length3, actual_length, pitch):
         z = 0
 
         self.forward_lean = (pitch/90)  
@@ -1185,14 +1406,15 @@ class Extrapolate_forces():
     
         fv2 = self.init_left_elbow_to_wrist_2 * self.m_to_mpu_ratio
         fv1 = self.init_left_elbow_to_wrist_1 * self.m_to_mpu_ratio
-        uv1 = self.init_left_shoulder_to_elbow_1 * self.m_to_mpu_ratio
-        uv2 = self.init_left_shoulder_to_elbow_2 * self.m_to_mpu_ratio
-        r = self.m_to_mpu_ratio
+        ump = self.init_left_shoulder_to_elbow_2
+        r = self.m_to_mpu_ratio # this is the problem
+        u = self.user_height_raw * 0.173
+        
 
         numerator = fv2 - fv1
-        print("------------------------------------------------\n step 2: " + str(self.init_left_elbow_to_wrist_2) + "step 1: " + str(self.init_left_elbow_to_wrist_1) +"\n---------------------------------------")
-        print("uv1**2: " + str(uv1**2) + "\n(uv2 * (fv1 / fv2))**2: " + str((uv2 * (fv1 / fv2))**2))
-        denominator = np.sqrt(uv1**2 - (uv2 * (fv1 / fv2))**2)
+        print("------------------------------------------------\n fv1: " + str(fv1) + " fv2: " + str(fv2) + " u: " + str(u) + " ump: " + str(ump) + " r: " + str(r) + "\n---------------------------------------")
+        print("uv1**2: " + str(u**2) + "\n (uv2 * r * (fv1 / fv2))**2: " + str((ump * r * (fv1 / fv2))**2))
+        denominator = -np.sqrt(u**2 - (ump * r * (fv1 / fv2))**2)
         k = numerator / denominator
 
 
@@ -1202,17 +1424,20 @@ class Extrapolate_forces():
 
         if act_len_prime >= max_len: 
             act_len_prime = max_len
-            print("z_init: " + str(z_init) + ", max_length: " + str(max_len) + ", actual_length: " + str(act_len) + ", actual_length_prime: " + str(act_len_prime) + ", max mpu: " + str(self.init_user_max_mpu) + ", z = zinit + " + str(np.sqrt((max_len)**2 - (act_len)**2)) + ", z = " + str(z))
+            print("z_init: " + str(z_init) + ", max_length(Lm): " + str(max_len) + ", actual_length: " + str(act_len) + ", actual_length_prime(Lc''): " + str(act_len_prime) + ", max mpu: " + str(self.init_user_max_mpu) + ", z = zinit + " + str(np.sqrt((max_len)**2 - (act_len)**2)) + ", z = " + str(z))
         
-        z = z_init - (-k*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(k**2)*(max_len**2)))/(1+(k**2))
-        print("\n\n z = z_init + (-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) / 1 - k2 \n" + 
-            str(z) + " = " + str(z_init) + " + (" + str(-k) + " * " + str(act_len_prime) + " + sqrt(" + str(-(act_len_prime**2)) + " + " + str((max_len**2)) + " + " + 
-            str((k**2)) + " * " + str((max_len**2)) + " )) / 1 - " + str(k**2) + "\n\n" +
-            "(-k * Lc'' + sqrt(-Lc''2 + Lm2 + k2 * Lm2)) = " + str( (-k*act_len_prime+np.sqrt(-(act_len_prime**2)+(max_len**2)+(k**2)*(max_len**2)))) +
-            "\n 1 - k2 = " + str((1+(k**2))))
+        z = z_init - ((act_len_prime - max_len)/k)
+        print("\n\n z = z_init - ((Lc'' - Lm) / k) \n" + 
+            str(z) + " = " + str(z_init) + " - (" + str(act_len_prime) + " - " + str(act_len_prime) + ") / " + str(k) + "\n\n" +
+            "(Lc'' - Lm) = " + str(act_len_prime - max_len) +
+            "\n k = " + str(k))
 
         return z
-    """
+
+
+
+
+
 
     
 
@@ -1230,8 +1455,77 @@ class Extrapolate_forces():
         #print(str(val))
         return val
     
-
+    def calculate_arm_force(self, thetaUpper, thetaArm, weightAdded):
+        thetaB = 180 - ((self.b - self.upperarm * np.cos(thetaUpper))/ (np.sqrt(self.b**2 + self.upperarm**2 - 2 * self.b * self.upperarm * np.cos(thetaUpper))) )
+        leverArmFA = self.cfg * np.sin(thetaUpper + thetaArm - 90)
+        leverArmAdd = self.forearm * np.sin(thetaUpper + thetaArm - 90)
+        leverArmBic = self.b * np.sin(thetaB)
+        print("ThetaB: " + str(thetaB) + ", leverArmFA: " + str(leverArmFA) + "leverArmAdd: " + str(leverArmAdd) + "leverArmBic: " + str(leverArmBic))
+        force = abs((self.weightForearm*9.81 * leverArmFA + weightAdded*9.81 * leverArmAdd) / leverArmBic)
+        print("Bicep Force: " + str(force))
+        return force
     
+    def calculate_arm_force_intermediate(self, thetaUpper, thetaArm, weightAdded, xB, zB, xE, yE, zE, xS, yS, zS):
+        thetaB = 180 - ((self.b - self.upperarm * np.cos(thetaUpper))/ (np.sqrt(self.b**2 + self.upperarm**2 - 2 * self.b * self.upperarm * np.cos(thetaUpper))) )
+        leverArmFA = self.cfg * np.sin(thetaUpper + thetaArm - 90)
+        leverArmAdd = self.forearm * np.sin(thetaUpper + thetaArm - 90)
+
+        leverArmBic = np.sqrt(  (yE - yS)**2 + (  (  (xB - xE) * (xE - xS) + (zB - zE) * (zE - zS)  )  /  (  (zB - zE)**2 + (xB - xE)**2  )  )  )
+
+        print("ThetaB: " + str(thetaB) + ", leverArmFA: " + str(leverArmFA) + "leverArmAdd: " + str(leverArmAdd) + "leverArmBic: " + str(leverArmBic))
+        force = abs((self.weightForearm*9.81 * leverArmFA + weightAdded*9.81 * leverArmAdd) / leverArmBic)
+        print("Bicep Force: " + str(force))
+        return force
+    
+
+
+
+
+    def calculate_arm_force_in_plane(self, thetaUpper, thetaArm, weightAdded):
+
+        thetaB = 180 - ((self.b - self.upperarm * np.cos(thetaUpper))/ (np.sqrt(self.b**2 + self.upperarm**2 - 2 * self.b * self.upperarm * np.cos(thetaUpper))) )
+        leverArmFA = self.cfg * np.sin(thetaUpper + thetaArm - 90)
+        leverArmAdd = self.forearm * np.sin(thetaUpper + thetaArm - 90)
+        leverArmBic = self.b * np.sin(thetaB)
+        print("ThetaB: " + str(thetaB) + ", leverArmFA: " + str(leverArmFA) + "leverArmAdd: " + str(leverArmAdd) + "leverArmBic: " + str(leverArmBic))
+        force = abs((self.weightForearm*9.81 * leverArmFA + weightAdded*9.81 * leverArmAdd) / leverArmBic)
+        print("Bicep Force: " + str(force))
+        return force
+    
+    
+    
+    
+    
+    
+    
+    
+    def calculate_arm_force_not_in_plane(self, bicepForceInit, xB, yB, zB, xE, zE, xS, yS, zS):
+
+
+        fBicPrime = bicepForceInit
+
+
+        numerator = np.sqrt(  (xB - xS)**2  +  (yB - yS)**2  +  (zB - zS)**2  )
+        denominator = np.sqrt(  (yB - yS)**2 + (  (  (xB - xE) * (xB - xS) + (zB - zE) * (zB - zS)  )**2  /  (  (zB - zE)**2 + (xB - xE)**2  )  )  )
+        force = fBicPrime * ( numerator / denominator )
+        print("numerator: " + str(numerator) + ", denominator: " + str(denominator))
+        print("Bicep Force: " + str(force))
+        return force
+    
+
+
+    def check_arm_in_plane():
+        scope = 0.1
+        torqueBicep = 1
+        torqueFA = 1
+        torqueBall = 1
+
+        result = torqueBicep - torqueFA - torqueBall
+
+        if result <= scope and result >= -scope:
+            return True
+        else:
+            return False
 
 
 

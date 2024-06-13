@@ -12,7 +12,7 @@
 import numpy as np
 import math
 from matplotlib import pyplot as plt
-
+import time
 import threading
 import os
 
@@ -402,9 +402,12 @@ class SimGUI():
         # optional live plot updater
         if self.auto_update_graph:
             self.update_scatterplot()
+            
 
         # call next update cycle
+        time.sleep(1)
         self.gui.after(self.update_interval, self.update_data)
+
 
 
     # handle keeping track of the past n timesteps of (left arm) body force calculations

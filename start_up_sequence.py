@@ -1416,9 +1416,6 @@ def draw_guide_overlay_1(frame, results):
 """
 
 
-import cv2
-import numpy as np
-
 def draw_guide_overlay_1(frame, results):
     global initial_circle_positions
     radius = 15  # This will determine the height of the rectangles
@@ -1800,7 +1797,7 @@ def format_point_name(point):
 
 
 def data_collection():
-    global init_distance_shoulder, init_distance_hip_shoulder, init_left_distance_hip_shoulder, init_height_diff_right_shoulder_to_right_hip, init_head_width, init_nose_eye_ear_angle, init_right_shoulder_to_right_elbow, init_right_elbow_to_right_wrist, init_left_shoulder_to_left_elbow, init_left_elbow_to_left_wrist, init_user_max_mpu, m_to_mpu_ratio, init_distance_shoulder2, init_distance_hip_shoulder2, init_left_distance_hip_shoulder2, init_height_diff_right_shoulder_to_right_hip2, init_head_width2, init_nose_eye_ear_angle2, init_right_shoulder_to_right_elbow2, init_right_elbow_to_right_wrist2, init_left_shoulder_to_left_elbow2, init_left_elbow_to_left_wrist2, init_user_max_mpu2, init_distance_shoulder3, init_distance_hip_shoulder3, init_left_distance_hip_shoulder3, init_height_diff_right_shoulder_to_right_hip3, init_head_width3, init_nose_eye_ear_angle3, init_right_shoulder_to_right_elbow3, init_right_elbow_to_right_wrist3, init_left_shoulder_to_left_elbow3, init_left_elbow_to_left_wrist3, init_user_max_mpu3, init_distance_shoulder_ratio, init_distance_hip_shoulder_ratio, init_left_distance_hip_shoulder_ratio, init_height_diff_right_shoulder_to_right_hip_ratio, init_head_width_ratio, init_nose_eye_ear_angle_ratio, init_right_shoulder_to_right_elbow_ratio, init_right_elbow_to_right_wrist_ratio, init_left_shoulder_to_left_elbow_ratio, init_left_elbow_to_left_wrist_ratio, init_user_max_mpu_ratio, depth_ratio
+    global init_distance_shoulder, init_distance_hip_shoulder, init_left_distance_hip_shoulder, init_height_diff_right_shoulder_to_right_hip, init_head_width, init_nose_eye_ear_angle, init_right_shoulder_to_right_elbow, init_right_elbow_to_right_wrist, init_left_shoulder_to_left_elbow, init_left_elbow_to_left_wrist, init_user_max_mpu, m_to_mpu_ratio, init_distance_shoulder2, init_distance_hip_shoulder2, init_left_distance_hip_shoulder2, init_height_diff_right_shoulder_to_right_hip2, init_head_width2, init_nose_eye_ear_angle2, init_right_shoulder_to_right_elbow2, init_right_elbow_to_right_wrist2, init_left_shoulder_to_left_elbow2, init_left_elbow_to_left_wrist2, init_user_max_mpu2, init_distance_shoulder3, init_distance_hip_shoulder3, init_left_distance_hip_shoulder3, init_height_diff_right_shoulder_to_right_hip3, init_head_width3, init_nose_eye_ear_angle3, init_right_shoulder_to_right_elbow3, init_right_elbow_to_right_wrist3, init_left_shoulder_to_left_elbow3, init_left_elbow_to_left_wrist3, init_user_max_mpu3, init_distance_shoulder_ratio, init_distance_hip_shoulder_ratio, init_left_distance_hip_shoulder_ratio, init_height_diff_right_shoulder_to_right_hip_ratio, init_head_width_ratio, init_nose_eye_ear_angle_ratio, init_right_shoulder_to_right_elbow_ratio, init_right_elbow_to_right_wrist_ratio, init_left_shoulder_to_left_elbow_ratio, init_left_elbow_to_left_wrist_ratio, init_user_max_mpu_ratio, depth_ratio, user_height_raw, forearm, upperarm, cfg, b, weightForearm, user_depth, weightAdded
     
     # Prepare data for writing
     data = (
@@ -1822,7 +1819,8 @@ def data_collection():
         init_height_diff_right_shoulder_to_right_hip_ratio, init_head_width_ratio, 
         init_nose_eye_ear_angle_ratio, init_right_shoulder_to_right_elbow_ratio, 
         init_right_elbow_to_right_wrist_ratio, init_left_shoulder_to_left_elbow_ratio, 
-        init_left_elbow_to_left_wrist_ratio, init_user_max_mpu_ratio, depth_ratio
+        init_left_elbow_to_left_wrist_ratio, init_user_max_mpu_ratio, depth_ratio, user_height_raw, 
+        forearm, upperarm, cfg, b, weightForearm, user_depth, weightAdded
     )
 
     # Convert data tuple to a comma-separated string
@@ -2152,9 +2150,10 @@ settings_submit_button.pack(padx=10, pady=15)
 # Modify the on_submit function to show the settings frame
 def on_submit():
     try:
-        global user_weight, user_height, user_depth, weightAdded, developer_mode, isGraphOn, forearm, upperarm, cfg, b, weightForearm
+        global user_weight, user_height, user_depth, weightAdded, developer_mode, isGraphOn, forearm, upperarm, cfg, b, weightForearm, user_height_raw
         user_weight = float(weight_entry.get())
-        user_height = float(height_entry.get()) * 0.9588 #Mediapipe measures from kunckle to kunckle not fingertip to fingertip
+        user_height_raw = float(height_entry.get())
+        user_height = user_height_raw * 0.9588 #Mediapipe measures from kunckle to kunckle not fingertip to fingertip
         user_depth = float(depth_entry.get())
         weightAdded = float(weight_holding_entry.get())
         developer_mode = dev_mode_var.get() == 1
