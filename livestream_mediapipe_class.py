@@ -358,7 +358,7 @@ class Pose_detection(threading.Thread):
 
             #print("DEBUG: right elbow mediapipe coord: %s" % str(pose_landmarks_list[0][14].z))
             #print("DEBUG: right wrist mediapipe coord: %s" % str(pose_landmarks_list[0][16].z))
-            print("DEBUG: diff right elbow and wrist mediapipe coord: %s" % str(pose_landmarks_list[0][16].z - pose_landmarks_list[0][14].z))
+            #print("DEBUG: diff right elbow and wrist mediapipe coord: %s" % str(pose_landmarks_list[0][16].z - pose_landmarks_list[0][14].z))
 
             # add shoulders, elbows, and wrists to current dataframe
             it = 0                                                      # temp iterator
