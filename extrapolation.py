@@ -155,10 +155,12 @@ class Extrapolate_forces():
 
         # ndarray to store mediapipe data output, even if from other process(es)
         self.mediapipe_data_output = np.zeros((10, 3), dtype = "float32")
+
         # ndarray to store mediapipe hand data output
         self.hand_mp_out = np.zeros((2,5,3), dtype = "float32")
         self.hand_check = np.zeros((2), dtype = "float32")              # used to check if hand data updated
         self.hand_orientation = np.zeros((2, 2), dtype = "float32")     # phi: hand normal and forearm - 90 deg, theta: hand normal and screen normal
+        
         # store mediapipe face landmarker iris data output
         self.face_mp_out = np.zeros((2,2,3), dtype = "float16")
 
@@ -170,8 +172,9 @@ class Extrapolate_forces():
         self.dist_array = np.zeros((10, 10), dtype = "float32")         # indexed by two body part names/indices
         self.max_array = np.zeros((10, 10), dtype = "float32")          # used for storing max distance data
         self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
+
         # store elbow angle in memory so it can be calculated right after depth for the given frame is calculated (to prevent syncing issues)
-        self.elbow_angles = np.zeros((2), dtype = "float32")
+        self.elbow_angles = np.zeros((2), dtype = "float32")            # angle between elbows, coplanar with upperarm and forearm
 
         # bodypart_lengths intended to store baseline lengths of bodyparts
         self.bodypart_lengths = np.ones((6), dtype = "float32")         # stores body part lengths, assuming symmetry between sides (so, only one value for forearm length as opposed to 2, for example. may be changed later)
@@ -414,6 +417,7 @@ class Extrapolate_forces():
                 first = self.hand_mp_out[first_part]
                 second = self.hand_mp_out[second_part]
 
+            # calculate distance between the x and z components of each vertex, ignoring the y component which will be calculated later
             dist = np.sqrt( (second[0] - first[0])**2 + (second[2] - first[2])**2 )
 
             # update max distance between these parts, if necessary
@@ -627,7 +631,7 @@ class Extrapolate_forces():
     ### HAND CALCULATIONS
 
     # calculate orientation of hand (called from calc_elbow_angle, to reduce number of calculations)
-    def calc_hand_orientation(self, is_right = False, forearm = np.zeros((3), dtype = "float32"), cross_ua_fa = np.zeros((3), dtype = "float32")):
+    def calc_hand_orientation(self, is_right = False, forearm = np.zeros((3), dtype = "float32")):#, cross_ua_fa = np.zeros((3), dtype = "float32")):
         try: 
             i = int(is_right)
             hand_check = self.hand_mp_out[i, 0, 0] + self.hand_mp_out[i, 1, 0] + self.hand_mp_out[i, 2, 0]  # used for checking for changes in hand data (prevent redundant calculations)
