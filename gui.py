@@ -25,6 +25,10 @@ from PIL import ImageTk
 
 import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 
+# for use recording to excel doc
+from datetime import datetime
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 
 
 ### OPTIONS
@@ -32,11 +36,13 @@ import livestream_mediapipe_class as lsmp   # custom class, handles mediapipe
 # model to use for mediapipe
 pose_landmarker = 'landmarkers/pose/pose_landmarker_full.task'
 hand_landmarker = 'landmarkers/hand/hand_landmarker.task'
+face_landmarker = 'landmarkers/face/face_landmarker.task'
 
 # check if windows; if so, use windows file pathing
 if os.name == 'nt':
     pose_landmarker = "landmarkers\\pose\\pose_landmarker_full.task"
     hand_landmarker = "landmarkers\\hand\\hand_landmarker.task"
+    face_landmarker = 'landmarkers\\face\\face_landmarker.task'
 
 
 # load and prep placeholder image for program initialization
@@ -55,7 +61,7 @@ class SimGUI():
         # variable for dynamic width of settings
         self.settings_width = 20
 
-        # set up dictionary to read from for gui display of data
+        # set up dictionary to read from for gui display of data (bicep force data and elbow angles)
         self.calculated_data = {
             "right_bicep_force": "NaN",
             "right_elbow_angle": "NaN",
@@ -65,13 +71,16 @@ class SimGUI():
             "farm_spher_coords": "NaN"#["NaN", "NaN", "NaN"]
         }
 
+        # dict for containing hand data
+        self.hand_data = np.zeros((2, 2), dtype = "float32")     # [left[epsilon, phi], right[epsilon, phi]]
+
         # store past bicep force calculations
         self.history_bicep_force = np.ndarray((1), dtype = "float32")
         self.history_elbow_angle = np.ndarray((1), dtype = "float32")
         self.hbf_max_len = 1000             # max length for history of bicep force
 
         # initialize mediapipe thread
-        self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker, hand_landmarker)
+        self.mediapipe_runtime = lsmp.Pose_detection(pose_landmarker, hand_landmarker, face_landmarker)
         self.mediapipe_runtime.start()
 
         # allow entry in imperial (instead of metric)
@@ -82,6 +91,38 @@ class SimGUI():
 
         # toggle manual conversion/calibration ratio/factor
         self.manual_calibration = False
+
+
+        ### EXCEL DATA RECORDING
+
+        # name of excel file
+        self.xl_filename = "angles_p-up.xlsx"
+        # data to record
+        #   must be an array
+        #   make sure to update in `update_data()`
+        self.xl_desired_data = [self.hand_data[0, 0]]     # phi for left hand
+
+        # start row of spreadsheet
+        self.xl_start_row = 5   # starting at 5 to give room for things like avg, std dev, and std err
+        # current column of spreadsheet
+        self.xl_cur_col = 2
+        # current row of spreadsheet
+        self.xl_cur_row = 5
+        # whether or not data is being recorded
+        self.xl_is_recording = False
+        # time at which current recording should end
+        self.xl_cur_end_time = 0
+        # length (in seconds) of recording trials
+        self.xl_trial_length = 10
+
+        # initialize excel spreadsheet
+        self.workbook = Workbook()
+        self.xl_spreadsheet = self.workbook.active
+
+        # set description for first few rows
+        self.xl_spreadsheet.cell(row = 1, column = 1).value = "Avg: "
+        self.xl_spreadsheet.cell(row = 2, column = 1).value = "Std dev: "
+        self.xl_spreadsheet.cell(row = 3, column = 1).value = "Std err: "
 
 
         ### GUI SETUP
@@ -201,11 +242,36 @@ class SimGUI():
         self.submit_hw = Button(self.user_input, text = "Submit", command = self.hw_submit)
         self.submit_hw.grid(row = 4, column = 1)
 
+        
+        ## excel data output: button to start recording data to excel document, as well as status of recording
+        # grid section for excel
+        self.xl_input = LabelFrame(self.data, text = "Record desired data to excel: ")
+        self.xl_input.grid(row = 2, column = 0)
+        # status of recording
+        self.xl_status_var = StringVar()
+        self.xl_status_var.set("Press \"Start\" to begin")
+        # current trial number
+        self.xl_cur_trial_var = StringVar()
+        self.xl_cur_trial_var.set("1")
+        # button to start recording
+        self.xl_start_rec_button = Button(self.xl_input, text = "Start", command = self.xl_start_rec)
+        # current trial number
+        self.xl_cur_trial = Label(self.xl_input, textvariable = self.xl_cur_trial_var, height = 1, width = int(self.settings_width / 2))
+        # label for current trial
+        self.xl_cur_trial_label = Label(self.xl_input, text = "Current trial: ", height = 1, width = int(self.settings_width / 2))
+        # current status of recording
+        self.xl_status = Label(self.xl_input, textvariable = self.xl_status_var, height = 1, width = self.settings_width)
+        # grid the excel gui elements
+        self.xl_status.grid(row = 0)
+        self.xl_start_rec_button.grid(row = 1, column = 1)
+        self.xl_cur_trial_label.grid(row = 2, column = 0)
+        self.xl_cur_trial.grid(row = 2, column = 1)
+
 
 
         # grid section for data output
         self.data_output = LabelFrame(self.data, text = "Data output:")
-        self.data_output.grid(row = 2, column = 0)
+        self.data_output.grid(row = 3, column = 0)
 
         # RIGHT ARM:
         self.do_right = LabelFrame(self.data_output, text = "Right arm:")
@@ -268,94 +334,12 @@ class SimGUI():
         self.forces_graph_update.grid(row = 0, column = 0)
         self.forces_graph_autoupdate.grid(row = 1, column = 0)
 
-        self.init_data = None
-
-    
-
-
-
-    
-
-    
-
-
-    """
-    def fetch_data(self):
-        # Connect to the SQLite database
-        conn = sqlite3.connect('datatransfer.db')
-        c = conn.cursor()
-
-        # SQL query to fetch the most recent entry
-        query = '''
-        SELECT
-            init_distance_shoulder, init_distance_hip_shoulder, init_left_distance_hip_shoulder,
-            init_height_diff_right_shoulder_to_right_hip, init_head_width, init_nose_eye_ear_angle,
-            init_right_shoulder_to_right_elbow, init_right_elbow_to_right_wrist,
-            init_left_shoulder_to_left_elbow, init_left_elbow_to_left_wrist, init_user_max_mpu,
-            m_to_mpu_ratio, init_distance_shoulder2, init_distance_hip_shoulder2,
-            init_left_distance_hip_shoulder2, init_height_diff_right_shoulder_to_right_hip2,
-            init_head_width2, init_nose_eye_ear_angle2, init_right_shoulder_to_right_elbow2,
-            init_right_elbow_to_right_wrist2, init_left_shoulder_to_left_elbow2,
-            init_left_elbow_to_left_wrist2, init_user_max_mpu2, init_distance_shoulder3,
-            init_distance_hip_shoulder3, init_left_distance_hip_shoulder3,
-            init_height_diff_right_shoulder_to_right_hip3, init_head_width3,
-            init_nose_eye_ear_angle3, init_right_shoulder_to_right_elbow3,
-            init_right_elbow_to_right_wrist3, init_left_shoulder_to_left_elbow3,
-            init_left_elbow_to_left_wrist3, init_user_max_mpu3, init_distance_shoulder_ratio,
-            init_distance_hip_shoulder_ratio, init_left_distance_hip_shoulder_ratio,
-            init_height_diff_right_shoulder_to_right_hip_ratio, init_head_width_ratio,
-            init_nose_eye_ear_angle_ratio, init_right_shoulder_to_right_elbow_ratio,
-            init_right_elbow_to_right_wrist_ratio, init_left_shoulder_to_left_elbow_ratio,
-            init_left_elbow_to_left_wrist_ratio, init_user_max_mpu_ratio, depth_ratio
-        FROM measurements
-        ORDER BY id DESC LIMIT 1
-        '''
-        c.execute(query)
-        result = c.fetchone()
-        conn.close()
-
-        # Print the results
-        if result:
-            print("Data Retrieved from Database:")
-            print(result)
-        else:
-            print("No data found.")
-        """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     
     # start/run the gui display
     def start(self):
         # start updater loops
-        #self.fetch_data()
-        
         self.update_display()                               # update display
         self.update_data()                                  # update numerical data
         #self.mediapipe_runtime.run()
@@ -364,6 +348,9 @@ class SimGUI():
 
         # handle program close
         self.root.protocol("WM_DELETE_WINDOW", self.__del__)
+
+        # allow closing program by pressing escape
+        self.root.bind("<Escape>", lambda event: self.__del__(event))
 
         # start the display
         self.root.mainloop()
@@ -375,21 +362,32 @@ class SimGUI():
         ret, frame = self.mediapipe_runtime.get_cur_frame()
         frame = cv2.cvtColor(cv2.flip(frame,1), cv2.COLOR_BGR2RGB)      # converting back to RGB for display
 
-        if ret:                                             # only update if frame is presenty
+        if ret:                                             # only update if frame is present
             self.image_label.photo = ImageTk.PhotoImage(image = Image.fromarray(frame))
             self.image_label.configure(image = self.image_label.photo)
             self.calculated_data = self.mediapipe_runtime.ep.get_calculated_data()
+            self.hand_data = self.mediapipe_runtime.ep.get_hand_data()
 
         # call next update cycle
         self.root.after(self.delay, self.update_display)    # update approximately 60 times per second
 
     # update numerical data in gui
     def update_data(self):
-        # update data
-        self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
+        
+        # elbow angles
         self.right_elbow_var.set(str(self.calculated_data["right_elbow_angle"]))
-        self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
         self.left_elbow_var.set(str(self.calculated_data["left_elbow_angle"]))
+        
+        # bicep forces
+        # only show numerical bicep force calculations if elbow angle > 90 degrees (otherwise, formula doesn't work)
+        if (float(self.calculated_data["right_elbow_angle"]) >= 90):    # right arm
+            self.right_bicep_var.set(str(self.calculated_data["right_bicep_force"]))
+        else:
+            self.right_bicep_var.set("N/A (angle below 90 deg)")
+        if (float(self.calculated_data["left_elbow_angle"]) >= 90):    # left arm
+            self.left_bicep_var.set(str(self.calculated_data["left_bicep_force"]))
+        else:
+            self.left_bicep_var.set("N/A (angle below 90 deg)")
 
         # update manual calibration
         self.manual_calibration = self.mediapipe_runtime.toggle_auto_calibrate
@@ -402,12 +400,13 @@ class SimGUI():
         # optional live plot updater
         if self.auto_update_graph:
             self.update_scatterplot()
-            
+
+        # handle excel recording after data is updated
+        self.xl_desired_data = [self.hand_data[0, 0]]  # left hand phi     # update desired_data
+        self.xl_update()
 
         # call next update cycle
-        time.sleep(1)
         self.gui.after(self.update_interval, self.update_data)
-
 
 
     # handle keeping track of the past n timesteps of (left arm) body force calculations
@@ -479,7 +478,7 @@ class SimGUI():
 
         self.mediapipe_runtime.ep.set_conversion_ratio(ratio)
 
-    # set bsf 
+    # set biacromial (i.e. shoulder width) scale factor
     def set_bsf(self, bsf_data):
         bsf = float(bsf_data)
 
@@ -495,9 +494,122 @@ class SimGUI():
         self.mediapipe_runtime.set_image_hw(self.height, self.width)
 
 
+    ### EXCEL DATA RECORDING FUNCTIONS
+
+    # start recording data
+    def xl_start_rec(self):
+        try:
+            if not self.xl_is_recording:
+                # set status to recording
+                self.xl_is_recording = True
+                # set time to end recording
+                self.xl_cur_end_time = datetime.now().timestamp() + self.xl_trial_length
+                # set current row to base row before trial starts
+                self.xl_cur_row = self.xl_start_row
+                # label current set of data being recorded
+                self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = self.xl_cur_trial_var.get()
+                # update status in gui
+                self.xl_status_var.set("Recording data...")
+            else:
+                self.xl_status_var.set("Please wait for trial to end...")
+        except Exception as e:
+            print("gui.py: Exception thrown in `xl_start_rec()`\n\t%s" % str(e))
+
+    # record current frame of desired data
+    def xl_record_to_sheet(self):
+        try:
+            # used to reset xl_cur_col after recording data
+            init_col = self.xl_cur_col
+
+            # go to next row
+            self.xl_cur_row += 1
+
+            # iterate thru each of the desired data
+            for data in self.xl_desired_data:
+                # record current data
+                self.xl_spreadsheet.cell(row = self.xl_cur_row, column = self.xl_cur_col).value = data
+                # go to next column for recording next data
+                self.xl_cur_col += 1
+
+            # reset column to initial column
+            self.xl_cur_col = init_col
+        except Exception as e:
+            print("gui.py: Exception thrown in `xl_record_to_sheet()`\n\t%s" % str(e))
+
+    # update function to be called each frame when xl_is_recording is True
+    def xl_update(self):
+        try:
+            # check if is recording
+            if self.xl_is_recording:
+                # check if time is up
+                if (datetime.now().timestamp() < self.xl_cur_end_time):
+                    self.xl_record_to_sheet()
+                # end recording otherwise
+                else:
+                    self.xl_is_recording = False
+                    # run calculations for the current run
+                    self.xl_calc_err()
+                    # update current trial number
+                    self.xl_cur_trial_var.set(str( int(self.xl_cur_trial_var.get()) + 1 ))
+                    # go to next free column
+                    self.xl_cur_col += len(self.xl_desired_data)
+                    # update gui status
+                    self.xl_status_var.set("Done!")
+                
+            # update gui status after a few seconds upon completion
+            elif (datetime.now().timestamp() > (self.xl_cur_end_time + 5)):
+                # set status back to original status
+                self.xl_status_var.set("Press \"Start\" to begin")
+        except Exception as e:
+            print("gui.py: Exception thrown in `xl_update()`\n\t%s" % str(e))
+        
+    # handle calculations at end of current excel recording run
+    def xl_calc_err(self):
+        try:
+            # temp store for current column
+            init_col = self.xl_cur_col
+
+            # go thru for each of the desired data
+            for i in range(0, len(self.xl_desired_data)):
+                # current column index
+                cur_col = init_col + i
+                # length of current column
+                cur_col_len = len(self.xl_spreadsheet[get_column_letter(cur_col)])
+                # number of elements in column
+                cur_len = cur_col_len - self.xl_start_row
+
+                # get sum of current column
+                cur_sum = sum(self.xl_spreadsheet.cell(row = r, column = cur_col).value for r in range(self.xl_start_row + 1, cur_col_len)) 
+                # get average
+                cur_avg = cur_sum / cur_len
+                # get sum of squares
+                #   must be done separately from cur_sum, since it uses cur_avg, which uses cur_sum
+                cur_sos = sum( ( (self.xl_spreadsheet.cell(row = r, column = cur_col).value - cur_avg) ** 2 ) for r in range(self.xl_start_row + 1, cur_col_len))
+                # get variance
+                cur_var = cur_sos / cur_len
+                # get standard deviation
+                cur_stddev = np.sqrt(cur_var)
+                # get standard error
+                cur_stderr = cur_stddev / np.sqrt(cur_len)
+
+                # DEBUG
+                print("\nSum: %s\nAvg: %s\nStd dev: %s\nStd err: %s\n" % (cur_sum, cur_avg, cur_stddev, cur_stderr))
+                
+                # record in spreadsheet
+                self.xl_spreadsheet.cell(row = 1, column = cur_col).value = cur_avg
+                self.xl_spreadsheet.cell(row = 2, column = cur_col).value = cur_stddev
+                self.xl_spreadsheet.cell(row = 3, column = cur_col).value = cur_stderr
+        except Exception as e:
+            print("gui.py: Exception thrown in `xl_calc_err()`\n\t%s" % str(e))
+
+
 
     # handle end of runtime
-    def __del__(self):
+    def __del__(self, e = ""):
+        # save excel document if any data was recorded
+        if int(self.xl_cur_trial_var.get()) > 1:
+            self.workbook.save(filename = self.xl_filename)
+
         # stop gui
         self.root.destroy()
 
