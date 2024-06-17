@@ -1,1 +1,4 @@
-__pycache__/*
+./__pycache__/*
+excel_data_out.py
+*.xlsx
+*.ods
