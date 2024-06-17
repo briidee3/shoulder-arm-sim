@@ -356,6 +356,9 @@ class Pose_detection(threading.Thread):
             except:
                 print("livestream_mediapipe_class.py: ERROR handling hand_detector in draw_landmarks_on_frame()")
 
+            #print("DEBUG: right elbow mediapipe coord: %s" % str(pose_landmarks_list[0][14].z))
+            #print("DEBUG: right wrist mediapipe coord: %s" % str(pose_landmarks_list[0][16].z))
+            print("DEBUG: diff right elbow and wrist mediapipe coord: %s" % str(pose_landmarks_list[0][16].z - pose_landmarks_list[0][14].z))
 
             # add shoulders, elbows, and wrists to current dataframe
             it = 0                                                      # temp iterator
