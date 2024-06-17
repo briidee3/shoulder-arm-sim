@@ -4,25 +4,14 @@
 # This version has been edited for use directly with MediaPipe, as opposed to with FreeMoCap data output.
 
 
+# NOTES:
+#   - X is left/right, Z is up/down, Y is depth
+
+
 # TODO: 
-#   - optimize code
-#       - minimize reads/writes
-#           - try to do in-place manipulations of data
-#   - implement multithreading, like how it was done for `livestream_mediapipe_class.py`
-#   - take picture of user, notifying user, making em click a button, then counting down, snapping pic
-#       - this will be the calibration shot, and function "recalibrate" will do this.
-#       - this removes the need for lots of unnecessary calculations and reads/writes.
-#       - the output of this will be used to calculate depth and 
-#   - figure out if raw mediapipe output is x, y, z, or x, z, y
-#   - fix elbow angle inaccuracies (e.g. how 90 degrees isn't seen as 90 degrees due to the calculations
-#       being used being parallel to the plane of the screen/webcam)
-#   - orientation from shoulder to hip stuffs
-#       - send over the hips data from the mediapipe stuff
-#   - initialize an array at the start containing vector lengths of segment distances
-#   - update the actual lengths of body segments during run time
 
 # IDEAS:
-#   - train a machine learning model to tune the weights for the ratios (after implementing ratio-based depth instead of max_dist-based depth)
+#   - during initial calibration, have user make all points in body planar with the camera, and check differences in ratios, use as offsets for rest of program
 
 
 import numpy as np
@@ -176,17 +165,21 @@ class Extrapolate_forces():
         self.biacromial_scale = 0.23            # temporarily set to middle of male (0.234) to female (0.227) range for testing
 
         # ndarray to store mediapipe data output, even if from other process(es)
-        self.mediapipe_data_output = np.zeros((10, 3), dtype = "float64")
+        self.mediapipe_data_output = np.zeros((10, 3), dtype = "float32")
         # ndarray to store mediapipe hand data output
-        self.hand_mp_out = np.zeros((2,3,3), dtype = "float16")
+        self.hand_mp_out = np.zeros((2,5,3), dtype = "float32")
+        self.hand_check = np.zeros((2), dtype = "float32")              # used to check if hand data updated
+        self.hand_orientation = np.zeros((2, 2), dtype = "float32")     # phi: hand normal and forearm - 90 deg, theta: hand normal and screen normal
+        # store mediapipe face landmarker iris data output
+        self.face_mp_out = np.zeros((2,2,3), dtype = "float16")
 
         # lock for mediapipe data
         self.mp_data_lock = mp_data_lock
 
         # used for storing distance data (to prevent unnecessary recalculations)
         # consider changing to float32 or float16
-        self.dist_array = np.zeros((10, 10), dtype = "float64")         # indexed by two body part names/indices
-        self.max_array = np.zeros((10, 10), dtype = "float64")          # used for storing max distance data
+        self.dist_array = np.zeros((10, 10), dtype = "float32")         # indexed by two body part names/indices
+        self.max_array = np.zeros((10, 10), dtype = "float32")          # used for storing max distance data
         self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
         # store elbow angle in memory so it can be calculated right after depth for the given frame is calculated (to prevent syncing issues)
         self.elbow_angles = np.zeros((2), dtype = "float32")
@@ -195,7 +188,8 @@ class Extrapolate_forces():
         self.bodypart_lengths = np.ones((6), dtype = "float32")         # stores body part lengths, assuming symmetry between sides (so, only one value for forearm length as opposed to 2, for example. may be changed later)
         # biases for bodypart lengths (calculated in countdown_calibrate), default to 1 for no bias
         self.bodypart_ratio_bias_array = np.ones((np.shape(self.bodypart_lengths)[0]), dtype = "float32")
-        # stores calculated data by frame
+
+        # stores calculated data by frame to output to other parts of the pipeline
         self.calculated_data = {
                 "right_bicep_force": "NaN",
                 "right_elbow_angle": "NaN",
@@ -204,6 +198,19 @@ class Extrapolate_forces():
                 "uarm_spher_coords": "NaN",
                 "farm_spher_coords": "NaN"
             }
+
+
+        # number of timesteps to use for rolling average
+        self.ra_num_steps = 10
+        # number of data points to track with the rolling average
+        self.ra_num_data = 8
+        # iterator for use keeping track of timestep order
+        self.ra_it = 0
+        # ndarray to hold output data pertaining to the most recent timesteps
+        self.ra_recent_data = np.zeros((self.ra_num_steps, self.ra_num_data), dtype = "float16")
+        # ndarray to hold the rolling average of calculations
+        self.ra_data = np.zeros((self.ra_num_data), dtype = "float16")
+
 
         self.cur_frame = 0   # used to keep track of current frame
 
@@ -281,6 +288,7 @@ class Extrapolate_forces():
             self.z_init = loaded_data[52]
             self.weight_added = loaded_data[53]
             
+
         except:
             print("extrapolation.py: ERROR initializing bodypart lengths")
 
@@ -326,34 +334,23 @@ class Extrapolate_forces():
             file.write('-' * 20 + '\n')
     """
 
-         # Function to write variables to a file
+    # Function to write variables to a file
     def write_to_file(self, filename, var00, var0, var1, var2, var3, var4, var5, var6, var777, var77, var7, var8, var9, var10, var11, var12, var13, var14, var15):
         with open(filename, 'a') as file:
             file.write(f'{var7}\n')
-    #"""       
-
-
-
-
-
-
-
-
-
-
-
 
 
 
     # IMPORTANT: set mediapipe_data_output for the current frame
-    def update_current_frame(self, mp_data_out, hand_mp_out, current_frame):
+    def update_current_frame(self, mp_data_out, hand_mp_out, face_mp_out, current_frame):
         try:
             # set data of current frame dataset
             self.mediapipe_data_output = mp_data_out
             self.hand_mp_out = hand_mp_out
+            self.face_mp_out = face_mp_out
             
             # reset dist_array
-            self.dist_array = np.zeros(np.shape(self.dist_array))
+            self.dist_array = np.zeros(np.shape(self.dist_array), dtype = "float32")
 
             # update current frame number
             self.cur_frame = current_frame
@@ -375,14 +372,60 @@ class Extrapolate_forces():
             # set depth (pose landmarker data)
             self.set_depth()
 
-            # find orientation of hand
-            self.calc_hand_orientation()
-
             # calculate bicep forces
-            #self.calc_bicep_force()
+            bicep_calc_out = self.calc_bicep_force()    # get calculations, put in temp var bicep_calc_out
 
-        except:
-            print("extrapolation.py: ERROR in update_current_frame(%s)" % current_frame)
+            # calculate rolling average of output data
+            self.get_rolling_avg(bicep_calc_out)
+
+
+            # put together data to output
+            self.calculated_data["right_bicep_force"] = str("%0.2f" % bicep_calc_out[0])
+            self.calculated_data["right_elbow_angle"] = str("%0.2f" % bicep_calc_out[1])
+            self.calculated_data["left_bicep_force"] = str("%0.2f" % self.ra_data[2])#bicep_calc_out[2])
+            self.calculated_data["left_elbow_angle"] = str("%0.2f" % self.ra_data[3])#bicep_calc_out[3])
+
+            #print("\nRolling avg: %s\nCurrent: %s\n" % (str(self.ra_data), str(bicep_calc_out + [
+            #        self.hand_orientation[0, 0], self.hand_orientation[0, 1],   # left hand
+            #        self.hand_orientation[1, 0], self.hand_orientation[1, 1]    # right hand
+            #    ])))
+            
+
+            # iterate rolling average iterator
+            self.ra_it += 1
+
+
+        except Exception as e:
+            print("extrapolation.py: ERROR in update_current_frame():\n\t%s" % str(e))
+
+    # get rolling average of most recent data
+    def get_rolling_avg(self, bicep_calculations):
+        try:
+            # index of oldest timestep in ra_recent_data, which will be overwritten
+            i = self.ra_it % self.ra_num_steps
+
+            # size of bicep calculations used for indexing 
+            j = len(bicep_calculations)
+            
+            # update first part of array to bicep calculations output
+            self.ra_recent_data[i][0:j] = bicep_calculations
+
+            # update next part of array to hand orientation calculations
+            #   side note: hand orientation calculations are called from the elbow angle calculations function
+            self.ra_recent_data[i][(j):(j + 4)] = [
+                    self.hand_orientation[0, 0], self.hand_orientation[0, 1],   # left hand
+                    self.hand_orientation[1, 0], self.hand_orientation[1, 1]    # right hand
+                ]
+
+            # calculate and update rolling average
+            if self.ra_it >= self.ra_num_data:      # check if ra_recent_data has been filled up yet/ready to use
+                # calculate average of past n timesteps, where n = self.ra_num_steps
+                self.ra_data = np.sum(self.ra_recent_data, 0) * (1 / self.ra_num_steps)
+
+        except Exception as e:
+            print("extrapolation.py: Exception thrown in `get_rolling_avg()`:\n\t%s" % str(e))
+
+
 
     # IMPORTANT: temporary bandaid fix for calibration
     #def calc_wingspan(self):
@@ -403,8 +446,6 @@ class Extrapolate_forces():
             self.dist_array[L_SHOULDER][R_SHOULDER] = self.calc_dist_between_vertices(L_SHOULDER, R_SHOULDER)
         except:
             print("extrapolation.py: ERROR in `calc_shoulder_width()`")
-
-
 
     ### HELPER FUNCTIONS:
 
@@ -428,10 +469,15 @@ class Extrapolate_forces():
         except:
             print("extrapolation.py: ERROR converting real units to sim units")
 
-    # return calculated data (for use by other classes)
+    # return calculated data (for use by other classes) (arms)
     def get_calculated_data(self):
         # returns the currently stored calculated data
         return self.calculated_data
+
+    # return hand orientation data/calculations
+    def get_hand_data(self):
+        # returns the currently stored hand orientation data
+        return self.hand_orientation
 
 
 
@@ -500,7 +546,7 @@ class Extrapolate_forces():
 
 
 
-    ### NEW CALIBRATION: AVG RATIOS AND OFFSETS
+    ### NEW CALIBRATION: AVG RATIOS AND OFFSETS (offsets not completed or used)
 
     # calculate true length of segments (e.g. upper arm) via use of avg ratios and estimated deviation from avg ratios
     # 
@@ -593,7 +639,7 @@ class Extrapolate_forces():
     
     # reset max_array data to essentially reset the application (no longer used in calibration)
     #def reset_calibration(self):
-    #    self.max_array = np.zeros((8,8), dtype = "float64") # reset max distances
+    #    self.max_array = np.zeros((8,8), dtype = "float32") # reset max distances
     #    self.sim_to_real_conversion_factor = 1
         
 
@@ -603,7 +649,7 @@ class Extrapolate_forces():
     # calculate the angle of the segment (body part) from the normal (of the screen/camera) (where it is longest)
     def angle_from_normal(self, cur_dist, max_dist):
         try:
-            # angle should be always between 0 and 90 degrees (sorta like phi in spherical coordinates)
+            # angle should be always between 0 and 90 degrees (sorta like theta in spherical coordinates)
             return np.arccos(np.clip(cur_dist / max_dist, -1, 1))
         except:
             print("extrapolation.py: ERROR in `angle_from_normal()")
@@ -733,6 +779,7 @@ class Extrapolate_forces():
                                                                                          self.right_elbow_xyz[0], self.right_elbow_xyz[2], self.right_shoulder_xyz[0], self.right_shoulder_xyz[1], 
                                                                                          self.right_shoulder_xyz[2])
                 
+                # write data to file for further analysis
                 self.write_to_file('values.txt', self.left_hip_xyz, self.right_hip_xyz, self.left_shoulder_xyz, self.right_shoulder_xyz, self.left_elbow_xyz, self.right_elbow_xyz, self.left_wrist_xyz, 
                                    self.left_shoulder_angle, self.right_shoulder_angle, self.right_wrist_xyz, self.left_arm_angle, self.right_arm_angle, self.pitch, self.left_arm_force, self.right_arm_force, 
                                    self.left_arm_force_not_in_plane, self.right_arm_force_not_in_plane, self.left_bicep_xyz, self.right_bicep_xyz)
@@ -758,40 +805,138 @@ class Extrapolate_forces():
 
 
 
+
     ### HAND CALCULATIONS
 
-    # calculate orientation of hand
-    def calc_hand_orientation(self):
+    # calculate orientation of hand (called from calc_elbow_angle, to reduce number of calculations)
+    def calc_hand_orientation(self, is_right = False, forearm = np.zeros((3), dtype = "float32"), cross_ua_fa = np.zeros((3), dtype = "float32")):
         try: 
-            # do for both hands
-            #   probably wanna split this up eventually, so that it only runs calculations on a given hand if it was in view/updated
-            # i in range(0, 2):
-                # get depth of hand parts
-            i = 0   # do nothing (tmp)
+            i = int(is_right)
+            hand_check = self.hand_mp_out[i, 0, 0] + self.hand_mp_out[i, 1, 0] + self.hand_mp_out[i, 2, 0]  # used for checking for changes in hand data (prevent redundant calculations)
+            # get depth of hand parts
+            # check if hand data is present by checking the sum of the x component of each vertex, which should be different if change occurred
+            if not (hand_check == self.hand_check[i]):
+                w_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 0, :]  # wrist to index vector
+                w_to_p = self.hand_mp_out[i, 2, :] - self.hand_mp_out[i, 0, :]  # wrist to pinky vector
+               # w_to_r = self.hand_mp_out[i, 3, :] - self.hand_mp_out[i, 0, :]  # wrist to ring vector
+                w_to_m = self.hand_mp_out[i, 4, :] - self.hand_mp_out[i, 0, :]  # wrist to middle vector
+                #p_to_i = self.hand_mp_out[i, 1, :] - self.hand_mp_out[i, 2, :]  # pinky to index vector
+                #screen_normal = np.zeros((3), dtype = "float32")                # normal of screen
+                #screen_normal[:] = (0, (-(-1)**int(is_right)), 0)
+                
+                # normalize vectors
+                w_to_i /= np.linalg.norm(w_to_i)
+                w_to_p /= np.linalg.norm(w_to_p)
+               # w_to_r /= np.linalg.norm(w_to_r)
+                w_to_m /= np.linalg.norm(w_to_m)
 
+                # get normal of hand data as a unit vector
+                hand_normal = np.cross(w_to_i, w_to_m)      # wrist to index and wrist to middle
+                hand_normal /= np.linalg.norm(hand_normal)
+                # new (test) method: getting average of two hand data normals
+                #   little to no noticeable difference; may come back to later
+               # hand_normal_a = np.cross(w_to_i, w_to_r)        # wrist to index and wrist to ring
+               # hand_normal_b = np.cross(w_to_m, w_to_p)        # wrist to middle, wrist to pinky
+                # only normalizing in last step prevents some calculations, but it's likely more accurate to normalize before the last step
+               # hand_normal_a /= np.linalg.norm(hand_normal_a)
+               # hand_normal_b /= np.linalg.norm(hand_normal_b)
+                # set hand normal to be the average of vectors hand_normal_a and hand_normal_b
+               # hand_normal = [ np.average((hand_normal_a[i], hand_normal_b[i])) for i in range(0, 3) ]
+               # hand_normal /= np.linalg.norm(hand_normal)
+
+
+                # theta (hand normal to forearm - 90 degrees)
+                theta = np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm)) - (np.pi/2)
+
+                # get angle between using atan2
+                # can't use the same method used in calc_spher_coords since this uses a different frame of reference,
+                #   that being the use of the forearm as the polar axis, and the other axes defined with the plane defined by
+                #   the three points that are the shoulder, the elbow, and the wrist
+                
+                # phi (hand normal to arm normal)
+                # in this case, the hand shouldn't be able to require more than 180 degrees of movement, as turning the hand more than 90 degrees relative
+                #   to the normal of the arm plane would likely result in injury
+                # currently appears to be non-functional
+                #   might be because of coordinate system differences between that used in this project and that used by numpy by default
+                # swap coord systems (swap y and x)
+               # forearm = (forearm[0], forearm[2], forearm[1])
+               # cross_ua_fa = (cross_ua_fa[0], cross_ua_fa[2], cross_ua_fa[1])
+               # hand_normal = (hand_normal[0], hand_normal[2], hand_normal[1])
+                # normal between forearm and normal between upper arm and forearm
+               # normal_fa_ua_fa = np.cross(forearm, cross_ua_fa)    # points towards body
+               # normal_fa_ua_fa /= np.linalg.norm(normal_fa_ua_fa)
+                # perpendicular component of hand normal relative to forearm
+                #   used to get phi for the hand
+               # hand_normal_perp = hand_normal - np.dot((np.dot(hand_normal, forearm) / np.dot(forearm, forearm)), forearm)
+               # hand_normal_perp /= np.linalg.norm(hand_normal_perp)
+                # calc phi
+               # phi = np.arctan2(np.linalg.norm(np.cross(normal_fa_ua_fa, hand_normal_perp)), np.dot(normal_fa_ua_fa, hand_normal_perp))
+
+                
+                # check if palm facing away from camera
+                #   done by checking if angle between hand normal and screen normal > 90 degrees; if so, hand is pointing away from screen
+                #if np.abs(np.arctan2(np.linalg.norm(np.cross(hand_normal, forearm)), np.dot(hand_normal, forearm))) > (np.pi / 2):
+                #    phi = -phi
+
+
+                ## calculate phi for the hand relative to where the hand is pointing and the screen normal
+                # ref axis is cross between wrist to middle knuckle and screen normal, and should always be coplanar w/ the zx plane
+                ref_axis = np.cross((0, 1, 0), w_to_m)
+                # actually, to get it relative to the plane of which both parts of the arm are coplanar, we should just need to
+                #   replace the screen normal with the normal of that plane:
+               # ref_axis = np.cross(cross_ua_fa, w_to_m)    # doesn't work?
+                ref_axis /= np.linalg.norm(ref_axis)
+                # perpendicular component of the hand normal w/ respect to the wrist to middle knuckle vector as the polar axis
+               # hand_perp_comp = hand_normal - np.dot(( np.dot(hand_normal, w_to_m) / np.dot(w_to_m, w_to_m) ), w_to_m)
+                # angle between perpendicular component and reference axis
+                #   phi should equal 0 when hand normal is in line w the reference axis (i.e. toward body when arm is in L shape)
+                #   and should equal pi (180 deg) when facing away from body (when arm in L shape)
+                if is_right:    # handle differences between right hand and left hand
+                    # if is right hand, reverse the order of the cross product to get the reverse of the resultant vector, 
+                    #   since the right hand system is essentially a reflection of the left hand system
+                    phi = 2*np.pi - np.arctan2(np.linalg.norm(np.cross(hand_normal, ref_axis)), np.dot(hand_normal, ref_axis))
+                   # phi = 2*np.pi - np.arctan2(np.linalg.norm(np.cross(ref_axis, hand_perp_comp)), np.dot(hand_perp_comp, ref_axis))
+                   # phi = 2*np.pi - phi
+                else:
+                    phi = np.arctan2(np.linalg.norm(np.cross(hand_normal, ref_axis)), np.dot(hand_normal, ref_axis))
+                # check if palm is facing away from camera
+                #   done by checking if angle between screen normal and hand normal > 90 degrees
+                #if (np.arctan2(np.linalg.norm(np.cross(hand_normal, (0, 1, 0))), hand_normal[1]) > (np.pi / 2)):#np.dot(hand_normal, (0, 1, 0)))):
+                # checking the sign of a coordinate can be used for checking if the angle between a given vector and the coordinate axis is greater or lesser than 90 degrees, which is what's done here
+                if (hand_normal[1] > 0):
+                    phi = 2*np.pi - phi    # if palm facing away from camera, subtract from full 360 deg rotation to get actual phi
+                # check if hand is pointing down (not hand normal, but the hand itself).
+                #   this is done separate from the previous check so that both may be done, rather than only one, for any given frame.
+               # if (w_to_m[2] > 0):
+               #     phi = (phi + np.pi) % (2*np.pi)
+
+                # correction/offset for right hand, to make it the effectively the same as left, just reflected
+               # if is_right:
+                #    phi = (phi + (np.pi / 2)) % 2*np.pi
+               #     phi = 2*np.pi - phi
+
+                
+                # don't set new values if output of np.arctan2 is "nan" (i.e. "undefined", or rather, dealing with infinity)
+                #   these values can pop up sometimes (i.e. edge cases), for example when using arctan to try to find a 90 degree angle.
+                #   doing things this way means we don't have to deal with several more if statements, thus higher operational efficiency
+                #   with minimal loss, as these would be edge cases, especially considering the stochasticity of the system involved.
+                if not (theta == np.nan):
+                    self.hand_orientation[i, 1] = np.rad2deg(theta)
+                if not (phi == np.nan):
+                    self.hand_orientation[i, 0] = np.rad2deg(phi)
+            
+                #if not is_right:
+                #DEBUG
+                #if is_right:
+                #    print("\nAngle between hand and forearm (right): \tPhi: %s\tTheta: %s\n" % (self.hand_orientation[1, 0], self.hand_orientation[1, 1]))
+                #if not is_right:
+                #    print("\nAngle between hand and forearm (left): \tPhi: %s\tTheta: %s\n" % (self.hand_orientation[0, 0], self.hand_orientation[0, 1]))
+                    #print(ref_axis)
+
+            self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
 
         except Exception as e:
             print("extrapolation.py: ERROR in `calc_hand_orientation()`: %s\n" % str(e))
-
-    # get depth for hand parts (for one hand)
-    # TODO: combine this with set_depth()
-    # (unfinished; time constraints)
-    def set_hand_depth(self, is_right = False):
-        try:
-            # go thru all vertices for hand
-            for i in range(0, 4):#len(self.hand_mp_out)):
-                
-                wrist_loc = self.hand_mp_out[is_right, 0]
-                index_loc = self.hand_mp_out[is_right, 1]
-                pinky_loc = self.hand_mp_out[is_right, 2]
-                thumb_loc = self.hand_mp_out[is_right, 3]
-
-                
-
-
-        except Exception as e:
-            print("extrapolation.py: ERROR in `set_hand_depth()`: %s\n" % str(e))
-
 
 
 
@@ -1567,7 +1712,7 @@ class Extrapolate_forces():
 
 
 
-    ### FORCES CALCULATIONS
+    ### ANGLES CALCULATIONS
 
     # calculate elbow angle
     def calc_elbow_angle(self, right_side = False):
@@ -1578,16 +1723,16 @@ class Extrapolate_forces():
             z = self.mediapipe_data_output[(0 + (int)(right_side)):(5 + (int)(right_side)):2, 2]
 
             # DEBUG
-            if not right_side:
-                print("extrapolation.py: DEPTH OF LEFT ELBOW: " + str(y[1]))
+            #if not right_side:
+                #print("extrapolation.py: DEPTH OF LEFT ELBOW: " + str(y[1]))
 
             #shoulder = self.mediapipe_data_output[(0 + (int)(right_side))]
             #elbow = self.mediapipe_data_output[(2 + (int)(right_side))]
             #wrist = self.mediapipe_data_output[(4 + (int)(right_side))]
 
-            # get unit vectors representing upper and lower arm
-            vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]
-            vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]
+            # get unit vectors representing upper and lower arm (pointing away from elbow)
+            vector_a = [(x[0] - x[1]), (y[0] - y[1]), (z[0] - z[1])]    # upper arm
+            vector_b = [(x[2] - x[1]), (y[2] - y[1]), (z[2] - z[1])]    # lower arm
             vector_a = vector_a / np.linalg.norm(vector_a)  # turn into unit vector
             vector_b = vector_b / np.linalg.norm(vector_b)  # turn into unit vector
 
@@ -1611,8 +1756,11 @@ class Extrapolate_forces():
 
             # calculate angle at elbow
             #elbow_angle = np.arccos( np.clip( ( ((vector_a[0] * vector_b[0]) + (vector_a[1] * vector_b[1]) + (vector_a[2] * vector_b[2])) / (vector_a_mag * vector_b_mag) ), -1, 1) )#[0] )
+            
             # using arctan2
-            self.elbow_angles[(int)(right_side)] = np.arctan2(np.linalg.norm(np.cross(vector_a, vector_b)), np.dot(vector_a, vector_b))
+            cross_ua_fa = np.cross(vector_a, vector_b)
+            cross_ua_fa /= np.linalg.norm(cross_ua_fa)
+            self.elbow_angles[(int)(right_side)] = np.arctan2(np.linalg.norm(cross_ua_fa), np.dot(vector_b, vector_a))
 
 
             # trying with quaternion stuff instead
@@ -1649,32 +1797,110 @@ class Extrapolate_forces():
 
             #return elbow_angle
 
+            # call calc_hand_orientation from here to prevent need to recalculate vector_b
+            self.calc_hand_orientation(right_side, vector_b, cross_ua_fa)
+
         except:
             print("extrapolation.py: ERROR in `calc_elbow_angle()`")
 
     # get spherical coordinates for each of the 3 vertices (bodyparts) of interest
     # vertex_one is the anchor point, and vertex_two is calculated based on its anchor
     # NOTE: x is horizontal, z is up and down, y is forward and backwards (in the coordinate system we're using; comes from past version of program)
-    def calc_spher_coords(self, vertex_one, vertex_two):    
-        try:
-            # effectively sets origin to cur_anchor
-            x_diff = self.mediapipe_data_output[vertex_two][0] - self.mediapipe_data_output[vertex_one][0]
-            y_diff = self.mediapipe_data_output[vertex_two][1] - self.mediapipe_data_output[vertex_one][1]
-            z_diff = self.mediapipe_data_output[vertex_two][2] - self.mediapipe_data_output[vertex_one][2]
+    #def calc_spher_coords(self, vertex_one, vertex_two):    
+    #    try:
+            # basically one dimensional vectors
+    #        x_diff = self.mediapipe_data_output[vertex_two][0] - self.mediapipe_data_output[vertex_one][0]
+    #        y_diff = self.mediapipe_data_output[vertex_two][1] - self.mediapipe_data_output[vertex_one][1]
+    #        z_diff = self.mediapipe_data_output[vertex_two][2] - self.mediapipe_data_output[vertex_one][2]
 
             #rho = np.sqrt((x_diff ** 2) + (y_diff ** 2) + (z_diff ** 2))
             #print("test")
-            rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
+    #        rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
             #print("%s", rho)
             # division by zero is fine here for now, since it returns infinity, and np.arctan(infinity) = 90 degrees
-            theta = np.arctan(x_diff / y_diff)                   # swapped x and y due to equations having different Cartesian coordinate system layout
-            #print(theta)
+    #        phi = np.arctan(x_diff / y_diff)                   # swapped x and y due to equations having different Cartesian coordinate system layout
+            #print(phi)
             # NOTE: find better way to do this (preferably without "if" statements)
             # ensure the argument for np.arccos() is always less than or equal to 1
-            phi = np.arccos(np.clip((z_diff / rho), -1, 1))
-            #print(phi)
+    #        theta = np.arccos(np.clip((z_diff / rho), -1, 1))
+            #print(theta)
+            
+            # DEBUG
+    #        if vertex_one == 2: # left elbow
+    #            print("Forearm spherical coords: (%s, %s, %s)" % (rho, theta, phi))
 
-            return [rho, theta, phi]
+    #        return [rho, theta, phi]
+    #    except:
+    #        print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
+
+    # new version of calc_spher_coords (using up as axis)
+    def calc_spher_coords(self, is_right, vertex_one, vertex_two):
+        try:
+            # get vector from given vertices/points
+            vector = self.mediapipe_data_output[vertex_two] - self.mediapipe_data_output[vertex_one]
+
+            # swap coord systems (numpy coord system and ours swap the z and y axes)
+            #vector = (vector[0], vector[2], vector[1])
+
+            # use up vector as polar axis
+            #z_axis = (0, 0, 1)
+            x_axis = ((-1)**(int(is_right)), 0, 0)  # x axis is -1 if is_right is True (i.e. (-1)^(1)), or 1 if False (i.e. (-1)^(0))
+
+            vector /= np.linalg.norm(vector)    # turn to unit vector
+
+            rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
+
+            # using atan2 to get angle between polar axis (z axis) and current body segment
+            #theta = np.arctan2(np.linalg.norm(np.cross(z_axis, vector)), np.dot(z_axis, vector))
+
+            #phi = np.arccos(vector[1] / rho)
+            # calculate phi; right now, this only has a range of 180 degrees in front of the anchor (i.e. vertex_two).abs
+            #   to fix this, check if vertex is in front of or behind other vertex; if behind, multiply by -1 to get full range (i.e. 0 to -pi and 0 to pi)
+           # phi = np.arctan2(vector[1], vector[0])    # using extrapolated depth (y) and x to get phi
+            phi = np.arctan2(np.linalg.norm(np.cross(vector, x_axis)), np.dot(vector, x_axis))
+
+            # check if phi should be reversed
+            #if vector[1] <= 0:  # check if y (depth) coordinate is less than 0 to check if pointing forwards or backwards
+            #    phi = 2 * np.pi - phi
+            
+            # calculate phi after calculating theta; 
+            # now getting difference in angle between theta (as a unit vector) and the unit vector itself
+            # doing this since atan2 gets angle between in 3D coords, we want it in 2D coords with as few calculations as possible
+            #u_theta = (np.cos(theta), 0, np.sin(theta))   # already a unit vector, so no need to divide by the norm
+            #phi = np.arctan2(np.linalg.norm(np.cross(u_theta, vector)), np.dot(u_theta, vector))
+            # this one doesn't work because going directly between the two vectors (as is done here) avoids the arc
+            # representing the angle we're actually looking for; it takes the shortest path, not the path we're looking for
+
+            # calculate phi by discarding the z component of vector and getting the angle between the remaining vector and x-axis
+            #vector = (vector[0], vector[1], 0)
+            #vector /= np.linalg.norm(vector)    # get new unit vector
+            #phi = np.arctan2(np.linalg.norm(np.cross(x_axis, vector)), np.dot(x_axis, vector))
+
+            # with help from https://gamedev.stackexchange.com/questions/87305/how-do-i-convert-from-cartesian-to-spherical-coordinates#87307
+            # since we're using the z-axis as the polar axis and the x-axis as the reference axis for phi,
+            # we can actually do this fairly simply as follows:
+            #phi = np.arctan2(vector[1], vector[0])
+            theta = np.arctan2(np.sqrt(vector[0]**2 + vector[1]**2), vector[2])
+
+            
+            # DEBUG
+            #if not is_right: # left elbow anchor => upper arm
+            #    segment = "<segment>"
+            #    match vertex_one:
+            #        case 0:
+            #            segment = "\nLeft upper arm"
+            #        case 1:
+            #            segment = "\nRight upper arm"
+            #        case 2:
+            #            segment = "Left lower arm"
+            #        case 3:
+            #            segment = "Right lower arm"
+            #        case _:
+            #            segment = segment
+                
+            #    print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(phi), np.rad2deg(theta)))
+
+            return [rho, (theta - (np.pi/2)), phi]  # subtract 90 deg from theta for use in forces calculations
         except:
             print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
 
@@ -1700,8 +1926,9 @@ class Extrapolate_forces():
 
             # run through once for left, once for right
             for is_right in [0, 1]:
-                # only calculate the following if the elbow angle exists
+                # get elbow angle data
                 elbow_angle = self.elbow_angles[int(is_right)]
+
                 if math.isnan(elbow_angle):
                     return math.nan                                         # if elbow_angle == nan, exit function by returning nan
 
@@ -1710,8 +1937,8 @@ class Extrapolate_forces():
 
                 # get spherical coordinate data for arm segments
                 try:
-                    uarm_spher_coords = self.calc_spher_coords((L_SHOULDER + (int)(is_right)), (L_ELBOW + (int)(is_right)))
-                    farm_spher_coords = self.calc_spher_coords((L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
+                    uarm_spher_coords = self.calc_spher_coords(bool(is_right), (L_SHOULDER + (int)(is_right)), (L_ELBOW + (int)(is_right)))
+                    farm_spher_coords = self.calc_spher_coords(bool(is_right), (L_ELBOW + (int)(is_right)), (L_WRIST + (int)(is_right)))
                 except:
                     print("extrapolation.py: ERROR calculating spherical coords in `calc_bicep_force()`")
 
@@ -1726,17 +1953,22 @@ class Extrapolate_forces():
                 except:
                     print("extrapolation.py: ERROR calculating metrics in `calc_bicep_force()`")
 
-                # angles
+                # angles calculations
                 try:
                     #theta_arm = (np.pi / 2) - farm_spher_coords[THETA]          # angle at shoulder
-                    theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]         # angle of upper arm
-                    theta_u = elbow_angle#theta_arm + theta_uarm                # angle at elbow
-                    theta_b = np.pi - ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.sin(theta_u) ) )      # angle at bicep insertion point
-                    theta_la = np.cos(theta_uarm) #theta_u - theta_arm - np.pi) #np.sin(theta_uarm)        # angle used for leverage arms fa and bal
-                except:
-                    print("extrapolation.py: ERROR calculating angles in `calc_bicep_force()`")
+                    #theta_arm = farm_spher_coords[THETA]
+                    #theta_uarm = (np.pi / 2) + uarm_spher_coords[theta]         # angle of upper arm
+                    theta_uarm = uarm_spher_coords[THETA]
+                    #theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]
+                    theta_u = elbow_angle #theta_arm + theta_uarm                # angle at elbow
+                    theta_b = np.pi - np.arccos( (b - u * np.cos(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) )  #np.sin(theta_u) ) )      # angle at bicep insertion point
+                    #theta_b = np.pi - np.arccos( np.clip( ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) ), -1, 1 ) )  #np.sin(theta_u) ) )      # angle at bicep insertion point
+                    theta_la = np.cos(theta_uarm)   # theta_uarm should = theta_u - theta_arm
+                    #theta_la = np.sin(theta_u - theta_arm - (np.pi/2))     #np.cos(theta_uarm) #np.sin(theta_uarm)        # used for leverage arms fa and bal
+                except Exception as e:
+                    print("extrapolation.py: ERROR calculating angles in `calc_bicep_force()`: %s" % e)
 
-                # lever arms
+                # lever arms calculations
                 try:
                     la_fa = cgf * theta_la                                      # forearm lever arm
                     la_bal = f * theta_la                                       # ball lever arm
@@ -1755,21 +1987,18 @@ class Extrapolate_forces():
                     left_elbow_angle = elbow_angle
                     left_bicep_force = force_bicep
 
-
-
-
-            # set/return data in dictionary format
-            self.calculated_data = {
-                "right_bicep_force": str("%0.2f" % right_bicep_force),
-                "right_elbow_angle": str("%0.2f" % np.rad2deg(right_elbow_angle)),
-                "left_bicep_force": str("%0.2f" % left_bicep_force),
-                "left_elbow_angle": str("%0.2f" % np.rad2deg(left_elbow_angle)),
-                "uarm_spher_coords": str(uarm_spher_coords),
-                "farm_spher_coords": str(farm_spher_coords)
-            }
             #print("%0.2f" % force_bicep)
+            
+            # update spherical coords data in output data object
+            self.calculated_data['farm_spher_coords'] = farm_spher_coords
+            self.calculated_data['uarm_spher_coords'] = uarm_spher_coords
 
-            return self.calculated_data
+            # return calculated data in the form of an array
+            return [
+                    right_bicep_force, np.rad2deg(right_elbow_angle), 
+                    left_bicep_force, np.rad2deg(left_elbow_angle)#,
+                    #uarm_spher_coords, farm_spher_coords
+                ]
         except:
             print("extrapolation.py: ERROR in `calc_bicep_force()`")
 
