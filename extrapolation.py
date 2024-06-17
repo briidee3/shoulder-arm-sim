@@ -745,10 +745,10 @@ class Extrapolate_forces():
             
                 #if not is_right:
                 #DEBUG
-                if is_right:
-                    print("\nAngle between hand and forearm (right): \tPhi: %s\tTheta: %s\n" % (self.hand_orientation[1, 0], self.hand_orientation[1, 1]))
-                if not is_right:
-                    print("\nAngle between hand and forearm (left): \tPhi: %s\tTheta: %s\n" % (self.hand_orientation[0, 0], self.hand_orientation[0, 1]))
+                #if is_right:
+                #    print("\nAngle between hand and forearm (right): \tPhi: %s\tTheta: %s\n" % (self.hand_orientation[1, 0], self.hand_orientation[1, 1]))
+                #if not is_right:
+                #    print("\nAngle between hand and forearm (left): \tPhi: %s\tTheta: %s\n" % (self.hand_orientation[0, 0], self.hand_orientation[0, 1]))
                     #print(ref_axis)
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
@@ -949,20 +949,20 @@ class Extrapolate_forces():
             
             # DEBUG
             #if not is_right: # left elbow anchor => upper arm
-            segment = "<segment>"
-            match vertex_one:
-                case 0:
-                    segment = "\nLeft upper arm"
-                case 1:
-                    segment = "\nRight upper arm"
-                case 2:
-                    segment = "Left lower arm"
-                case 3:
-                    segment = "Right lower arm"
-                case _:
-                    segment = segment
-            
-            #print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(phi), np.rad2deg(theta)))
+            #    segment = "<segment>"
+            #    match vertex_one:
+            #        case 0:
+            #            segment = "\nLeft upper arm"
+            #        case 1:
+            #            segment = "\nRight upper arm"
+            #        case 2:
+            #            segment = "Left lower arm"
+            #        case 3:
+            #            segment = "Right lower arm"
+            #        case _:
+            #            segment = segment
+                
+            #    print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(phi), np.rad2deg(theta)))
 
             return [rho, (theta - (np.pi/2)), phi]  # subtract 90 deg from theta for use in forces calculations
         except:
