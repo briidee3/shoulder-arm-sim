@@ -154,7 +154,7 @@ class Extrapolate_forces():
         self.biacromial_scale = 0.23            # temporarily set to middle of male (0.234) to female (0.227) range for testing
 
         # ndarray to store mediapipe data output, even if from other process(es)
-        self.mediapipe_data_output = np.zeros((10, 3), dtype = "float32")
+        self.mediapipe_data_output = np.zeros((10, 3), dtype = "float32")                               # holds coordinates (i.e. points) for each vertex (bodypart)
 
         # ndarray to store mediapipe hand data output
         self.hand_mp_out = np.zeros((2,5,3), dtype = "float32")
@@ -604,6 +604,12 @@ class Extrapolate_forces():
                         #print(self.vertex_order[i][j])
                         #print(self.vertex_order[i][j + 1])
                         #if self.vertex_order[i][j] != self.vertex_order[i][-1]:  # if current vertex isn't the last in the set
+
+                        # check if current vertex is in front of or behind previous node
+                        is_behind = False
+                        if (self.mediapipe_data_output[self.vertex_order[i][j + 1]][1] < self.mediapipe_data_output[self.vertex_order[i][j]][1]):   # if current vertex y < prev vertex y, current vertex is behind prev vertex
+                            is_behind = True
+
                         # calculate depth for vertex pair
                         y_dist_between_vertices = self.get_depth(self.vertex_order[i][j], self.vertex_order[i][j + 1])          # calculate depth
                         
@@ -612,8 +618,9 @@ class Extrapolate_forces():
                             y_dist_between_vertices = 0                             # set all nan values to 0
 
                         # add previous anchor vertex (if not first in set)
-                        if self.vertex_order[i][j] > 0:   # if not L_SHOULDER
-                            vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices      # add y depth of anchor (previous node) to current
+                        if self.vertex_order[i][j] > 0:   # if anchor/prev vertex is not L_SHOULDER
+                            # add y depth of anchor (previous node) to current
+                            vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices * (-1)**(int(is_behind))        # multiply y_dist_between_vertices by -1 if current vertex is behind prev vertex
                         else:
                             vertex_y = y_dist_between_vertices
 
@@ -623,8 +630,8 @@ class Extrapolate_forces():
             # calculate elbow angle for both arms
             self.calc_elbow_angle(right_side = False)    # left
             self.calc_elbow_angle(right_side = True)     # right
-        except:
-            print("extrapolation.py: ERROR in set_depth()")
+        except Exception as e:
+            print("extrapolation.py: ERROR in set_depth(): \n\t%s" % str(e))
 
 
 
@@ -865,11 +872,11 @@ class Extrapolate_forces():
 
             #return elbow_angle
 
-            # call calc_hand_orientation from here to prevent need to recalculate vector_b
-            self.calc_hand_orientation(right_side, vector_b, cross_ua_fa)
+            # call calc_hand_orientation from here to prevent need to recalculate vector_b (which represents the forearm)
+            self.calc_hand_orientation(right_side, vector_b)
 
-        except:
-            print("extrapolation.py: ERROR in `calc_elbow_angle()`")
+        except Exception as e:
+            print("extrapolation.py: ERROR in `calc_elbow_angle()`: \n\t%s" % str(e))
 
     # get spherical coordinates for each of the 3 vertices (bodyparts) of interest
     # vertex_one is the anchor point, and vertex_two is calculated based on its anchor
@@ -952,21 +959,21 @@ class Extrapolate_forces():
 
             
             # DEBUG
-            #if not is_right: # left elbow anchor => upper arm
-            #    segment = "<segment>"
-            #    match vertex_one:
-            #        case 0:
-            #            segment = "\nLeft upper arm"
-            #        case 1:
-            #            segment = "\nRight upper arm"
-            #        case 2:
-            #            segment = "Left lower arm"
-            #        case 3:
-            #            segment = "Right lower arm"
-            #        case _:
-            #            segment = segment
+            if not is_right: # left elbow anchor => upper arm
+                segment = "<segment>"
+                match vertex_one:
+                    case 0:
+                        segment = "\nLeft upper arm"
+                    case 1:
+                        segment = "\nRight upper arm"
+                    case 2:
+                        segment = "Left lower arm"
+                    case 3:
+                        segment = "Right lower arm"
+                    case _:
+                        segment = segment
                 
-            #    print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(phi), np.rad2deg(theta)))
+                print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(phi), np.rad2deg(theta)))
 
             return [rho, (theta - (np.pi/2)), phi]  # subtract 90 deg from theta for use in forces calculations
         except:
