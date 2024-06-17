@@ -600,6 +600,10 @@ class Extrapolate_forces():
             # go thru 2d array of vertex order
             for i in range(0, len(self.vertex_order)):  # for each set of vertices denoting body segments
                 #print("vertices: " + str(i))
+
+                # save raw y coordinate of prev vertex for use checking if in front of or behind current/next vertex
+                prev_raw = self.mediapipe_data_output[self.vertex_order[i][0]][1]
+
                 for j in range(0, (len(self.vertex_order[i]) - 1)):   # for each vertex in set of vertices (except the last one)
                         #print(self.vertex_order[i][j])
                         #print(self.vertex_order[i][j + 1])
@@ -607,8 +611,10 @@ class Extrapolate_forces():
 
                         # check if current vertex is in front of or behind previous node
                         is_behind = False
-                        if (self.mediapipe_data_output[self.vertex_order[i][j + 1]][1] < self.mediapipe_data_output[self.vertex_order[i][j]][1]):   # if current vertex y < prev vertex y, current vertex is behind prev vertex
+                        if ((self.mediapipe_data_output[self.vertex_order[i][j + 1]][1] - prev_raw) < 0):   # if (current vertex y - prev vertex y) < 0, current vertex is behind prev vertex
                             is_behind = True
+                        # update prev_raw with raw y of current vertex for use in next cycle of the loop
+                        prev_raw = self.mediapipe_data_output[self.vertex_order[i][j + 1]][1]
 
                         # calculate depth for vertex pair
                         y_dist_between_vertices = self.get_depth(self.vertex_order[i][j], self.vertex_order[i][j + 1])          # calculate depth
@@ -919,7 +925,10 @@ class Extrapolate_forces():
 
             # use up vector as polar axis
             #z_axis = (0, 0, 1)
-            x_axis = ((-1)**(int(is_right)), 0, 0)  # x axis is -1 if is_right is True (i.e. (-1)^(1)), or 1 if False (i.e. (-1)^(0))
+
+            # use x axis for getting phi
+            #   x axis is negative if is_right is True (i.e. (-1)^(1)), or positive if False (i.e. (-1)^(0)), to account for difference between left and right side
+            x_axis = ((-1)**(int(is_right)), 0, 0)
 
             vector /= np.linalg.norm(vector)    # turn to unit vector
 
@@ -930,9 +939,10 @@ class Extrapolate_forces():
 
             #phi = np.arccos(vector[1] / rho)
             # calculate phi; right now, this only has a range of 180 degrees in front of the anchor (i.e. vertex_two).abs
-            #   to fix this, check if vertex is in front of or behind other vertex; if behind, multiply by -1 to get full range (i.e. 0 to -pi and 0 to pi)
+            #   to fix this, the last bit checks if vertex is in front of or behind the prev vertex; if behind, multiply by -1 to get full range (i.e. 0 to -pi and 0 to pi).
+            #   this is required because by using the cross product here we only get a range of 0 to pi, not 0 to 2pi.
            # phi = np.arctan2(vector[1], vector[0])    # using extrapolated depth (y) and x to get phi
-            phi = np.arctan2(np.linalg.norm(np.cross(vector, x_axis)), np.dot(vector, x_axis))
+            phi = np.arctan2(np.linalg.norm(np.cross(vector, x_axis)), np.dot(vector, x_axis)) * (-1)**(int(vector[1] < 0))
 
             # check if phi should be reversed
             #if vector[1] <= 0:  # check if y (depth) coordinate is less than 0 to check if pointing forwards or backwards
@@ -952,9 +962,10 @@ class Extrapolate_forces():
             #phi = np.arctan2(np.linalg.norm(np.cross(x_axis, vector)), np.dot(x_axis, vector))
 
             # with help from https://gamedev.stackexchange.com/questions/87305/how-do-i-convert-from-cartesian-to-spherical-coordinates#87307
-            # since we're using the z-axis as the polar axis and the x-axis as the reference axis for phi,
-            # we can actually do this fairly simply as follows:
-            #phi = np.arctan2(vector[1], vector[0])
+            #   since we're using the z-axis as the polar axis and the x-axis as the reference axis for phi,
+            #   we can actually do this fairly simply as follows below;
+            #theta = np.arctan2(vector[1], vector[0])
+            #theta = np.arctan2(np.linalg.norm(np.cross(vector, z_axis)), np.dot(vector, z_axis))   # equivalent to the one used below
             theta = np.arctan2(np.sqrt(vector[0]**2 + vector[1]**2), vector[2])
 
             
