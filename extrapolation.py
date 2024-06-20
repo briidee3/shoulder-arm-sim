@@ -733,6 +733,13 @@ class Extrapolate_forces():
                                                                                          self.right_elbow_xyz[0], self.right_elbow_xyz[2], self.right_shoulder_xyz[0], self.right_shoulder_xyz[1], 
                                                                                          self.right_shoulder_xyz[2])
                 
+                
+                self.is_left_arm_in_plane = self.check_arm_in_plane(self.left_elbow_xyz[0], self.left_elbow_xyz[2], self.left_shoulder_xyz[0], self.left_shoulder_xyz[2], self.left_wrist_xyz[0], self.left_wrist_xyz[2])
+                
+                
+                
+                
+                
                 self.write_to_file('values.txt', self.left_hip_xyz, self.right_hip_xyz, self.left_shoulder_xyz, self.right_shoulder_xyz, self.left_elbow_xyz, self.right_elbow_xyz, self.left_wrist_xyz, 
                                    self.left_shoulder_angle, self.right_shoulder_angle, self.right_wrist_xyz, self.left_arm_angle, self.right_arm_angle, self.pitch, self.left_arm_force, self.right_arm_force, 
                                    self.left_arm_force_not_in_plane, self.right_arm_force_not_in_plane, self.left_bicep_xyz, self.right_bicep_xyz)
@@ -1518,17 +1525,15 @@ class Extrapolate_forces():
     
 
 
-    def check_arm_in_plane():
+    def check_arm_in_plane(self, xE, zE, xS, zS, xH, zH):
         scope = 0.1
-        torqueBicep = 1
-        torqueFA = 1
-        torqueBall = 1
-
-        result = torqueBicep - torqueFA - torqueBall
-
+        result = ((xE - xS) * (zH - zS)) - ((xH - xS) * (zE - zS))
+        print("check in arm plane result: " + str(result))
         if result <= scope and result >= -scope:
+            print("Arm in plane")
             return True
         else:
+            print("Arm not in plane")
             return False
 
 
