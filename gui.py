@@ -100,7 +100,7 @@ class SimGUI():
         # data to record
         #   must be an array
         #   make sure to update in `update_data()`
-        self.xl_desired_data = [self.hand_data[0, 0]]     # phi for left hand
+        self.xl_desired_data = [0] #[self.hand_data[0, 0]]     # phi for left hand
 
         # start row of spreadsheet
         self.xl_start_row = 5   # starting at 5 to give room for things like avg, std dev, and std err
