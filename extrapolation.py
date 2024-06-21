@@ -924,7 +924,14 @@ class Extrapolate_forces():
             #vector = (vector[0], vector[2], vector[1])
 
             # use up vector as polar axis
-            #z_axis = (0, 0, 1)
+            z_axis = (0, 0, 1)
+
+            # get rejection of vector from z axis for use getting phi
+           # oproj_z_seg = vector - np.dot((np.dot(vector, z_axis) / np.dot(z_axis, z_axis)), z_axis)
+           # oproj_z_seg /= np.linalg.norm(oproj_z_seg)  # normalize rejection
+            # actually, since it's the z axis, we should be able to just get the perpendicular component by removing the z component and normalizing it
+            vector_xy = np.array([vector[0], vector[1], 0])     # making a new array for this due to need to normalize
+            vector_xy /= np.linalg.norm(vector_xy)              # normalize vector
 
             # use x axis for getting phi
             #   x axis is negative if is_right is True (i.e. (-1)^(1)), or positive if False (i.e. (-1)^(0)), to account for difference between left and right side
@@ -934,6 +941,8 @@ class Extrapolate_forces():
 
             rho = self.bodypart_lengths[VERTEX_TO_SEGMENT[vertex_one][vertex_two]]  # rho = true segment length
 
+            
+
             # using atan2 to get angle between polar axis (z axis) and current body segment
             #theta = np.arctan2(np.linalg.norm(np.cross(z_axis, vector)), np.dot(z_axis, vector))
 
@@ -941,8 +950,12 @@ class Extrapolate_forces():
             # calculate phi; right now, this only has a range of 180 degrees in front of the anchor (i.e. vertex_two).abs
             #   to fix this, the last bit checks if vertex is in front of or behind the prev vertex; if behind, multiply by -1 to get full range (i.e. 0 to -pi and 0 to pi).
             #   this is required because by using the cross product here we only get a range of 0 to pi, not 0 to 2pi.
+            #       the check doesn't work, because PoseLandmarker doesn't seem to be capable of consistently discerning whether one body segment is in front of another.
            # phi = np.arctan2(vector[1], vector[0])    # using extrapolated depth (y) and x to get phi
-            phi = np.arctan2(np.linalg.norm(np.cross(vector, x_axis)), np.dot(vector, x_axis)) * (-1)**(int(vector[1] < 0))
+           # phi = np.arctan2(np.linalg.norm(np.cross(oproj_z_seg, x_axis)), np.dot(oproj_z_seg, x_axis)) * (-1)**(int(vector[1] < 0))
+           # phi = np.arctan2(np.linalg.norm(np.cross(vector_xy, x_axis)), np.dot(vector_xy, x_axis)) * (-1)**(int(vector[1] < 0))
+           # phi = np.arctan2(np.linalg.norm(np.cross(vector, x_axis)), np.dot(vector, x_axis)) * (-1)**(int(vector[1] < 0))
+            phi = np.arctan2(vector_xy[1] * (-1)**(int(vector[1] < 0)), vector_xy[0] * (-1)**(int(is_right)))
 
             # check if phi should be reversed
             #if vector[1] <= 0:  # check if y (depth) coordinate is less than 0 to check if pointing forwards or backwards
@@ -984,7 +997,8 @@ class Extrapolate_forces():
                     case _:
                         segment = segment
                 
-                print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(phi), np.rad2deg(theta)))
+                print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(theta), np.rad2deg(phi)))
+                print("%s depth: %s" % (segment, vector[1]))
 
             return [rho, (theta - (np.pi/2)), phi]  # subtract 90 deg from theta for use in forces calculations
         except:
@@ -1073,11 +1087,12 @@ class Extrapolate_forces():
                     left_elbow_angle = elbow_angle
                     left_bicep_force = force_bicep
 
-            #print("%0.2f" % force_bicep)
+                #print("%0.2f" % force_bicep)
             
-            # update spherical coords data in output data object
-            self.calculated_data['farm_spher_coords'] = farm_spher_coords
-            self.calculated_data['uarm_spher_coords'] = uarm_spher_coords
+                # update spherical coords data in output data object
+                if not is_right:    # only do left side
+                    self.calculated_data['farm_spher_coords'] = farm_spher_coords
+                    self.calculated_data['uarm_spher_coords'] = uarm_spher_coords
 
             # return calculated data in the form of an array
             return [
