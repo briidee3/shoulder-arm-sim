@@ -726,14 +726,17 @@ class Extrapolate_forces():
                 # angle between perpendicular component and reference axis
                 #   phi should equal 0 when hand normal is in line w the reference axis (i.e. toward body when arm is in L shape)
                 #   and should equal pi (180 deg) when facing away from body (when arm in L shape)
-                if is_right:    # handle differences between right hand and left hand
+               # if is_right:    # handle differences between right hand and left hand
                     # if is right hand, reverse the order of the cross product to get the reverse of the resultant vector, 
                     #   since the right hand system is essentially a reflection of the left hand system
-                    phi = 2*np.pi - np.arctan2(np.linalg.norm(np.cross(hand_normal, ref_axis)), np.dot(hand_normal, ref_axis))
+               #     phi = 2*np.pi - np.arctan2(np.linalg.norm(np.cross(hand_normal, ref_axis)), np.dot(hand_normal, ref_axis))
                    # phi = 2*np.pi - np.arctan2(np.linalg.norm(np.cross(ref_axis, hand_perp_comp)), np.dot(hand_perp_comp, ref_axis))
                    # phi = 2*np.pi - phi
-                else:
-                    phi = np.arctan2(np.linalg.norm(np.cross(hand_normal, ref_axis)), np.dot(hand_normal, ref_axis))
+               # else:
+               #     phi = np.arctan2(np.linalg.norm(np.cross(hand_normal, ref_axis)), np.dot(hand_normal, ref_axis))
+                phi = np.arctan2(np.linalg.norm(np.cross(hand_normal, ref_axis)) * (-1)**int(is_right), np.dot(hand_normal, ref_axis))
+                
+                
                 # check if palm is facing away from camera
                 #   done by checking if angle between screen normal and hand normal > 90 degrees
                 #if (np.arctan2(np.linalg.norm(np.cross(hand_normal, (0, 1, 0))), hand_normal[1]) > (np.pi / 2)):#np.dot(hand_normal, (0, 1, 0)))):
@@ -764,8 +767,8 @@ class Extrapolate_forces():
                 #DEBUG
                 #if is_right:
                 #    print("\nAngle between hand and forearm (right): \tPhi: %s\tTheta: %s\n" % (self.hand_orientation[1, 0], self.hand_orientation[1, 1]))
-                #if not is_right:
-                #    print("\nAngle between hand and forearm (left): \tPhi: %s\tTheta: %s\n" % (self.hand_orientation[0, 0], self.hand_orientation[0, 1]))
+                if not is_right:
+                    print("\nAngle between hand and forearm (left): \tPhi: %s\tTheta: %s\n" % (self.hand_orientation[0, 0], self.hand_orientation[0, 1]))
                     #print(ref_axis)
 
             self.hand_check[i] = hand_check     # update hand check for use next timestep/frame
