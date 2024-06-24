@@ -664,6 +664,13 @@ class Extrapolate_forces():
                 w_to_p /= np.linalg.norm(w_to_p)
                # w_to_r /= np.linalg.norm(w_to_r)
                 w_to_m /= np.linalg.norm(w_to_m)
+                pointing_dir = w_to_m
+
+
+                # instead of using w_to_m, use the average between w_to_i and w_to_p as the pointing direction
+               # pointing_dir = (w_to_i + w_to_p) / 2
+                pointing_dir /= np.linalg.norm(pointing_dir)
+
 
                 # get normal of hand data as a unit vector
                 hand_normal = np.cross(w_to_i, w_to_m)      # wrist to index and wrist to middle
@@ -716,11 +723,11 @@ class Extrapolate_forces():
 
                 ## calculate phi for the hand relative to where the hand is pointing and the screen normal
                 # ref axis is cross between wrist to middle knuckle and screen normal, and should always be coplanar w/ the zx plane
-                ref_axis = np.cross((0, 1, 0), w_to_m)
+                ref_axis = np.cross((0, 1, 0), pointing_dir)
                 # actually, to get it relative to the plane of which both parts of the arm are coplanar, we should just need to
                 #   replace the screen normal with the normal of that plane:
                # ref_axis = np.cross(cross_ua_fa, w_to_m)    # doesn't work?
-                ref_axis /= np.linalg.norm(ref_axis)
+                ref_axis /= np.linalg.norm(ref_axis)    # normalize ref_axis
                 # perpendicular component of the hand normal w/ respect to the wrist to middle knuckle vector as the polar axis
                # hand_perp_comp = hand_normal - np.dot(( np.dot(hand_normal, w_to_m) / np.dot(w_to_m, w_to_m) ), w_to_m)
                 # angle between perpendicular component and reference axis
@@ -1001,7 +1008,7 @@ class Extrapolate_forces():
                         segment = segment
                 
                 print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(theta), np.rad2deg(phi)))
-                print("%s depth: %s" % (segment, vector[1]))
+                #print("%s depth: %s" % (segment, vector[1]))
 
             return [rho, (theta - (np.pi/2)), phi]  # subtract 90 deg from theta for use in forces calculations
         except:
