@@ -609,13 +609,15 @@ class Extrapolate_forces():
                         #print(self.vertex_order[i][j + 1])
                         #if self.vertex_order[i][j] != self.vertex_order[i][-1]:  # if current vertex isn't the last in the set
 
-                        # check if current vertex is in front of or behind previous node
-                        is_behind = False
-                        if ((self.mediapipe_data_output[self.vertex_order[i][j + 1]][1] - prev_raw) < 0):   # if (current vertex y - prev vertex y) < 0, current vertex is behind prev vertex
-                            is_behind = True
-                        # update prev_raw with raw y of current vertex for use in next cycle of the loop
-                        prev_raw = self.mediapipe_data_output[self.vertex_order[i][j + 1]][1]
 
+                        # check if current vertex is in front of or behind previous node
+                       # is_behind = False
+                       # if ((self.mediapipe_data_output[self.vertex_order[i][j + 1]][1] - prev_raw) < 0):   # if (current vertex y - prev vertex y) < 0, current vertex is behind prev vertex
+                       #     is_behind = True
+                        # update prev_raw with raw y of current vertex for use in next cycle of the loop
+                       # prev_raw = self.mediapipe_data_output[self.vertex_order[i][j + 1]][1]
+
+                        
                         # calculate depth for vertex pair
                         y_dist_between_vertices = self.get_depth(self.vertex_order[i][j], self.vertex_order[i][j + 1])          # calculate depth
                         
@@ -626,7 +628,7 @@ class Extrapolate_forces():
                         # add previous anchor vertex (if not first in set)
                         if self.vertex_order[i][j] > 0:   # if anchor/prev vertex is not L_SHOULDER
                             # add y depth of anchor (previous node) to current
-                            vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices * (-1)**(int(is_behind))        # multiply y_dist_between_vertices by -1 if current vertex is behind prev vertex
+                            vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices #* (-1)**(int(is_behind))        # multiply y_dist_between_vertices by -1 if current vertex is behind prev vertex
                         else:
                             vertex_y = y_dist_between_vertices
 
