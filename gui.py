@@ -113,7 +113,7 @@ class SimGUI():
         # time at which current recording should end
         self.xl_cur_end_time = 0
         # length (in seconds) of recording trials
-        self.xl_trial_length = 10
+        self.xl_trial_length = 15
 
         # initialize excel spreadsheet
         self.workbook = Workbook()
