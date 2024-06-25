@@ -171,7 +171,7 @@ class Extrapolate_forces():
         # consider changing to float32 or float16
         self.dist_array = np.zeros((10, 10), dtype = "float32")         # indexed by two body part names/indices
         self.max_array = np.zeros((10, 10), dtype = "float32")          # used for storing max distance data
-        self.avg_ratio_array = np.ones((10, 10), dtype = "float32")    # used for storing avg ratio distance between segments
+        self.avg_ratio_array = np.ones((10, 10), dtype = "float32")     # used for storing avg ratio distance between segments
 
         # store elbow angle in memory so it can be calculated right after depth for the given frame is calculated (to prevent syncing issues)
         self.elbow_angles = np.zeros((2), dtype = "float32")            # angle between elbows, coplanar with upperarm and forearm
@@ -207,6 +207,7 @@ class Extrapolate_forces():
         self.cur_frame = 0   # used to keep track of current frame
 
         # put together pairs for each of the vertices
+        """
         # ordered in a particular manner which uses the shoulders as anchors for the elbows, and elbows as anchors for the wrists
         if not self.is_one_arm:                 # only track what needs to be tracked
             self.vertex_order = [
@@ -249,6 +250,43 @@ class Extrapolate_forces():
                     L_WRIST,
                 ]
             ]
+        """
+        # combined left and right vertex order
+        self.vertex_order = [
+            # left and right
+            #   as long as the # left and # right sections below have at least one of the ones from # left and right,
+            #   it should be fine
+            [
+                # hips          # uncomment these to account for hips as well (also see comment below)
+               # [
+               #     L_HIP,
+               #     R_HIP
+               # ],
+                # shoulders
+                [
+               #     L_HIP,     # uncomment this to make L_HIP (left hip) point of origin
+                    L_SHOULDER,
+                    R_SHOULDER
+                ]
+            ],
+            # left
+            [
+                [
+                    L_SHOULDER,
+                    L_ELBOW,
+                    L_WRIST,
+                ]
+            ],
+            # right
+            [
+                [
+                    R_SHOULDER,
+                    R_ELBOW,
+                    R_WRIST,
+                ]
+            ]
+        ]
+
         
         # run initialization functions
         try:
@@ -401,7 +439,7 @@ class Extrapolate_forces():
 
     ### DISTANCE FUNCTIONS:
 
-    # get distance between vertices for current frame
+    # get 2d distance between vertices for current frame
     def calc_dist_between_vertices(self, first_part = 0, second_part = 0, is_hand = False):
         try:
             # calculate distance for parts in current frame
@@ -595,47 +633,60 @@ class Extrapolate_forces():
             print("extrapolation.py: ERROR in `get_depth()`")
 
     # get y axes/depths by order of body parts for the current frame
+    # this is using the old method of calculating depth
     def set_depth(self):
         try:
-            # go thru 2d array of vertex order
-            for i in range(0, len(self.vertex_order)):  # for each set of vertices denoting body segments
-                #print("vertices: " + str(i))
+            # the loops here are for going through all of self.vertex_order, as defined in the __init__ function;
+            #   this sets it up so that the depth value of "previous vertex" (e.g. elbow) is added to the depth value of "current vertex" (e.g. wrist),
+            #   so that the depth value of the "current vertex" reflects how the depth between the two vertices is not the only depth from the point of origin (e.g. shoulder);
+            #   (e.g. if shoulder is 0,0,0, then elbow is depth between shoulder and elbow (+ 0), and wrist is depth between shoulder and elbow + depth between
+            #   elbow and wrist (any of which can be negative, if a functional check for which is in front of the other is added))
 
-                # save raw y coordinate of prev vertex for use checking if in front of or behind current/next vertex
-                prev_raw = self.mediapipe_data_output[self.vertex_order[i][0]][1]
+            # in this case, 0 -> left and right, 1 -> left, 2 -> right     (check the declaration of self.vertex_order in __init__ for more info)
+            for k in range(0, 3):
+                
+                # go thru each ordered set of vertices denoting body segments
+                for i in range(0, len(self.vertex_order)):
+                    #print("vertices: " + str(i))
 
-                for j in range(0, (len(self.vertex_order[i]) - 1)):   # for each vertex in set of vertices (except the last one)
-                        #print(self.vertex_order[i][j])
-                        #print(self.vertex_order[i][j + 1])
-                        #if self.vertex_order[i][j] != self.vertex_order[i][-1]:  # if current vertex isn't the last in the set
+                    # save raw y coordinate of prev vertex
+                    #   for use checking if in front of or behind current/next vertex
+                    prev_raw = self.mediapipe_data_output[self.vertex_order[k][i][0]][1]
+
+                    # go thru the order of pairs as set in vertex_order
+                    for j in range(0, (len(self.vertex_order[i]) - 1)):   # for each vertex in set of vertices (except the last one)
+                            #print(self.vertex_order[i][j])
+                            #print(self.vertex_order[i][j + 1])
+                            #if self.vertex_order[i][j] != self.vertex_order[i][-1]:  # if current vertex isn't the last in the set
 
 
-                        # check if current vertex is in front of or behind previous node
-                       # is_behind = False
-                       # if ((self.mediapipe_data_output[self.vertex_order[i][j + 1]][1] - prev_raw) < 0):   # if (current vertex y - prev vertex y) < 0, current vertex is behind prev vertex
-                       #     is_behind = True
-                        # update prev_raw with raw y of current vertex for use in next cycle of the loop
-                       # prev_raw = self.mediapipe_data_output[self.vertex_order[i][j + 1]][1]
+                            # check if current vertex is in front of or behind previous node
+                        # is_behind = False
+                        # if ((self.mediapipe_data_output[self.vertex_order[i][j + 1]][1] - prev_raw) < 0):   # if (current vertex y - prev vertex y) < 0, current vertex is behind prev vertex
+                        #     is_behind = True
+                            # update prev_raw with raw y of current vertex for use in next cycle of the loop
+                        # prev_raw = self.mediapipe_data_output[self.vertex_order[i][j + 1]][1]
 
-                        
-                        # calculate depth for vertex pair
-                        y_dist_between_vertices = self.get_depth(self.vertex_order[i][j], self.vertex_order[i][j + 1])          # calculate depth
-                        
-                        # check if "nan" value
-                        if math.isnan(y_dist_between_vertices):
-                            y_dist_between_vertices = 0                             # set all nan values to 0
+                            
+                            # calculate depth between current vertex pair
+                            y_dist_between_vertices = self.get_depth(self.vertex_order[i][j], self.vertex_order[i][j + 1])          # calculate depth
+                            
+                            # check if "nan" value
+                            if math.isnan(y_dist_between_vertices):
+                                y_dist_between_vertices = 0                             # set all nan values to 0
 
-                        # add previous anchor vertex (if not first in set)
-                        if self.vertex_order[i][j] > 0:   # if anchor/prev vertex is not L_SHOULDER
-                            # add y depth of anchor (previous node) to current
-                            vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices #* (-1)**(int(is_behind))        # multiply y_dist_between_vertices by -1 if current vertex is behind prev vertex
-                        else:
-                            vertex_y = y_dist_between_vertices
+                            # add previous anchor vertex (if not first in set)
+                            if self.vertex_order[i][j] > 0:
+                                # add y depth of anchor (previous node) to current
+                                vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices #* (-1)**(int(is_behind))        # multiply y_dist_between_vertices by -1 if current vertex is behind prev vertex
+                            else:
+                                vertex_y = y_dist_between_vertices
 
-                        # set depth in current frame of mediapipe data
-                        self.mediapipe_data_output[self.vertex_order[i][j + 1], 1] = vertex_y
+                            # set depth in current frame of mediapipe data
+                            self.mediapipe_data_output[self.vertex_order[i][j + 1], 1] = vertex_y
             
             # calculate elbow angle for both arms
+            #   these each also call calc_hand_orientation from within
             self.calc_elbow_angle(right_side = False)    # left
             self.calc_elbow_angle(right_side = True)     # right
         except Exception as e:
