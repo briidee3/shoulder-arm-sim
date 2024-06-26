@@ -159,7 +159,7 @@ class Extrapolate_forces():
         # ndarray to store mediapipe hand data output
         self.hand_mp_out = np.zeros((2,5,3), dtype = "float32")
         self.hand_check = np.zeros((2), dtype = "float32")              # used to check if hand data updated
-        self.hand_orientation = np.zeros((2, 2), dtype = "float32")     # phi: hand normal and forearm - 90 deg, theta: hand normal and screen normal
+        self.hand_orientation = np.zeros((2, 2), dtype = "float32")     # theta: angle between hand normal and forearm - 90 deg, phi: angle between hand normal and (cross product of screen normal and hand pointing direction)
         
         # store mediapipe face landmarker iris data output
         self.face_mp_out = np.zeros((2,2,3), dtype = "float16")
@@ -645,6 +645,8 @@ class Extrapolate_forces():
             print("extrapolation.py: ERROR in `angle_from_normal()")
 
     # get depth for body part in most recent frame
+    #   vertex_one and vertex_two are the indices which represent which vertex is being referred to
+    #   (e.g. if vertex_one = L_SHOULDER or vertex_one = 0, then the first point will be the left shoulder)
     def get_depth(self, vertex_one = 0, vertex_two = 1, is_hand = False):
         try:
             cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two, is_hand)      # current distance between given parts
@@ -675,7 +677,10 @@ class Extrapolate_forces():
             #   (e.g. if shoulder is 0,0,0, then elbow is depth between shoulder and elbow (+ 0), and wrist is depth between shoulder and elbow + depth between
             #   elbow and wrist (any of which can be negative, if a functional check for which is in front of the other is added))
 
-            
+            # set vertex/point to be used as origin/anchor point (default is left shoulder)
+            anchor = self.vertex_order[0][0]
+
+
             # go thru each ordered set of vertices denoting body segments
             for i in range(0, len(self.vertex_order)):
                 #print("vertices: " + str(i))
@@ -692,11 +697,11 @@ class Extrapolate_forces():
 
 
                         # check if current vertex is in front of or behind previous node
-                        # is_behind = False
-                        # if ((self.mediapipe_data_output[self.vertex_order[i][j + 1]][1] - prev_raw) < 0):   # if (current vertex y - prev vertex y) < 0, current vertex is behind prev vertex
-                        #     is_behind = True
-                            # update prev_raw with raw y of current vertex for use in next cycle of the loop
-                        # prev_raw = self.mediapipe_data_output[self.vertex_order[i][j + 1]][1]
+                       # is_behind = False
+                       # if ((self.mediapipe_data_output[self.vertex_order[i][j + 1]][1] - prev_raw) < 0):   # if (current vertex y - prev vertex y) < 0, current vertex is behind prev vertex
+                       #     is_behind = True
+                           # update prev_raw with raw y of current vertex for use in next cycle of the loop
+                       # prev_raw = self.mediapipe_data_output[self.vertex_order[i][j + 1]][1]
 
                         
                         # calculate depth between current vertex pair
@@ -707,19 +712,23 @@ class Extrapolate_forces():
                             y_dist_between_vertices = 0                             # set all nan values to 0
 
                         # add previous anchor vertex (if not first in set)
-                        if self.vertex_order[i][j] > 0:
+                       # if self.vertex_order[i][j] != anchor:
                             # add y depth of anchor (previous node) to current
-                            vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices #* (-1)**(int(is_behind))        # multiply y_dist_between_vertices by -1 if current vertex is behind prev vertex
-                        else:
-                            vertex_y = y_dist_between_vertices
+                       #     vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices #* (-1)**(int(is_behind))        # multiply y_dist_between_vertices by -1 if current vertex is behind prev vertex
+                       # else:
+                       #     vertex_y = y_dist_between_vertices
+                        # get the depth of the current vertex (i.e. vertex_order[i][j + 1])
+                        vertex_y = self.mediapipe_data_output[self.vertex_order[i][j]][1] +  y_dist_between_vertices #* (-1)**(int(is_behind))        # multiply y_dist_between_vertices by -1 if current vertex is behind prev vertex
 
-                        # set depth in current frame of mediapipe data
+                        # set depth for current vertex in current frame of mediapipe data
                         self.mediapipe_data_output[self.vertex_order[i][j + 1], 1] = vertex_y
             
+
             # calculate elbow angle for both arms
             #   these each also call calc_hand_orientation from within
             self.calc_elbow_angle(right_side = False)    # left
             self.calc_elbow_angle(right_side = True)     # right
+
         except Exception as e:
             print("extrapolation.py: ERROR in set_depth(): \n\t%s" % str(e))
 
@@ -1080,19 +1089,19 @@ class Extrapolate_forces():
             if not is_right: # left elbow anchor => upper arm
                 segment = "<segment>"
                 match vertex_one:
-                    case 0:
+                    case 0: # left shoulder to elbow
                         segment = "\nLeft upper arm"
-                    case 1:
+                    case 1: # right shoulder to elbow
                         segment = "\nRight upper arm"
-                    case 2:
+                    case 2: # left elbow to wrist
                         segment = "Left lower arm"
-                    case 3:
+                    case 3: # right elbow to wrist
                         segment = "Right lower arm"
-                    case _:
+                    case _: # default
                         segment = segment
                 
                 print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(theta), np.rad2deg(phi)))
-                #print("%s depth: %s" % (segment, vector[1]))
+                print("%s depth: %s" % (segment, vector[1]))
 
             return [rho, (theta - (np.pi/2)), phi]  # subtract 90 deg from theta for use in forces calculations
         except:
@@ -1149,24 +1158,24 @@ class Extrapolate_forces():
 
                 # angles calculations
                 try:
-                    #phi_arm = (np.pi / 2) - farm_spher_coords[PHI]          # angle at shoulder
-                    #phi_arm = farm_spher_coords[PHI]
-                    #phi_uarm = (np.pi / 2) + uarm_spher_coords[PHI]         # angle of upper arm
-                    phi_uarm = uarm_spher_coords[PHI]
-                    #phi_uarm = (np.pi / 2) + uarm_spher_coords[THETA]
-                    phi_u = elbow_angle #phi_arm + phi_uarm                # angle at elbow
-                    phi_b = np.pi - np.arccos( (b - u * np.cos(phi_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(phi_u) ) )  #np.sin(phi_u) ) )      # angle at bicep insertion point
-                    #phi_b = np.pi - np.arccos( np.clip( ( (b - u * np.sin(phi_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(phi_u) ) ), -1, 1 ) )  #np.sin(phi_u) ) )      # angle at bicep insertion point
-                    phi_la = np.cos(phi_uarm)   # phi_uarm should = phi_u - phi_arm
-                    #phi_la = np.sin(phi_u - phi_arm - (np.pi/2))     #np.cos(phi_uarm) #np.sin(phi_uarm)        # used for leverage arms fa and bal
+                    #theta_arm = (np.pi / 2) - farm_spher_coords[THETA]          # angle at shoulder
+                    #theta_arm = farm_spher_coords[THETA]
+                    #theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]         # angle of upper arm
+                    theta_uarm = uarm_spher_coords[THETA]
+                    #theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]
+                    theta_u = elbow_angle #theta_arm + theta_uarm                # angle at elbow
+                    theta_b = np.pi - np.arccos( (b - u * np.cos(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) )  #np.sin(theta_u) ) )      # angle at bicep insertion point
+                    #theta_b = np.pi - np.arccos( np.clip( ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) ), -1, 1 ) )  #np.sin(theta_u) ) )      # angle at bicep insertion point
+                    theta_la = np.cos(theta_uarm)   # theta_uarm should = theta_u - theta_arm
+                    #theta_la = np.sin(theta_u - theta_arm - (np.pi/2))     #np.cos(theta_uarm) #np.sin(theta_uarm)        # used for leverage arms fa and bal
                 except Exception as e:
                     print("extrapolation.py: ERROR calculating angles in `calc_bicep_force()`: %s" % e)
 
                 # lever arms calculations
                 try:
-                    la_fa = cgf * phi_la                                      # forearm lever arm
-                    la_bal = f * phi_la                                       # ball lever arm
-                    la_bic = b * np.sin(phi_b)                                # bicep lever arm
+                    la_fa = cgf * theta_la                                      # forearm lever arm
+                    la_bal = f * theta_la                                       # ball lever arm
+                    la_bic = b * np.sin(theta_b)                                # bicep lever arm
                 except:
                     print("extrapolation.py: ERROR calculating lever arms in `calc_bicep_force()`")
 
@@ -1204,7 +1213,7 @@ class Extrapolate_forces():
     # graph bicep forces
     def plot_bicep_forces(self, bicep_force, elbow_angle):
         try:
-            # plot bicep force / phi_u
+            # plot bicep force / theta_u
             y = np.abs(bicep_force)            # bicep force
             x = np.rad2deg(elbow_angle)        # angle at elbow
 
