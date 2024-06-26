@@ -1475,7 +1475,7 @@ def draw_guide_overlay_1(frame, results):
 
     for key, (x_pos, y_pos) in initial_circle_positions.items():
         color = colors[key]
-        cv2.rectangle(overlay, (int(x_pos - 2.5 * radius), int(y_pos - radius)), (int(x_pos + 2.5 * radius), int(y_pos + radius)), color, cv2.FILLED)
+        cv2.rectangle(overlay, (int(x_pos - 2.5 * radius), int(y_pos - radius*2)), (int(x_pos + 2.5 * radius), int(y_pos + radius)), color, cv2.FILLED)
 
     return overlay
 
@@ -1514,10 +1514,10 @@ def check_points_in_rectangles(frame, results):
                                           initial_circle_positions.values()):
             x_pos, y_pos = rect_pos
             if 'shoulder' in label:
-                if (x_pos - 2.5 * radius <= pos[0] <= x_pos + 2.5 * radius) and (y_pos - radius <= pos[1] <= y_pos + radius):
+                if (x_pos - 2.5 * radius <= pos[0] <= x_pos + 2.5 * radius) and (y_pos - radius*2 <= pos[1] <= y_pos + radius):
                     points_in_position[label] = True
             else:
-                if (x_pos - radius <= pos[0] <= x_pos + radius) and (y_pos - 2.5 * radius <= pos[1] <= y_pos + 2.5 * radius):
+                if (x_pos - radius*1.5 <= pos[0] <= x_pos + radius*1.5) and (y_pos - 2.5 * radius <= pos[1] <= y_pos + 2.5 * radius):
                     points_in_position[label] = True
 
     return points_in_position
@@ -1651,7 +1651,7 @@ def draw_guide_overlay_2(frame, results):
 
     for key, (x_pos, y_pos) in initial_circle_positions.items():
         color = colors[key]
-        cv2.rectangle(overlay, (x_pos - radius, int(y_pos - 2.5 * radius)), (x_pos + radius, int(y_pos + 2.5 * radius)), color, cv2.FILLED)
+        cv2.rectangle(overlay, (int(x_pos - radius*1.5), int(y_pos - 2.5 * radius)), (int(x_pos + radius*1.5), int(y_pos + 2.5 * radius)), color, cv2.FILLED)
 
     return overlay
 
@@ -1778,7 +1778,7 @@ def draw_guide_overlay_3(frame, results):
 
     for key, (x_pos, y_pos) in initial_circle_positions.items():
         color = colors[key]
-        cv2.rectangle(overlay, (int(x_pos - radius), int(y_pos - 2.5 * radius)), (int(x_pos + radius), int(y_pos + 2.5 * radius)), color, cv2.FILLED)
+        cv2.rectangle(overlay, (int(x_pos - radius*1.5), int(y_pos - 2.5 * radius)), (int(x_pos + radius*1.5), int(y_pos + 2.5 * radius)), color, cv2.FILLED)
 
     return overlay
 
@@ -2151,14 +2151,45 @@ settings_submit_button.pack(padx=10, pady=15)
 def on_submit():
     try:
         global user_weight, user_height, user_depth, weightAdded, developer_mode, isGraphOn, forearm, upperarm, cfg, b, weightForearm, user_height_raw
-        user_weight = float(weight_entry.get())
-        user_height_raw = float(height_entry.get())
+        height_unit_value = height_unit.get()
+        depth_unit_value = depth_unit.get()
+        weight_unit_value = weight_unit.get()
+        weight_holding_unit_value = weight_holding_unit.get()
+
+
+        if weight_unit_value == "kg":
+            user_weight = float(weight_entry.get())
+        elif weight_unit_value == "lbs":
+            user_weight = float(weight_entry.get())*0.453592
+        elif weight_unit_value == "N":
+            user_weight = float(weight_entry.get())*0.10197
+
+
+        if height_unit_value == "cm":
+            user_height_raw = float(height_entry.get())
+        elif height_unit_value == "in":
+            user_height_raw = float(height_entry.get())*2.54
+        
         user_height = user_height_raw * 0.9588 #Mediapipe measures from kunckle to kunckle not fingertip to fingertip
-        user_depth = float(depth_entry.get())
-        weightAdded = float(weight_holding_entry.get())
+        
+
+        if depth_unit_value == "cm":
+            user_depth = float(depth_entry.get())
+        elif depth_unit_value == "in":
+            user_depth = float(depth_entry.get())*2.54
+
+
+        if weight_holding_unit_value == "kg":
+            weightAdded = float(weight_holding_entry.get())
+        elif weight_holding_unit_value == "lbs":
+            weightAdded = float(weight_holding_entry.get())*0.453592
+        elif weight_holding_unit_value == "N":
+            weightAdded = float(weight_holding_entry.get())*0.10197
+                
+        
         developer_mode = dev_mode_var.get() == 1
         #isGraphOn = graph_on_var.get() == 1
-        print(f"User Weight: {user_weight} kg, User Height: {user_height} cm, User Depth: {user_depth} cm, Weight Holding: {weightAdded} kg")
+        print(f"User Weight: {user_weight} kg, User Height: {user_height_raw} cm, User Depth: {user_depth} cm, Weight Holding: {weightAdded} kg")
         show_settings()  # Show the settings frame instead of destroying the window
 
         #Updating initial values
@@ -2169,6 +2200,7 @@ def on_submit():
         weightForearm = user_weight * 0.023
 
     except ValueError:
+        ttk.Label(left_column, text="*Please enter valid numbers \nfor weight, height, and depth.").grid(row=6, padx=10, pady=5, sticky='w')
         print("Please enter valid numbers for weight, height, and depth.")
 
 # Start frame
@@ -2181,7 +2213,6 @@ title_label.pack(padx=20, pady=20)
 start_button = ttk.Button(start_frame, text="Start", command=show_data_input)
 start_button.pack(side=tk.BOTTOM, padx=10, pady=10)
 
-
 # Data input frame setup
 data_input_frame = ttk.Frame(main_window)
 
@@ -2189,48 +2220,54 @@ data_input_frame = ttk.Frame(main_window)
 left_column = ttk.Frame(data_input_frame)
 left_column.pack(side=tk.LEFT, fill='both', expand=True, padx=10, pady=10)
 
-ttk.Label(left_column, text="Enter Your Height (cm):").pack(padx=10, pady=5)
+ttk.Label(left_column, text="Enter Your Height:").grid(row=0, column=0, padx=10, pady=5, sticky='w')
 height_entry = ttk.Entry(left_column)
-height_entry.pack(padx=10, pady=5)
+height_entry.grid(row=0, column=1, padx=10, pady=5, sticky='w')
+height_unit = ttk.Combobox(left_column, values=["cm", "in"], width=5, state='readonly')
+height_unit.set("cm")
+height_unit.grid(row=0, column=2, padx=10, pady=5, sticky='w')
 
-ttk.Label(left_column, text="Enter Your Distance from Camera (cm):").pack(padx=10, pady=5)
+ttk.Label(left_column, text="Enter Your Distance from Camera:").grid(row=1, column=0, padx=10, pady=5, sticky='w')
 depth_entry = ttk.Entry(left_column)
-depth_entry.pack(padx=10, pady=5)
+depth_entry.grid(row=1, column=1, padx=10, pady=5, sticky='w')
+depth_unit = ttk.Combobox(left_column, values=["cm", "in"], width=5, state='readonly')
+depth_unit.set("cm")
+depth_unit.grid(row=1, column=2, padx=10, pady=5, sticky='w')
 
-# Right column for user weight, weight holding, and developer mode
-right_column = ttk.Frame(data_input_frame)
-right_column.pack(side=tk.LEFT, fill='both', expand=True, padx=10, pady=10)
+ttk.Label(left_column, text="Enter Your Weight:").grid(row=2, column=0, padx=10, pady=5, sticky='w')
+weight_entry = ttk.Entry(left_column)
+weight_entry.grid(row=2, column=1, padx=10, pady=5, sticky='w')
+weight_unit = ttk.Combobox(left_column, values=["kg", "lbs", "N"], width=5, state='readonly')
+weight_unit.set("kg")
+weight_unit.grid(row=2, column=2, padx=10, pady=5, sticky='w')
 
-ttk.Label(right_column, text="Enter Your Weight (kg):").pack(padx=10, pady=5)
-weight_entry = ttk.Entry(right_column)
-weight_entry.pack(padx=10, pady=5)
-
-ttk.Label(right_column, text="Enter The Weight You're Holding (kg):").pack(padx=10, pady=5)
-weight_holding_entry = ttk.Entry(right_column)
-weight_holding_entry.pack(padx=10, pady=5)
+ttk.Label(left_column, text="Enter The Weight You're Holding:").grid(row=3, column=0, padx=10, pady=5, sticky='w')
+weight_holding_entry = ttk.Entry(left_column)
+weight_holding_entry.grid(row=3, column=1, padx=10, pady=5, sticky='w')
+weight_holding_unit = ttk.Combobox(left_column, values=["kg", "lbs", "N"], width=5, state='readonly')
+weight_holding_unit.set("kg")
+weight_holding_unit.grid(row=3, column=2, padx=10, pady=5, sticky='w')
 
 dev_mode_var = tk.IntVar()
-dev_mode_check = ttk.Checkbutton(right_column, text="Developer Mode", variable=dev_mode_var)
-dev_mode_check.pack(padx=10, pady=5)
+dev_mode_check = ttk.Checkbutton(left_column, text="Developer Mode", variable=dev_mode_var)
+dev_mode_check.grid(row=4, columnspan=3, padx=10, pady=5)
 
 """
 graph_on_var = tk.IntVar()
 graph_on_check = ttk.Checkbutton(right_column, text="Enable Graph", variable=graph_on_var)
-graph_on_check.pack(padx=10, pady=5)
+graph_on_check.grid(row=3, columnspan=3, padx=10, pady=5)
 """
 
-submit_button = ttk.Button(right_column, text="Next", command=on_submit)
-submit_button.pack(side=tk.BOTTOM, padx=10, pady=10)
+
+
+submit_button = ttk.Button(left_column, text="Next", command=on_submit)
+submit_button.grid(row=5, columnspan=3, padx=10, pady=10)
 
 if BypassStartUp is True:
     main_window.destroy()
 
-
 # Start the Tkinter main loop
 main_window.mainloop()
-
-
-
 
 """
 /\ /\ /\ 
