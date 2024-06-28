@@ -2,5 +2,5 @@
 excel_data_out.py
 *.xlsx
 *.ods
-./calibration/calibrate_pics/*
-./calibration/calibrate_pics
+calibration/calibrate_pics/*.png
+calibration/calibrate_pics
