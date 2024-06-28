@@ -481,19 +481,21 @@ class Extrapolate_forces():
             #                self.mediapipe_data_output[first_part, :]
             #            )
             
-            if not is_hand: # check if using hand data
-                first = self.mediapipe_data_output[first_part]
-                second = self.mediapipe_data_output[second_part]
-            else:           # work with hand data
-                first = self.hand_mp_out[first_part]
-                second = self.hand_mp_out[second_part]
-
+           # if not is_hand: # check if using hand data
+           #     first = self.mediapipe_data_output[first_part]
+           #     second = self.mediapipe_data_output[second_part]
+           # else:           # work with hand data
+           #     first = self.hand_mp_out[first_part]
+           #     second = self.hand_mp_out[second_part]
+            first = self.mediapipe_data_output[first_part]
+            second = self.mediapipe_data_output[second_part]
+           
             # calculate distance between the x and z components of each vertex, ignoring the y component which will be calculated later
             dist = np.sqrt( (second[0] - first[0])**2 + (second[2] - first[2])**2 )
 
             # update max distance between these parts, if necessary
-            if (not is_hand) and dist > self.max_array[first_part][second_part]:
-                self.max_array[first_part][second_part] = dist
+           # if (not is_hand) and dist > self.max_array[first_part][second_part]:
+           #     self.max_array[first_part][second_part] = dist
 
             # what this chunk of code does is basically act as a workaround for not having a way to properly work with segments instead of just vertices
             #try:
@@ -586,7 +588,7 @@ class Extrapolate_forces():
             sim_biacromial = self.dist_array[L_SHOULDER][R_SHOULDER]
 
             # use true shoulder width and current distance between shoulders in sim units to get conversion factor
-            self.sim_to_real_conversion_factor = self.bodypart_lengths[SHOULDER_WIDTH] / sim_biacromial
+            self.sim_to_real_conversion_factor = self.bodypart_lengths[SHOULDER_WIDTH] / sim_biacromial         # units: meters / mediapipe units
         except:
             print("extrapolation.py: ERROR calculating conversion ratio")
 
@@ -651,14 +653,15 @@ class Extrapolate_forces():
         try:
             cur_dist = self.calc_dist_between_vertices(vertex_one, vertex_two, is_hand)      # current distance between given parts
             
-            if is_hand:     # check if calculating for hand data, if so, calculate for hand
-                max_dist = HAND_VERTICES_TO_RATIOS[vertex_one][vertex_two]
-            else:               # use pose landmarker data
-                segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length 
-                max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
+           # if is_hand:     # check if calculating for hand data, if so, calculate for hand
+           #     max_dist = HAND_VERTICES_TO_RATIOS[vertex_one][vertex_two]
+           # else:               # use pose landmarker data
+            segment_index = VERTEX_TO_SEGMENT[vertex_one][vertex_two]               # get segment index for getting bodypart length 
+            max_dist = self.bodypart_lengths[segment_index]                         # set max_dist to true length of given bodypart/segment
 
             #print("v1 %s, v2 %s, si %s" % (vertex_one, vertex_two, segment_index))  # DEBUG
-            angle = self.angle_from_normal(((self.sim_to_real_conversion_factor * int(not is_hand)) * cur_dist), max_dist)   # calculate difference between max distance and current distance
+           # angle = self.angle_from_normal(((self.sim_to_real_conversion_factor * int(not is_hand)) * cur_dist), max_dist)   # calculate difference between max distance and current distance
+            angle = self.angle_from_normal((self.sim_to_real_conversion_factor * cur_dist), max_dist)   # calculate difference between max distance and current distance
 
             r = np.sin(angle) * max_dist                                            # calculate depth
             #print(r)
@@ -1027,7 +1030,7 @@ class Extrapolate_forces():
             #vector = (vector[0], vector[2], vector[1])
 
             # use up vector as polar axis
-            z_axis = (0, 0, 1)
+           # z_axis = (0, 0, 1)
 
             # get rejection of vector from z axis for use getting phi
            # oproj_z_seg = vector - np.dot((np.dot(vector, z_axis) / np.dot(z_axis, z_axis)), z_axis)
@@ -1082,7 +1085,7 @@ class Extrapolate_forces():
             #   we can actually do this fairly simply as follows below;
             #theta = np.arctan2(vector[1], vector[0])
             #theta = np.arctan2(np.linalg.norm(np.cross(vector, z_axis)), np.dot(vector, z_axis))   # equivalent to the one used below
-            theta = np.arctan2(np.sqrt(vector[0]**2 + vector[1]**2), vector[2])
+            theta = np.arctan2(np.sqrt(vector[0]**2 + vector[1]**2), -vector[2])
 
             
             # DEBUG
@@ -1103,7 +1106,8 @@ class Extrapolate_forces():
                 print("%s spherical coords: (%s, %s, %s)" % (segment, rho, np.rad2deg(theta), np.rad2deg(phi)))
                 print("%s depth: %s" % (segment, vector[1]))
 
-            return [rho, (theta - (np.pi/2)), phi]  # subtract 90 deg from theta for use in forces calculations
+            #return [rho, (theta - (np.pi/2)), phi]  # subtract 90 deg from theta for use in forces calculations
+            return [rho, theta, phi]  # subtract 90 deg from theta for use in forces calculations
         except:
             print("extrapolation.py: ERROR in `calc_spher_coords()`")#%s, %s)`" % (vertex_one, vertex_two))
 
@@ -1161,9 +1165,11 @@ class Extrapolate_forces():
                     #theta_arm = (np.pi / 2) - farm_spher_coords[THETA]          # angle at shoulder
                     #theta_arm = farm_spher_coords[THETA]
                     #theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]         # angle of upper arm
-                    theta_uarm = uarm_spher_coords[THETA]
+                    theta_uarm = uarm_spher_coords[THETA] - np.pi / 2
+                    theta_farm = farm_spher_coords[THETA]
                     #theta_uarm = (np.pi / 2) + uarm_spher_coords[THETA]
-                    theta_u = elbow_angle #theta_arm + theta_uarm                # angle at elbow
+                    theta_u = theta_farm + (np.pi - uarm_spher_coords[THETA])   #elbow_angle #theta_arm + theta_uarm                # angle at elbow
+                    print("Theta u = %s" % theta_u)
                     theta_b = np.pi - np.arccos( (b - u * np.cos(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) )  #np.sin(theta_u) ) )      # angle at bicep insertion point
                     #theta_b = np.pi - np.arccos( np.clip( ( (b - u * np.sin(theta_u)) / np.sqrt( (b ** 2) + (u ** 2) - 2 * b * u * np.cos(theta_u) ) ), -1, 1 ) )  #np.sin(theta_u) ) )      # angle at bicep insertion point
                     theta_la = np.cos(theta_uarm)   # theta_uarm should = theta_u - theta_arm
