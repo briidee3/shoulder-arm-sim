@@ -27,8 +27,8 @@ from functools import partial
 #cur_pic = 0
 
 # checkerboard dimensions
-checkerboard = (6,9)                                                        # height x width of checkerboard (num of boxes)
-#criteria_setting = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)  # criteria for stopping point of cornerSubPix
+checkerboard = (10,14)                                                              # height x width of checkerboard (num of boxes)
+criteria_setting = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)  # criteria for stopping point of cornerSubPix
 
 # delay between frames (15 for 60 frames per sec)
 delay = 15
@@ -279,7 +279,8 @@ def __del__(root, cam, is_calibrate):
 
 # calibrate the camera as described in https://learnopencv.com/camera-calibration-using-opencv/
 #   much of the code of this function is used directly as exemplified in the above link
-def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), checkerboard = (6,9), criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001), calc_reproj_err = True, save_to_file = True, w_h = (640, 480)):
+#def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), checkerboard = (6,9), criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001), calc_reproj_err = True, save_to_file = True, w_h = (640, 480)):
+def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), checkerboard = checkerboard, criteria = criteria_setting, calc_reproj_err = True, save_to_file = True, w_h = (640, 480)):
     try:
         prep_workspace()
 
@@ -349,7 +350,7 @@ def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), 
         try:
             if save_to_file:
                 os.chdir("calibration")                     # change to calibration directory
-                file_name = "camera_calibration_data.txt"   # set name of file to hold calibration data
+                file_name = "output.txt"   # set name of file to hold calibration data
                 with open(file_name, "w") as file:
                     file.write((mtx, dist, rvecs, tvecs))
         except Exception as e:
