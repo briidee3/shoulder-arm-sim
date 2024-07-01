@@ -168,7 +168,7 @@ def run_cam_calib_gui():
         # settings
         #cur_pic = 0             # denote current picture (need >3 for calibration      # no longer used, just using pic_num_var for this
         #countdown = 3           # time in seconds from press of "Take picture" button to taking of picture
-        element_width = 40      # default width of text in gui elements
+        element_width = 50      # default width of text in gui elements
         element_height = 8      # default height of text in gui elements
         
         # set up workspace
@@ -176,12 +176,13 @@ def run_cam_calib_gui():
         prep_workspace()
             
         # instructions
-        instructions = str("Hold the checkerboard in front of the camera " + 
-            "and take {num_of_pics} pictures of it in different orientations ".format(num_of_pics = num_pics) + 
-            "at different positions in the camera's view. " + 
-            "After clicking the \"Take picture\" button below, you will " + 
-            "have 3 seconds to prepare, then the camera will take a picture " + 
-            "for use in calibration.")
+        instructions = str("Hold the checkerboard in front of the \n" + 
+            "camera and take {num_of_pics} pictures of it in \n".format(num_of_pics = num_pics) + 
+            "different orientations at different positions \n" + 
+            "in the camera's view. After clicking the \n" + 
+            "\"Take picture\" button below, you will have \n" + 
+            "3 seconds to prepare, then the camera will \n" + 
+            "take a picture for use in calibration. ")
         
 
         # initialize camera
@@ -211,8 +212,9 @@ def run_cam_calib_gui():
         instruct_frame.grid(row = 0, column = 0)
 
         # create text object for displaying instructions
-        instructs_text = tk.Text(instruct_frame, state = tk.DISABLED, height = element_height, width = element_width)
-        instructs_text.insert(tk.INSERT, instructions)
+        instructs_text = tk.Text(instruct_frame, height = element_height, width = element_width)
+        instructs_text.insert("1.0", instructions)
+        instructs_text.config(state = "disabled")
         instructs_text.grid(row = 0, column = 0)
 
 
