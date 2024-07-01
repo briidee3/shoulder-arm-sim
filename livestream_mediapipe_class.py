@@ -40,6 +40,10 @@ import json
 # functions for data/physics calculations and manipulations
 import extrapolation
 
+# functions for calibrating the camera
+from camera_calibration import *
+
+
 # testing input from keyboard
 #key = cv2.waitKey(0)
 
@@ -225,10 +229,10 @@ class Pose_detection(threading.Thread):
                 #self.cur_msec = cur_msec    # object-wide version of cur_msec (currently in testing)
 
                 # capture video for each frame
-                self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
-                # set object variables
-                #self.ret = ret
-                #self.cur_frame = cur_frame
+                #self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                self.ret, raw_cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                # undistort raw_cur_frame, use as self.cur_frame
+                self.cur_frame = get_undistorted(raw_cur_frame, self.camera_matrix, self.dist_coeffs, self.camera_matrix_new)
 
                 # run detector callback functions, updates annotated_image
                 self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
