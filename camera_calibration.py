@@ -23,12 +23,17 @@ from PIL import ImageTk
 from functools import partial
 
 
+HEIGHT = 480
+WIDTH = 640
+
+img_w_h = (WIDTH, HEIGHT)
+
 
 # iterator denoting current picture
 #cur_pic = 0
 
 # checkerboard dimensions
-checkerboard = (10,14)                                                              # height x width of checkerboard (num of boxes)
+checkerboard_setting = (9,13)                                                              # height x width of checkerboard (num of boxes)
 criteria_setting = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)  # criteria for stopping point of cornerSubPix
 
 # delay between frames (15 for 60 frames per sec)
@@ -36,7 +41,7 @@ delay = 15
 # countdown time in secs
 countdown_len = 5
 # directory in "calibration" directory to save calibration pics in
-save_dir_name = "calibrate_pics"
+save_dir_name = os.path.join("calibration", "calibrate_pics")
 # denote how many pics to take
 num_pics = 5
 # name of data output file
@@ -96,7 +101,7 @@ def take_picture_gui(img, num_pics, countdown, feedback_var, num_var):
     except Exception as e:
         print("camera_calibration.py: Exception taking picture in `take_picture_gui`: \n\t%s" % str(e))
 """
-
+"""
 # prepare workspace for storing pics
 def prep_workspace(dir_name = "calibrate_pics"):
     if "calibration" in os.listdir("."):
@@ -109,7 +114,7 @@ def prep_workspace(dir_name = "calibrate_pics"):
     # if the directory for holding calibration pics doesn't exist, create it
     if not dir_name in os.listdir("."):
         os.mkdir(dir_name)      # make directory
-
+"""
 
 
 ### GUI FUNCTIONS
@@ -172,8 +177,8 @@ def run_cam_calib_gui():
         element_height = 8      # default height of text in gui elements
         
         # set up workspace
-        os.chdir("calibration")         # go into local "calibration" directory
-        prep_workspace()
+        #os.chdir("calibration")         # go into local "calibration" directory
+        #prep_workspace()
             
         # instructions
         instructions = str("Hold the checkerboard in front of the \n" + 
@@ -271,13 +276,13 @@ def __del__(root, cam, is_calibrate):
 
     # end gui
     root.destroy()
-
-    # run calibration on images
-    if is_calibrate:
-        calibrate_camera(save_dir_name, cam, checkerboard, criteria)
     
     # release camera
     cam.release()
+
+    # run calibration on images
+    if is_calibrate:
+        calibrate_camera(save_dir_name, checkerboard_setting, criteria_setting)
 
 
 
@@ -285,28 +290,26 @@ def __del__(root, cam, is_calibrate):
 
 # calibrate the camera as described in https://learnopencv.com/camera-calibration-using-opencv/
 #   much of the code of this function is used directly as exemplified in the above link
-#def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), checkerboard = (6,9), criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001), calc_reproj_err = True, save_to_file = True, w_h = (640, 480)):
-def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), checkerboard = checkerboard, criteria = criteria_setting, calc_reproj_err = True, save_to_file = True, w_h = (640, 480)):
+#def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), checkerboard = (6,9), criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001), calc_reproj_err = True, save_to_file = True, w_h = img_w_h):
+def calibrate_camera(dir_name = "calibrate_pics", checkerboard = checkerboard_setting, criteria = criteria_setting, calc_reproj_err = True, save_to_file = True, w_h = img_w_h):
     try:
-        prep_workspace()
+        # put together path of folder containing images
+        pics_dir = os.path.join("calibration", dir_name)
 
         # used to store points for each checkerboard image
         objpoints = []  # 3d points
         imgpoints = []  # 2d points
 
         # defining world coords for 3d points
-        objp = np.zeros( (1, checkerboard[0] * checkerboard[1], 3), np.float32)             # initializing ndarray to hold data for one pic at a time
-        objp[:, :, :2] = np.mgrid[0:checkerboard[0], 0:checkerboard[1]].T.reshape(-1, 2)   # creating a mesh grid
-        
-        # store object points and image points from all images
-        objpoints = []      # 3d points in real world space
-        imgpoints = []      # 2d points in image plane
-        
-        prev_img_shape = None                                                               # hold shape of prev image
+        objp = np.zeros( (checkerboard[0] * checkerboard[1], 3), np.float32)             # initializing ndarray to hold data for one pic at a time
+        objp[:, :2] = np.mgrid[0:checkerboard[0], 0:checkerboard[1]].T.reshape(-1, 2)   # creating a mesh grid
 
+        prev_img_shape = None                                                               # hold shape of prev image
+        
         # get list of pics in given directory
         #pics = os.listdir(dir_name)
-        pics = glob.glob(os.path.join(dir_name + "*.png"))
+        pics = glob.glob(os.path.join(pics_dir, "*.png"))
+        #pics = [cv2.imread(pic) for pic in glob.glob(str(os.path.join(pics_dir + "*.png")))]
         
         # go through and run calibration steps on each of the pics in the directory
         try:
@@ -316,32 +319,45 @@ def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), 
 
                 # find chessboard corners
                 #   if desired num of corners not found, ret = False
-                ret, corners = cv2.findChessboardCorners(gray, checkerboard, cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FAST_CHECK + cv2.CALIB_CB_NORMALIZE_IMAGE)
+                ret, corners = cv2.findChessboardCorners(gray, checkerboard, None)#cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FAST_CHECK + cv2.CALIB_CB_NORMALIZE_IMAGE)
 
                 # if we found the desired num of corners, refine pixel coords and display on checkerboard images
                 if ret == True:
                     objpoints.append(objp)                                                              # append empty 3d data for current pic to objpoints (will be filled in during later step)
                     corners_refined = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)     # refine pixel coords for given 2d points
                     imgpoints.append(corners_refined)                                                   # append 2d refined corners data for current pic to imgpoints
-                    img = cv2.drawChessboardCorners(img, checkerboard, corners_refined, ret)            # get rows and cols of image
+                    #img = cv2.drawChessboardCorners(img, checkerboard, corners_refined, ret)            # draw and display corners of chessboard
                 
                 # TESTING (replace with other code after finished testing)
-                cv2.imshow("img", img)  # display image on screen
-                cv2.waitKey(0)          # wait for keyboard interrupt
+                #cv2.imshow("img", img)  # display image on screen
+                #cv2.waitKey(0)          # wait for keyboard interrupt
 
                 prev_img_shape = gray.shape[::-1]   
                       
         except Exception as e:
-            print("camera_calibration.py: Exception in calibrate_camera: \n\t%s" % str(e))  # overlay found corners onto img
+            print("camera_calibration.py: Exception finding corners in calibrate_camera: \n\t%s" % str(e))  # overlay found corners onto img
 
 
-        cv2.destroyAllWindows()     # exit opencv
+        #cv2.destroyAllWindows()     # exit opencv
         #h, w = img.shape[:2]        # height and width of img
 
         # do camera calibration by passing value of known 3d points (objpoints) and corresponding pixel coords of detected corners (imgpoints)
         #   returns (success check, camera matrix, distortion coefficients, rotation vector, translation vector) in that order
         #ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, w_h, None, None)
+        #ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, prev_img_shape, None, None)
+        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, img_w_h, None, None)
+
+
+        # (optional) save data to file
+        try:
+            if save_to_file:
+                # open file, write new data into it
+                with open(os.path.join("calibration", output_filename), "w") as file:
+                    file.write(":".join(map(str, (ret, mtx.tolist(), dist.tolist(), tuple(np.array(rvecs).tolist()), tuple(np.array(tvecs).tolist())))))
+                    file.close()
+                    
+        except Exception as e:
+            print("camera_calibration.py: Exception saving calibration data to file: \n\t%s" % str(e))
 
 
         # calculate reprojection error
@@ -352,20 +368,6 @@ def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), 
         except Exception as e:
             print("camera_calibration.py: Exception calculating reprojection error in calibrate_camera: \n\t%s" % str(e))  # overlay found corners onto img
 
-        # (optional) save data to file
-        try:
-            if save_to_file:
-                os.chdir("calibration")                     # change to calibration directory
-                
-                # if file already exists, delete it before writing
-
-                # open file, write new data into it
-                with open(output_filename, "w") as file:
-                    file.write(":".join(map(str, (ret, mtx, dist, rvecs, tvecs))))
-                    file.close()
-                    
-        except Exception as e:
-            print("camera_calibration.py: Exception saving calibration data to file: \n\t%s" % str(e))
 
         # print data to console
         print("Camera matrix: %s\nDistortion coefficients: %s\nRotation vectors: %s\n Translation vectors: %s" % (str(mtx), str(dist), str(rvecs), str(tvecs)))
@@ -387,8 +389,8 @@ def get_undistorted(img, camera_matrix, dist_coeffs, camera_matrix_new):#, image
         img_new = cv2.undistort(img, camera_matrix, dist_coeffs, None, camera_matrix_new)
 
         # crop undistorted image using roi from prev step
-        x, y, w, h = roi
-        img_new = img_new[y:y + h, x:x + w]
+        #x, y, w, h = roi
+        #img_new = img_new[y:y + h, x:x + w]
 
         # return cropped and undistorted image
         return img_new
@@ -405,7 +407,7 @@ def calc_reprojection_error(objpoints, imgpoints, camera_matrix, dist_coeffs, rv
         # go thru for each of the images used for calibration
         for i in range(len(objpoints)):
             imgpoints_proj, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], camera_matrix, dist_coeffs)
-            error = cv2.norm(imgpoints[i], imgpoints_proj, cv2.NORM_L2) / len(imgponits_proj)
+            error = cv2.norm(imgpoints[i], imgpoints_proj, cv2.NORM_L2) / len(imgpoints_proj)
             mean_error += error
         
         return mean_error / len(objpoints)

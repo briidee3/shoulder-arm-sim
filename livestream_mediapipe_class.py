@@ -281,8 +281,8 @@ class Pose_detection(threading.Thread):
 
             # read in camera matrix and distortion coefficients for use getting undistorted images
             data = data_str.split(":")
-            cam_mat = json.loads(data[1])       # camera matrix
-            dist = json.loads(data[2])          # distortion coefficients
+            cam_mat = np.array(json.loads(data[1]))       # camera matrix
+            dist = np.array(json.loads(data[2]))          # distortion coefficients
 
             return cam_mat, dist
 
