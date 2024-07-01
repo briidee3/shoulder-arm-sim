@@ -38,6 +38,8 @@ countdown_len = 5
 save_dir_name = "calibrate_pics"
 # denote how many pics to take
 num_pics = 5
+# name of data output file
+output_filename = "output.txt"
 
 
 
@@ -350,9 +352,14 @@ def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), 
         try:
             if save_to_file:
                 os.chdir("calibration")                     # change to calibration directory
-                file_name = "output.txt"   # set name of file to hold calibration data
-                with open(file_name, "w") as file:
-                    file.write((mtx, dist, rvecs, tvecs))
+                
+                # if file already exists, delete it before writing
+
+                # open file, write new data into it
+                with open(output_filename, "w") as file:
+                    file.write(":".join(map(str, (ret, mtx, dist, rvecs, tvecs))))
+                    file.close()
+                    
         except Exception as e:
             print("camera_calibration.py: Exception saving calibration data to file: \n\t%s" % str(e))
 
@@ -367,13 +374,10 @@ def calibrate_camera(dir_name = "calibrate_pics", camera = cv2.VideoCapture(1), 
 
 # remove distortion from input image
 #   it may be best to just do this from within the code dealing with the stream of images, to try to prevent unnecessary data passing
-def get_undistorted(camera_matrix, dist_coeffs, img):#, image_size, alpha, new_image_size):
+def get_undistorted(img, camera_matrix, dist_coeffs, camera_matrix_new):#, image_size, alpha, new_image_size):
     try:
         # get height and width of image
         h, w = img.shape[:2]
-
-        # get the new camera intrinsic matrix and roi region
-        camera_matrix_new, roi = cv2.getOptimalNewCameraMatrix(camera_matrix, dist_coeffs, (w, h), 1, (w, h))
 
         # apply undistortion
         img_new = cv2.undistort(img, camera_matrix, dist_coeffs, None, camera_matrix_new)
@@ -382,6 +386,7 @@ def get_undistorted(camera_matrix, dist_coeffs, img):#, image_size, alpha, new_i
         x, y, w, h = roi
         img_new = img_new[y:y + h, x:x + w]
 
+        # return cropped and undistorted image
         return img_new
     except Exception as e:
         print("camera_calibration.py: Exception in `get_undistorted`: \n\t%s" % str(e))
