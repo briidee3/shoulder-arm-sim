@@ -380,17 +380,20 @@ def calibrate_camera(dir_name = "calibrate_pics", checkerboard = checkerboard_se
 
 # remove distortion from input image
 #   it may be best to just do this from within the code dealing with the stream of images, to try to prevent unnecessary data passing
-def get_undistorted(img, camera_matrix, dist_coeffs, camera_matrix_new):#, image_size, alpha, new_image_size):
+def get_undistorted(img, camera_matrix, dist_coeffs, camera_matrix_new, roi = [0, 0, 0, 0], crop = False):#, image_size, alpha, new_image_size):
     try:
-        # get height and width of image
-        h, w = img.shape[:2]
 
         # apply undistortion
         img_new = cv2.undistort(img, camera_matrix, dist_coeffs, None, camera_matrix_new)
 
-        # crop undistorted image using roi from prev step
-        #x, y, w, h = roi
-        #img_new = img_new[y:y + h, x:x + w]
+        # crop the picture using roi
+        if crop:
+            # get height and width of image
+            h, w = img.shape[:2]
+
+            # crop undistorted image using roi from prev step
+            x, y, w, h = roi
+            img_new = img_new[y:y + h, x:x + w]
 
         # return cropped and undistorted image
         return img_new
