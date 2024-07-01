@@ -16,7 +16,8 @@ import os
 import glob
 import time
 from datetime import datetime
-from tkinter import *
+#from tkinter import *
+import tkinter as tk
 from PIL import Image
 from PIL import ImageTk
 from functools import partial
@@ -167,7 +168,8 @@ def run_cam_calib_gui():
         # settings
         #cur_pic = 0             # denote current picture (need >3 for calibration      # no longer used, just using pic_num_var for this
         #countdown = 3           # time in seconds from press of "Take picture" button to taking of picture
-        element_width = 20      # default width of text in gui elements
+        element_width = 40      # default width of text in gui elements
+        element_height = 8      # default height of text in gui elements
         
         # set up workspace
         os.chdir("calibration")         # go into local "calibration" directory
@@ -187,62 +189,62 @@ def run_cam_calib_gui():
 
 
         # initialize GUI
-        root = Tk()          # set up tkinter root
+        root = tk.Tk()          # set up tkinter root
         root.title("Camera Calibration")
 
 
         # create gui frame
-        gui = Frame(root)       # set it up inside the root
+        gui = tk.Frame(root)       # set it up inside the root
         gui.grid()              # set up a grid
 
         # create label for image display
-        image_label = Label(gui)
+        image_label = tk.Label(gui)
         image_label.grid(row = 0, column = 0)
         image_label.photo = None
 
         # create frame for displaying info/instructions to user
-        info_frame = Frame(gui)
+        info_frame = tk.Frame(gui)
         info_frame.grid(row = 0, column = 1)
 
         # create label frame for displaying instructions
-        instruct_frame = LabelFrame(info_frame, text = "Instructions: ")
+        instruct_frame = tk.LabelFrame(info_frame, text = "Instructions: ")
         instruct_frame.grid(row = 0, column = 0)
 
         # create text object for displaying instructions
-        instructs_text = Text(instruct_frame, state = DISABLED)
+        instructs_text = tk.Text(instruct_frame, state = tk.DISABLED, height = element_height, width = element_width)
+        instructs_text.insert(tk.INSERT, instructions)
         instructs_text.grid(row = 0, column = 0)
-        instructs_text.insert(index = 1.0, chars = instructions)
 
 
         # create frame for user input
-        input_frame = Frame(info_frame)
+        input_frame = tk.Frame(info_frame)
         input_frame.grid(row = 1, column = 0)
 
         # create label to display feedback for taking picture
-        pic_fb_label = Frame(input_frame)    
+        pic_fb_label = tk.Frame(input_frame)    
         pic_fb_label.grid(row = 1, column = 0)
         # create variable for showing camera feedback text info
-        pic_fb_var = StringVar()
+        pic_fb_var = tk.StringVar()
         pic_fb_var.set("Camera status: ")
-        pic_fb_entry = Label(pic_fb_label, textvariable = pic_fb_var, height = 1, width = 40)
+        pic_fb_entry = tk.Label(pic_fb_label, textvariable = pic_fb_var, height = 1, width = 40)
         pic_fb_entry.grid(row = 0, column = 0)
         # create string variable for showing number of pics left to take
-        pic_num_var = StringVar()               # create var to hold num of pics left to take
+        pic_num_var = tk.StringVar()               # create var to hold num of pics left to take
         pic_num_var.set("Number of pictures left to take: " + str(num_pics))
-        pic_num_entry = Label(pic_fb_label, textvariable = pic_num_var, height = 1, width = 40)
+        pic_num_entry = tk.Label(pic_fb_label, textvariable = pic_num_var, height = 1, width = 40)
         pic_num_entry.grid(row = 1, column = 0)
 
         # create booleans and string to help handle counting down between functions
-        is_countdown = BooleanVar()
+        is_countdown = tk.BooleanVar()
         is_countdown.set(False)
-        is_taking_pic = BooleanVar()
+        is_taking_pic = tk.BooleanVar()
         is_taking_pic.set(False)
-        countdown_end_time = StringVar()
+        countdown_end_time = tk.StringVar()
         countdown_end_time.set("0")             # initialize end time to start of UNIX time
         # create button for taking pictures
-        #take_pic_command = partial(take_picture_gui, cam, countdown, pic_fb_var, pic_num_var) # put together function call with args = Button(input_frame, text = "Take picture", command = take_pic_command)
-        #take_pic_button = Button(input_frame, text = "Take picture", command = take_pic_command)
-        take_pic_button = Button(input_frame, text = "Take picture", command = lambda : is_countdown.set(True))
+        #take_pic_command = partial(take_picture_gui, cam, countdown, pic_fb_var, pic_num_var) # put together function call with args = tk.Button(input_frame, text = "Take picture", command = take_pic_command)
+        #take_pic_button = tk.Button(input_frame, text = "Take picture", command = take_pic_command)
+        take_pic_button = tk.Button(input_frame, text = "Take picture", command = lambda : is_countdown.set(True))
         take_pic_button.grid(row = 0, column = 0)
 
 
