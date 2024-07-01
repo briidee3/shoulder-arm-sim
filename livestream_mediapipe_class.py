@@ -115,7 +115,8 @@ class Pose_detection(threading.Thread):
 
         # get the new camera intrinsic matrix and roi region for camera calibration
         self.camera_matrix_new, self.roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.dist_coeffs, (self.width, self.height), 1, (self.width, self.height))
-
+        # get cropped height and width of image
+        self.img_x, self.img_y, self.img_w, self.img_h = self.roi
 
         # test webcam
         if self.webcam_stream is None or not self.webcam_stream.isOpened():
@@ -232,7 +233,7 @@ class Pose_detection(threading.Thread):
                 #self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
                 self.ret, raw_cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
                 # undistort raw_cur_frame, use as self.cur_frame
-                self.cur_frame = get_undistorted(raw_cur_frame, self.camera_matrix, self.dist_coeffs, self.camera_matrix_new)
+                self.cur_frame = get_undistorted(raw_cur_frame, self.camera_matrix, self.dist_coeffs, self.camera_matrix_new, self.roi)#, crop = True)
 
                 # run detector callback functions, updates annotated_image
                 self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
@@ -294,7 +295,7 @@ class Pose_detection(threading.Thread):
 
     # helper function for use by GUI, returns current frame
     def get_cur_frame(self):
-        return self.ret, self.full_annotated_image
+        return self.ret, self.full_annotated_image[self.img_y:self.img_y + self.img_h, self.img_x:self.img_x + self.img_w]
     
     # return current calculated data
     def get_calculated_data(self):
