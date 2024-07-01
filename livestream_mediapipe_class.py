@@ -35,6 +35,8 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+import json
+
 # functions for data/physics calculations and manipulations
 import extrapolation
 
@@ -101,6 +103,15 @@ class Pose_detection(threading.Thread):
         # set height and width accordingly
         #HEIGHT = self.webcam_stream.get(cv2.CAP_PROP_FRAME_HEIGHT)
         #WIDTH = self.webcam_stream.get(cv2.CAP_PROP_FRAME_WIDTH)
+
+
+        # camera calibration settings and setup
+        # get calibration data from file
+        self.camera_matrix, self.dist_coeffs = self.load_cam_calib_data()
+
+        # get the new camera intrinsic matrix and roi region for camera calibration
+        self.camera_matrix_new, self.roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.dist_coeffs, (self.width, self.height), 1, (self.width, self.height))
+
 
         # test webcam
         if self.webcam_stream is None or not self.webcam_stream.isOpened():
@@ -250,6 +261,31 @@ class Pose_detection(threading.Thread):
             self.webcam_stream.set(4, float(self.height))
         except:
             print("livestream_mediapipe_class.py: ERROR in `set_image_hw()`")
+
+    # load camera calibration data from `calibration/output.txt`
+    def load_cam_calib_data(self, file = "output.txt"):
+        try:
+            path = os.path.join("calibration", file)        # get file path
+            data_str = ""                                   # string to hold data read from file
+
+            #ret, mtx, dist, rvecs, tvecs
+            
+            # read data from file
+            with open(path, "r") as calib:
+                data_str = calib.read()
+                calib.close()
+
+            # read in camera matrix and distortion coefficients for use getting undistorted images
+            data = data_str.split(":")
+            cam_mat = json.loads(data[1])       # camera matrix
+            dist = json.loads(data[2])          # distortion coefficients
+
+            return cam_mat, dist
+
+        except Exception as e:
+            print("livestream_mediapipe_class.py: Exception in `load_cam_calib_data: \n\t%s" % str(e))
+        
+        
 
 
     # helper function for use by GUI, returns current frame
