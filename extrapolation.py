@@ -1027,7 +1027,7 @@ class Extrapolate_forces():
             vector = self.mediapipe_data_output[vertex_two] - self.mediapipe_data_output[vertex_one]
 
             # swap coord systems (numpy coord system and ours swap the z and y axes)
-            #vector = (vector[0], vector[2], vector[1])
+           # vector = np.array([vector[0], vector[2], vector[1]])
 
             # use up vector as polar axis
            # z_axis = (0, 0, 1)
