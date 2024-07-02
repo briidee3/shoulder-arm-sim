@@ -109,21 +109,36 @@ class Pose_detection(threading.Thread):
         #WIDTH = self.webcam_stream.get(cv2.CAP_PROP_FRAME_WIDTH)
 
 
-        # camera calibration settings and setup
-        # get calibration data from file
-        self.camera_matrix, self.dist_coeffs = self.load_cam_calib_data()
+        ### CAMERA CALIBRATION
 
-        # get the new camera intrinsic matrix and roi region for camera calibration
-        self.camera_matrix_new, self.roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.dist_coeffs, (self.width, self.height), 1, (self.width, self.height))
-        # get cropped height and width of image
-        self.img_x, self.img_y, self.img_w, self.img_h = self.roi
+        # make cropping optional (if True -> crop undistorted image, else -> don't crop)
+        self.use_crop = True
+        # make undistortion optional (if True -> undistort each frame, else -> don't undistort)
+        #   if true, sets use_crop to false right before main running loop
+        self.use_cam_calibration = True
+
+        # set up camera calibration if enabled
+        if self.use_cam_calibration:
+            # get calibration data from file
+            self.camera_matrix, self.dist_coeffs = self.load_cam_calib_data()
+            # get the new camera intrinsic matrix and roi region for camera calibration
+            self.camera_matrix_new, self.roi = cv2.getOptimalNewCameraMatrix(self.camera_matrix, self.dist_coeffs, (self.width, self.height), 1, (self.width, self.height))
+            # get cropped height and width of image
+            self.img_x, self.img_y, self.img_w, self.img_h = self.roi
+        # set x y w and h to their default uncropped values, so as to not crop the image (and to avoid redundant check each frame)
+        if not self.use_crop or not self.use_cam_calibration:
+            self.img_x = 0
+            self.img_y = 0
+            self.img_w = self.width
+            self.img_h = self.height
+
 
         # test webcam
         if self.webcam_stream is None or not self.webcam_stream.isOpened():
             print("Warning: unable to open camera (camera source: %s)" % video_source)
         else:
             print("Info: Initialized webcam (source: %s)" % video_source)
-        
+
         print("Info: Initialized PoseLandmarker")        
 
 
@@ -215,33 +230,58 @@ class Pose_detection(threading.Thread):
 
     # run the program
     def run(self):
-        #try:
-        # display and update video stream
-        if self.webcam_stream.isOpened() == False:
-            print("ERROR opening webcam")       # make it so it doesnt crash when there's no webcam
-        else:
-            # main program loop
-            while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
-                #if cv2.waitKey(1) == 27:   # trying to get keyboard input to work. doesnt wanna lol
-                #    print("ESC pressed")
-                
-                # get current millisecond for use by detector
-                self.cur_msec = (int)(time.time() * 1000)
-                #self.cur_msec = cur_msec    # object-wide version of cur_msec (currently in testing)
+        try:
+            # display and update video stream
+            if self.webcam_stream.isOpened() == False:
+                print("ERROR opening webcam")       # make it so it doesnt crash when there's no webcam
+            else:
+                # loop using camera calibration
+                #   split into two loops to avoid redundant check of self.use_cam_calibration every frame (more computationally efficient this way)
+                if self.use_cam_calibration:
 
-                # capture video for each frame
-                #self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
-                self.ret, raw_cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
-                # undistort raw_cur_frame, use as self.cur_frame
-                self.cur_frame = get_undistorted(raw_cur_frame, self.camera_matrix, self.dist_coeffs, self.camera_matrix_new, self.roi)#, crop = True)
+                    # main program loop
+                    while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
+                        #if cv2.waitKey(1) == 27:   # trying to get keyboard input to work. doesnt wanna lol
+                        #    print("ESC pressed")
+                        
+                        # get current millisecond for use by detector
+                        self.cur_msec = (int)(time.time() * 1000)
+                        #self.cur_msec = cur_msec    # object-wide version of cur_msec (currently in testing)
 
-                # run detector callback functions, updates annotated_image
-                self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
-                #self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
-        #except:
-        #    print("livestream_mediapipe_class.py: ERROR in `run()`")
-        #finally:
-        #    print("Info: Stopping mediapipe...")
+                        # capture video for each frame
+                        #self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                        self.ret, raw_cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                        # undistort raw_cur_frame, use as self.cur_frame
+                        self.cur_frame = get_undistorted(raw_cur_frame, self.camera_matrix, self.dist_coeffs, self.camera_matrix_new, self.roi)#, crop = True)
+
+                        # run detector callback functions, updates annotated_image
+                        self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
+                        
+                # loop without camera calibration
+                else:
+                    # set self.use_crop to false, since there's no need if not using camera calibration
+                    self.use_crop = False
+
+                    # main program loop
+                    while not self.stop:    #((cv2.waitKey(1) & 0xFF == ord('q'))):    # or ret != True):'normal' == self.root.state():     # run while gui root is running     
+                        #if cv2.waitKey(1) == 27:   # trying to get keyboard input to work. doesnt wanna lol
+                        #    print("ESC pressed")
+                        
+                        # get current millisecond for use by detector
+                        self.cur_msec = (int)(time.time() * 1000)
+                        #self.cur_msec = cur_msec    # object-wide version of cur_msec (currently in testing)
+
+                        # capture video for each frame
+                        self.ret, self.cur_frame = self.webcam_stream.read()                       # ret is true if frame available, false otherwise; cur_frame is current frame (image)
+                        
+                        # run detector callback functions, updates annotated_image
+                        self.pose_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = self.cur_frame ), self.cur_msec )
+                        #self.hand_detector.detect_async( mp.Image( image_format = mp.ImageFormat.SRGB, data = cur_frame ), cur_msec )
+        except Exception as e:
+            print("livestream_mediapipe_class.py: Exception in `run()`: \n\t%s" % str(e))
+        finally:
+            print("Info: Stopping mediapipe...")
+        
         self.stop_program()
 
     # initialize display/camera input
